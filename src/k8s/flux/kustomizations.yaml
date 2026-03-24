@@ -1,0 +1,45 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra-k8s-apps-cert-manager
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./src/k8s/infrastructure/cert-manager
+  prune: true
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: infra-k8s-apps
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra-k8s-apps-cert-manager-issuers
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./src/k8s/infrastructure/cert-manager-issuers
+  prune: true
+  wait: true
+  dependsOn:
+    - name: infra-k8s-apps-cert-manager
+  sourceRef:
+    kind: GitRepository
+    name: infra-k8s-apps
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra-k8s-apps-apps
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./src/k8s/apps
+  prune: true
+  wait: true
+  dependsOn:
+    - name: infra-k8s-apps-cert-manager-issuers
+  sourceRef:
+    kind: GitRepository
+    name: infra-k8s-apps
