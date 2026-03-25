@@ -1,11 +1,11 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: infra-k8s-apps-cert-manager
+  name: infra-k8s-apps-bootstrap-controllers
   namespace: flux-system
 spec:
   interval: 5m
-  path: ./src/k8s/infrastructure/cert-manager
+  path: ./src/k8s/bootstrap/controllers
   prune: true
   wait: true
   sourceRef:
@@ -15,15 +15,15 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: infra-k8s-apps-cert-manager-issuers
+  name: infra-k8s-apps-bootstrap-config
   namespace: flux-system
 spec:
   interval: 5m
-  path: ./src/k8s/infrastructure/cert-manager-issuers
+  path: ./src/k8s/bootstrap/config
   prune: true
   wait: true
   dependsOn:
-    - name: infra-k8s-apps-cert-manager
+    - name: infra-k8s-apps-bootstrap-controllers
   sourceRef:
     kind: GitRepository
     name: infra-k8s-apps
@@ -39,7 +39,7 @@ spec:
   prune: true
   wait: true
   dependsOn:
-    - name: infra-k8s-apps-cert-manager-issuers
+    - name: infra-k8s-apps-bootstrap-config
   sourceRef:
     kind: GitRepository
     name: infra-k8s-apps

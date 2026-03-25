@@ -8,10 +8,13 @@ Flux-managed Kubernetes manifests for sgfdevs workloads.
 src/k8s/
 ├── apps/
 │   └── hello-nginx/
+├── bootstrap/
+│   ├── config/
+│   │   └── cert-manager-issuers/
+│   └── controllers/
+│       └── cert-manager/
 ├── flux/
-└── infrastructure/
-    ├── cert-manager/
-    └── cert-manager-issuers/
+└── kustomization.yaml
 ```
 
 ## Quickstart
@@ -24,4 +27,4 @@ kustomize build src/k8s/apps
 ## Notes
 
 - `src/k8s/flux/kustomizations.yaml` defines Flux reconciliation order.
-- `src/k8s/infrastructure/cert-manager-issuers/clusterissuer.yaml` uses a placeholder email. Update it before production certificate issuance.
+- `src/k8s/bootstrap/config/cert-manager-issuers/clusterissuer.yaml` uses a placeholder email. Update it before production certificate issuance.
