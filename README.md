@@ -1,30 +1,17 @@
 # infra-k8s-apps
 
-Flux-managed Kubernetes manifests for sgfdevs workloads.
+Holds the Kubernetes manifests for base infrastructure and applications deployed to the SGF Devs k3s cluster.
 
-## Layout
+## Scope
+- Owns: Kubernetes desired state for bootstrap components and app workloads in the SGF Devs k3s cluster.
 
-```text
-src/k8s/
-├── apps/
-│   └── hello-nginx/
-├── bootstrap/
-│   ├── config/
-│   │   └── cert-manager-issuers/
-│   └── controllers/
-│       └── cert-manager/
-├── flux/
-└── kustomization.yaml
-```
+## Structure
+- `src/k8s/flux/`: Flux Kustomizations that define reconciliation order.
+- `src/k8s/bootstrap/`: Base cluster components and cluster-level configuration.
+- `src/k8s/apps/`: Application manifests deployed to the cluster.
 
-## Quickstart
-
-```bash
-kustomize build src/k8s/flux
-kustomize build src/k8s/apps
-```
-
-## Notes
-
-- `src/k8s/flux/kustomizations.yaml` defines Flux reconciliation order.
-- `src/k8s/bootstrap/config/cert-manager-issuers/clusterissuer.yaml` uses a placeholder email. Update it before production certificate issuance.
+## Public ingress model
+- Public DNS hostnames (for example `hello-nginx.sgf.dev`) resolve to the public edge node.
+- The edge cluster forwards `*.sgf.dev` traffic to internal SGF Devs k3s nodes.
+- HTTPS is SNI passthrough at the edge, so TLS terminates on the destination workload cluster ingress.
+- This repo defines destination ingresses/services; edge entry and forwarding rules are owned by [`glitchedmob/infra-public-edge`](https://github.com/glitchedmob/infra-public-edge).
