@@ -2,8 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: hello-nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - hello-nginx.sgf.dev
+      secretName: hello-nginx-sgf-dev-tls
   rules:
     - host: hello-nginx.sgf.dev
       http:
