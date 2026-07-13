@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - alloy.yaml
+  - argocd-ingress.yaml
+  - argocd-install.yaml
+  - bootstrap-config.yaml
+  - dex.yaml
+  - grafana-infra.yaml
+  - headlamp.yaml
+  - kube-prometheus-stack.yaml
+  - loki.yaml
+  - longhorn-ingress.yaml
+  - oauth2-proxy.yaml
+  - openbao
+  - otel-collector.yaml
+  - prometheus-pushgateway.yaml
+  - seaweedfs-db.yaml
+  - seaweedfs-filer-ingress.yaml
+  - seaweedfs.yaml
+  - tempo.yaml
+  - thanos.yaml

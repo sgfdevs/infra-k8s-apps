@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+  sources:
+    - chart: alloy
+      repoURL: https://grafana.github.io/helm-charts
+      targetRevision: 1.10.1
+      helm:
+        values: |
+          alloy:
+            clustering:
+              enabled: true
+            enableReporting: false
+            configMap:
+              create: false
+              name: alloy-config
+              key: config.alloy
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+
+          controller:
+            tolerations:
+              - operator: Exists
+
+          serviceMonitor:
+            enabled: true
+            additionalLabels:
+              release: kube-prometheus-stack
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      path: src/k8s/platform/observability/alloy-config
+      targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

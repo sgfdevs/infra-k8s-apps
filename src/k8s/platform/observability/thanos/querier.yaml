@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thanos-querier-endpoint-sd
+  namespace: observability
+data:
+  endpoints.yaml: |
+    endpoints:
+      - address: dnssrv+_grpc._tcp.kube-prometheus-stack-thanos-discovery.observability.svc.cluster.local
+      - address: dnssrv+_grpc._tcp.thanos-store-headless.observability.svc.cluster.local
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-querier
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: thanos-querier
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: thanos-querier
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: thanos-querier
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - thanos-querier
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: thanos-querier
+          image: quay.io/thanos/thanos:v0.41.0
+          args:
+            - query
+            - --query.replica-label=prometheus_replica
+            - --query.replica-label=cluster
+            - --grpc-address=0.0.0.0:10901
+            - --http-address=0.0.0.0:10902
+            - --endpoint.sd-config-file=/etc/thanos/endpoints.yaml
+          ports:
+            - name: http
+              containerPort: 10902
+              protocol: TCP
+            - name: grpc
+              containerPort: 10901
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: endpoint-sd
+              mountPath: /etc/thanos
+              readOnly: true
+      volumes:
+        - name: endpoint-sd
+          configMap:
+            name: thanos-querier-endpoint-sd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-querier
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: thanos-querier
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 10902
+      targetPort: http
+      protocol: TCP
+    - name: grpc
+      port: 10901
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: thanos-querier
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanos-querier
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: thanos-querier
+  endpoints:
+    - port: http
+      interval: 30s

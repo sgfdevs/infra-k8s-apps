@@ -1,0 +1,179 @@
+logging {
+	level  = "info"
+	format = "logfmt"
+}
+
+discovery.kubernetes "pods" {
+	role = "pod"
+}
+
+discovery.relabel "pod_metadata" {
+	targets = discovery.kubernetes.pods.targets
+
+	rule {
+		source_labels = ["__meta_kubernetes_namespace"]
+		target_label  = "namespace"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_name"]
+		target_label  = "pod"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_app"]
+		target_label  = "app"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_service"]
+		target_label  = "service"
+	}
+}
+
+loki.process "parse_logs" {
+	stage.json {
+		expressions = {
+			level   = "level",
+			service = "service",
+		}
+	}
+
+	stage.labels {
+		values = {
+			level   = "",
+			service = "",
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"kube-system\", container=\"traefik\"}"
+
+		stage.regex {
+			expression = `"DownstreamStatus":(?P<status_class>[2345])\d{2}`
+		}
+
+		stage.labels {
+			values = {
+				status_class = "",
+			}
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"monitoring\", container=\"nginx\"}"
+
+		stage.regex {
+			expression = `\]\s+(?P<status_class>[2345])\d{2}\s+"`
+
+			labels_from_groups = true
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"oauth2-proxy\", container=\"oauth2-proxy\"}"
+
+		stage.regex {
+			expression = `"\s+(?P<status_class>[2345])\d{2}\s+\d+\s+[\d.]+$`
+
+			labels_from_groups = true
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"monitoring\", container=\"grafana\"}"
+
+		stage.regex {
+			expression = `\bstatus=(?P<status_class>[2345])\d{2}\b`
+
+			labels_from_groups = true
+		}
+	}
+
+	stage.match {
+		selector = "{status_class=~\"2|3\"}"
+
+		stage.sampling {
+			rate                = 0.1
+			drop_counter_reason = "access_log_2xx_3xx_sampled"
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"openbao\"}"
+
+		stage.json {
+			expressions = {
+				bao_level = "\"@level\"",
+			}
+		}
+
+		stage.labels {
+			values = {
+				level = "bao_level",
+			}
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"seaweedfs\"}|~\"^I[0-9]{4} \""
+
+		stage.static_labels {
+			values = {
+				level = "info",
+			}
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"seaweedfs\"}|~\"^W[0-9]{4} \""
+
+		stage.static_labels {
+			values = {
+				level = "warn",
+			}
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"seaweedfs\"}|~\"^E[0-9]{4} \""
+
+		stage.static_labels {
+			values = {
+				level = "error",
+			}
+		}
+	}
+
+	stage.match {
+		selector = "{namespace=\"seaweedfs\"}|~\"^F[0-9]{4} \""
+
+		stage.static_labels {
+			values = {
+				level = "fatal",
+			}
+		}
+	}
+
+	forward_to = [loki.write.loki.receiver]
+}
+
+loki.source.kubernetes "pod_logs" {
+	targets    = discovery.relabel.pod_metadata.output
+	forward_to = [loki.process.parse_logs.receiver]
+
+	clustering {
+		enabled = true
+	}
+}
+
+loki.write "loki" {
+	endpoint {
+		url = "http://loki-gateway.observability.svc.cluster.local:80/loki/api/v1/push"
+	}
+}

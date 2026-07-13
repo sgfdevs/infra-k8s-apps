@@ -1,0 +1,91 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otelcol
+  namespace: observability
+spec:
+  mode: daemonset
+  image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.155.0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  volumes:
+    - name: queue-storage
+      hostPath:
+        path: /var/lib/otelcol/queue
+        type: DirectoryOrCreate
+  volumeMounts:
+    - name: queue-storage
+      mountPath: /var/lib/otelcol/queue
+  initContainers:
+    - name: init-fs
+      image: busybox:1.38.0
+      command:
+        - sh
+        - -c
+        - chown -R 10001:10001 /var/lib/otelcol/queue
+      volumeMounts:
+        - name: queue-storage
+          mountPath: /var/lib/otelcol/queue
+      securityContext:
+        runAsUser: 0
+      resources: {}
+  config:
+    extensions:
+      file_storage/queue:
+        directory: /var/lib/otelcol/queue
+
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+      batch:
+        send_batch_size: 1024
+        timeout: 5s
+
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.observability.svc.cluster.local:4317
+        tls:
+          insecure: true
+        sending_queue:
+          storage: file_storage/queue
+          queue_size: 10000
+        retry_on_failure:
+          enabled: true
+          initial_interval: 1s
+          max_interval: 10s
+          max_elapsed_time: 300s
+      otlphttp/loki:
+        endpoint: http://loki-gateway.observability.svc.cluster.local:80/otlp
+      prometheusremotewrite:
+        endpoint: http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090/api/v1/write
+
+    service:
+      extensions: [file_storage/queue]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/tempo]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/loki]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [prometheusremotewrite]

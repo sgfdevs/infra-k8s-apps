@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-infra
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: platform
+  source:
+    repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+    path: src/k8s/platform/services/grafana-infra
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  ignoreDifferences:
+    - group: cert-manager.io
+      kind: Certificate
+      jsonPointers:
+        - /spec/duration
+        - /spec/renewBefore
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+        - .spec.data[].remoteRef.nullBytePolicy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

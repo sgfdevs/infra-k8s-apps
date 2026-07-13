@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-collector
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+    path: src/k8s/platform/observability/otel-collector
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

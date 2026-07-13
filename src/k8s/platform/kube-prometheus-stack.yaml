@@ -1,0 +1,199 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: platform
+  source:
+    chart: kube-prometheus-stack
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 87.15.1
+    helm:
+      values: |
+          alertmanager:
+            enabled: false
+
+          crds:
+            enabled: false
+
+          defaultRules:
+            create: true
+
+          kubeApiServer:
+            serviceMonitor:
+              enabled: false
+
+          kubelet:
+            serviceMonitor:
+              metricRelabelings:
+                - sourceLabels: [__name__, le]
+                  regex: '(csi_operations|storage_operation_duration)_seconds_bucket;(0.25|2.5|15|25|120|600)(\.0)?'
+                  action: drop
+                - sourceLabels: [__name__]
+                  regex: 'apiserver_(request_body_size_bytes|response_sizes|watch_events_sizes|watch_list_duration_seconds|watch_cache_read_wait_seconds|request_duration_seconds|request_sli_duration_seconds|request_total|flowcontrol_).*|etcd_request_duration_seconds.*|workqueue_.*|rest_client_.*'
+                  action: drop
+
+          kubeStateMetrics:
+            enabled: true
+            resources:
+              requests:
+                cpu: 25m
+                memory: 64Mi
+              limits:
+                cpu: 100m
+                memory: 128Mi
+
+          nodeExporter:
+            enabled: true
+            resources:
+              requests:
+                cpu: 25m
+                memory: 64Mi
+              limits:
+                cpu: 100m
+                memory: 128Mi
+
+          prometheusOperator:
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+
+          prometheus:
+            prometheusSpec:
+              enableRemoteWriteReceiver: true
+              replicas: 2
+              podAntiAffinity: "hard"
+              externalLabels:
+                cluster: sgfdevs
+              retention: 6h
+              retentionSize: 15GB
+              disableCompaction: true
+              tsdb:
+                outOfOrderTimeWindow: 30s
+              storageSpec:
+                volumeClaimTemplate:
+                  spec:
+                    accessModes:
+                      - ReadWriteOnce
+                    resources:
+                      requests:
+                        storage: 20Gi
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: 1000m
+                  memory: 2Gi
+              thanos:
+                objectStorageConfig:
+                  existingSecret:
+                    name: thanos-objstore-config
+                    key: objstore.yml
+            service:
+              type: NodePort
+              nodePort: 30909
+            thanosService:
+              enabled: true
+            thanosServiceMonitor:
+              enabled: true
+
+          grafana:
+            enabled: true
+            replicas: 2
+            dashboardProviders:
+              dashboardproviders.yaml:
+                apiVersion: 1
+                providers:
+                  - name: 'default'
+                    orgId: 1
+                    folder: ''
+                    type: file
+                    disableDeletion: false
+                    allowUiUpdates: false
+                    updateIntervalSeconds: 30
+                    options:
+                      foldersFromFilesStructure: false
+                      path: /var/lib/grafana/dashboards/default
+            podAnnotations:
+              reloader.stakater.com/auto: "true"
+            podDisruptionBudget:
+              minAvailable: 1
+            topologySpreadConstraints:
+              - maxSkew: 1
+                topologyKey: kubernetes.io/hostname
+                whenUnsatisfiable: DoNotSchedule
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: grafana
+            sidecar:
+              datasources:
+                url: http://thanos-querier.observability.svc.cluster.local:10902
+            "grafana.ini":
+              database:
+                type: postgres
+                host: grafana-db-rw.observability.svc.cluster.local:5432
+                name: grafana
+                user: grafana
+                password: $__file{/etc/secrets/grafana-db/password}
+                ssl_mode: disable
+              server:
+                domain: grafana.sgf.dev
+                root_url: https://grafana.sgf.dev
+              auth.generic_oauth:
+                enabled: true
+                name: Dex
+                client_id: grafana
+                client_secret: ${GF_OAUTH_CLIENT_SECRET}
+                auth_url: https://sso.sgf.dev/auth
+                token_url: http://dex.dex.svc.cluster.local:5556/token
+                api_url: http://dex.dex.svc.cluster.local:5556/userinfo
+                scopes: openid profile email groups
+                allowed_groups: sgfdevs:platform-admins
+                auto_assign_org: true
+                auto_assign_org_role: Viewer
+                role_attribute_path: "contains(groups[*], 'sgfdevs:platform-admins') && 'Admin' || 'Viewer'"
+                use_pkce: true
+            envFromSecret: dex-grafana-client-secret
+            extraSecretMounts:
+              - name: grafana-db
+                secretName: grafana-db-app
+                mountPath: /etc/secrets/grafana-db
+                readOnly: true
+            persistence:
+              enabled: false
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            additionalDataSources:
+              - name: Loki
+                type: loki
+                url: http://loki-gateway.observability.svc.cluster.local:80
+                access: proxy
+                editable: false
+              - name: Tempo
+                type: tempo
+                url: http://tempo.observability.svc.cluster.local:3200
+                access: proxy
+                editable: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
