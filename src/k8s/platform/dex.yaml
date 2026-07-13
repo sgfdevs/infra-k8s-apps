@@ -65,6 +65,7 @@ spec:
                   redirectURI: https://sso.sgf.dev/callback
                   useLoginAsID: true
                   loadAllGroups: false
+                  teamNameField: slug
                   orgs:
                     - name: sgfdevs
                       teams:
