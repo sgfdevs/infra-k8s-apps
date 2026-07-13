@@ -28,7 +28,7 @@ Public platform names are:
 - `seaweedfs.sgf.dev`
 - `traefik.sgf.dev`
 
-Dex uses the SGF GitHub organization and limits loaded teams to `sgfdevs:platform-admins`. Argo CD and Grafana consume group claims for native authorization. OpenBao OIDC must bind its administrator policy to the same group during application configuration. Headlamp, Longhorn, SeaweedFS, and Traefik use the single oauth2-proxy deployment through a Traefik ForwardAuth middleware restricted to `sgfdevs:platform-admins`. Traefik does not trust client-supplied forwarded headers for this middleware.
+Dex uses the SGF GitHub organization and limits loaded teams to `sgfdevs:platform-admins`. Argo CD and Grafana consume group claims for native authorization. Headlamp, Longhorn, SeaweedFS, and Traefik use one oauth2-proxy deployment with distinct, per-application Traefik ForwardAuth middlewares currently restricted to `sgfdevs:platform-admins`. Traefik does not trust client-supplied forwarded headers, and oauth2-proxy trusts forwarded headers only from the SGF k3s pod CIDR.
 
 ## Bootstrap
 
@@ -68,6 +68,7 @@ Argo CD then owns reconciliation. Review sync waves and application health befor
 ### Backblaze B2
 
 - Create the independent bucket `sgfdevs-vm-workloads-backups`.
+- Before the first OpenBao deployment, initialize the empty Restic repository at `b2:sgfdevs-vm-workloads-backups:openbao` with the configured B2 credentials and OpenBao repository password. An absent or inaccessible repository fails closed; an initialized repository with zero snapshots selects fresh-cluster mode.
 - Restrict the supplied B2 application key to that bucket with list, read, write, and delete capabilities required by restic/K8up retention.
 - The shared application repository uses path `app`; OpenBao always uses path `openbao`.
 
@@ -79,9 +80,11 @@ Argo CD then owns reconciliation. Review sync waves and application health befor
 
 ## Backups And Recovery
 
-K8up labels backup metrics with cluster `sgfdevs` and pushes them to Prometheus Pushgateway. Shared application backups use the base schedule and retention policy. OpenBao streams logical Raft snapshots to `b2:sgfdevs-vm-workloads-backups:openbao`, sets `RESTIC_CACHE_DIR` to a writable path, and restores the newest snapshot only when the local Raft state is uninitialized. Existing state is never overwritten automatically.
+K8up labels backup metrics with cluster `sgfdevs` and pushes them to Prometheus Pushgateway. Shared application backups use the base schedule and retention policy. OpenBao streams logical Raft snapshots to `b2:sgfdevs-vm-workloads-backups:openbao`, sets `RESTIC_CACHE_DIR` to a writable path, and restores the newest snapshot only when all three current Longhorn-backed PVCs are empty. A successful repository query with no snapshots permits first-time initialization; missing credentials or repository/auth/network errors fail closed. Existing state is never overwritten automatically.
 
-After Dex is available, configure OpenBao's OIDC auth method with issuer `https://sso.sgf.dev`, client `openbao`, a `groups` claim, and a role bound to `sgfdevs:platform-admins`. This application-level policy is intentionally not embedded in cluster bootstrap manifests.
+On the first deployment only, wait for `openbao-0` to run and initialize the otherwise intentionally uninitialized cluster exactly once with `kubectl -n openbao exec openbao-0 -- env BAO_ADDR=http://127.0.0.1:8200 bao operator init -recovery-shares=1 -recovery-threshold=1`. Securely retain the returned initial root token and recovery key; never rerun initialization or commit either value. The followers can join after pod 0 is initialized.
+
+OpenBao OIDC does not work automatically after cluster bootstrap. After Dex and OpenBao initialization are complete, use the initial root token to create an administrator policy, enable the `oidc` auth method, configure issuer `https://sso.sgf.dev` with client ID `openbao` and its external client secret, and create an OIDC role whose `groups_claim` is `groups`, whose bound `groups` claim is `sgfdevs:platform-admins`, and whose token policy is the administrator policy. Include `https://secrets.sgf.dev/ui/vault/auth/oidc/oidc/callback` as an allowed redirect URI, test an administrator login, then revoke the initial root token. These post-init policy and auth resources are intentionally not managed by the Kubernetes manifests.
 
 ## Validation
 

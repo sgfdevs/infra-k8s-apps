@@ -41,6 +41,7 @@ server:
   dataStorage:
     enabled: true
     size: 10Gi
+    storageClass: longhorn
   extraEnvironmentVars:
     SSL_CERT_DIR: /etc/ssl/certs
     BAO_LOG_FORMAT: json

@@ -35,30 +35,27 @@ server:
           fi
           if [ "${HOSTNAME##*-}" = 0 ] && [ -z "$(ls -A /openbao/data/raft 2>/dev/null)" ]; then
             umask 077
-            if ! aws ssm get-parameter \
+            aws ssm get-parameter \
                 --with-decryption \
                 --name /vm-workloads/sgfdevs/infra-vm-workloads/backups/b2-account-id \
                 --query Parameter.Value \
                 --output text \
-                | tr -d '\n' > /recovery/b2-account-id; then
-              rm -f /recovery/b2-account-id
-            fi
-            if ! aws ssm get-parameter \
+                | tr -d '\n' > /recovery/b2-account-id
+            aws ssm get-parameter \
                 --with-decryption \
                 --name /vm-workloads/sgfdevs/infra-vm-workloads/backups/b2-account-key \
                 --query Parameter.Value \
                 --output text \
-                | tr -d '\n' > /recovery/b2-account-key; then
-              rm -f /recovery/b2-account-key
-            fi
-            if ! aws ssm get-parameter \
+                | tr -d '\n' > /recovery/b2-account-key
+            aws ssm get-parameter \
                 --with-decryption \
                 --name /vm-workloads/sgfdevs/infra-vm-workloads/backups/openbao/restic-password \
                 --query Parameter.Value \
                 --output text \
-                | tr -d '\n' > /recovery/restic-password; then
-              rm -f /recovery/restic-password
-            fi
+                | tr -d '\n' > /recovery/restic-password
+            test -s /recovery/b2-account-id
+            test -s /recovery/b2-account-key
+            test -s /recovery/restic-password
           fi
           echo "fetch-unseal-key: done"
       env:
