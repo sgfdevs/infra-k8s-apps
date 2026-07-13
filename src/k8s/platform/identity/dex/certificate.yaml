@@ -15,4 +15,4 @@ spec:
     - digital signature
     - key encipherment
   dnsNames:
-    - sso.sgf.dev
+    - dex.sgf.dev

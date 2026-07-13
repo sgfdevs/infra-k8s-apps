@@ -10,10 +10,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - sso.sgf.dev
+        - dex.sgf.dev
       secretName: dex-tls
   rules:
-    - host: sso.sgf.dev
+    - host: dex.sgf.dev
       http:
         paths:
           - path: /

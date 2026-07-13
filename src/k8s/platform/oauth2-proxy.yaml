@@ -40,7 +40,7 @@ spec:
             - name: OAUTH2_PROXY_PROVIDER
               value: oidc
             - name: OAUTH2_PROXY_OIDC_ISSUER_URL
-              value: https://sso.sgf.dev
+              value: https://dex.sgf.dev
             - name: OAUTH2_PROXY_SCOPE
               value: "openid profile email groups"
             - name: OAUTH2_PROXY_REDIRECT_URL

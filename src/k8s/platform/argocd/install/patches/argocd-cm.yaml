@@ -27,7 +27,7 @@ data:
   admin.enabled: "false"
   oidc.config: |
     name: Dex
-    issuer: https://sso.sgf.dev
+    issuer: https://dex.sgf.dev
     clientID: argocd
     clientSecret: $oidc.argocd.clientSecret
     requestedScopes: ["openid", "profile", "email", "groups"]

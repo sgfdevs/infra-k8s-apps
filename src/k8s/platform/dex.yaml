@@ -45,7 +45,7 @@ spec:
                 name: dex-secrets
 
           config:
-            issuer: https://sso.sgf.dev
+            issuer: https://dex.sgf.dev
 
             storage:
               type: kubernetes
@@ -62,7 +62,7 @@ spec:
                 config:
                   clientID: "Ov23ctZ2KI5gEls1WDLD"
                   clientSecret: "${githubClientSecret}"
-                  redirectURI: https://sso.sgf.dev/callback
+                  redirectURI: https://dex.sgf.dev/callback
                   useLoginAsID: true
                   loadAllGroups: false
                   teamNameField: slug
