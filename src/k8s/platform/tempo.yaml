@@ -83,7 +83,7 @@ spec:
             registry:
               external_labels:
                 source: tempo
-                cluster: homelab
+                cluster: sgfdevs
             storage:
               path: /var/tempo/generator/wal
               remote_write:

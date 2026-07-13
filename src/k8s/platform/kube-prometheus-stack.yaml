@@ -97,9 +97,6 @@ spec:
                   existingSecret:
                     name: thanos-objstore-config
                     key: objstore.yml
-            service:
-              type: NodePort
-              nodePort: 30909
             thanosService:
               enabled: true
             thanosServiceMonitor:

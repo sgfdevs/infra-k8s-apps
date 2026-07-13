@@ -82,10 +82,6 @@ spec:
           replicas: 0
         bloomGateway:
           replicas: 0
-        gateway:
-          service:
-            type: NodePort
-            nodePort: 31001
         lokiCanary:
           extraArgs:
             - -labelname=pod

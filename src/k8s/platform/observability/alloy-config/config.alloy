@@ -66,7 +66,7 @@ loki.process "parse_logs" {
 	}
 
 	stage.match {
-		selector = "{namespace=\"monitoring\", container=\"nginx\"}"
+		selector = "{container=\"nginx\"}"
 
 		stage.regex {
 			expression = `\]\s+(?P<status_class>[2345])\d{2}\s+"`
@@ -86,7 +86,7 @@ loki.process "parse_logs" {
 	}
 
 	stage.match {
-		selector = "{namespace=\"monitoring\", container=\"grafana\"}"
+		selector = "{namespace=\"observability\", container=\"grafana\"}"
 
 		stage.regex {
 			expression = `\bstatus=(?P<status_class>[2345])\d{2}\b`
