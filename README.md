@@ -68,7 +68,7 @@ Argo CD then owns reconciliation. Review sync waves and application health befor
 ### Backblaze B2
 
 - Create the independent bucket `sgfdevs-vm-workloads-backups`.
-- Before the first OpenBao deployment, initialize the empty Restic repository at `b2:sgfdevs-vm-workloads-backups:openbao` with the configured B2 credentials and OpenBao repository password. An absent or inaccessible repository fails closed; an initialized repository with zero snapshots selects fresh-cluster mode.
+- On the first OpenBao deployment, recovery initializes `b2:sgfdevs-vm-workloads-backups:openbao` when it does not exist. Initialization must succeed with the configured credentials before fresh-cluster mode is selected. Existing repositories with invalid passwords and inaccessible B2 endpoints fail closed.
 - Restrict the supplied B2 application key to that bucket with list, read, write, and delete capabilities required by restic/K8up retention.
 - The shared application repository uses path `app`; OpenBao always uses path `openbao`.
 
@@ -80,7 +80,7 @@ Argo CD then owns reconciliation. Review sync waves and application health befor
 
 ## Backups And Recovery
 
-K8up labels backup metrics with cluster `sgfdevs` and pushes them to Prometheus Pushgateway. Shared application backups use the base schedule and retention policy. OpenBao streams logical Raft snapshots to `b2:sgfdevs-vm-workloads-backups:openbao`, sets `RESTIC_CACHE_DIR` to a writable path, and restores the newest snapshot only when all three current Longhorn-backed PVCs are empty. A successful repository query with no snapshots permits first-time initialization; missing credentials or repository/auth/network errors fail closed. Existing state is never overwritten automatically.
+K8up labels backup metrics with cluster `sgfdevs` and pushes them to Prometheus Pushgateway. Shared application backups use the base schedule and retention policy. OpenBao streams logical Raft snapshots to `b2:sgfdevs-vm-workloads-backups:openbao`, sets `RESTIC_CACHE_DIR` to a writable path, and restores the newest snapshot only when all three current Longhorn-backed PVCs are empty. A newly initialized or successfully queried repository with no snapshots permits first-time initialization; missing credentials, invalid credentials, existing-repository password errors, and network errors fail closed. Existing state is never overwritten automatically.
 
 On the first deployment only, wait for `openbao-0` to run and initialize the otherwise intentionally uninitialized cluster exactly once with `kubectl -n openbao exec openbao-0 -- env BAO_ADDR=http://127.0.0.1:8200 bao operator init -recovery-shares=1 -recovery-threshold=1`. Securely retain the returned initial root token and recovery key; never rerun initialization or commit either value. The followers can join after pod 0 is initialized.
 
