@@ -153,6 +153,7 @@ spec:
                 token_url: http://dex.dex.svc.cluster.local:5556/token
                 api_url: http://dex.dex.svc.cluster.local:5556/userinfo
                 scopes: openid profile email groups
+                groups_attribute_path: groups
                 allowed_groups: sgfdevs:platform-admins
                 auto_assign_org: true
                 auto_assign_org_role: Viewer
