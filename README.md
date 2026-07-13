@@ -51,7 +51,7 @@ Argo CD then owns reconciliation. Review sync waves and application health befor
 ### GitHub OAuth And Teams
 
 - Create a GitHub OAuth application owned by `sgfdevs` with callback `https://sso.sgf.dev/callback`.
-- Replace `CHANGEME` in `src/k8s/platform/dex.yaml` with its client ID and store its secret in SSM at `/vm-workloads/sgfdevs/infra-vm-workloads/dex-github-oauth-client-secret`.
+- The client ID is configured in `src/k8s/platform/dex.yaml`; store its secret in SSM at `/vm-workloads/sgfdevs/infra-vm-workloads/dex-github-oauth-client-secret`.
 - Create the `platform-admins` team in the `sgfdevs` organization and grant intended operators membership.
 - Authorize the OAuth application for organization access. Private organization membership must be visible to the application for Dex group resolution.
 - Populate `/vm-workloads/sgfdevs/infra-vm-workloads/dex-client-secrets` as a JSON object containing `argocdClientSecret`, `grafanaClientSecret`, `oauth2ProxyClientSecret`, and `openbaoClientSecret`.
