@@ -10,7 +10,7 @@ spec:
     - match: Host(`traefik.sgf.dev`)
       kind: Rule
       middlewares:
-        - name: oauth2-forward-auth
+        - name: traefik-forward-auth
           namespace: oauth2-proxy
       services:
         - name: api@internal

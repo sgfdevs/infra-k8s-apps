@@ -55,6 +55,8 @@ spec:
               value: "true"
             - name: OAUTH2_PROXY_REVERSE_PROXY
               value: "true"
+            - name: OAUTH2_PROXY_TRUSTED_PROXY_IPS
+              value: 10.52.0.0/16
 
           ingress:
             enabled: false
