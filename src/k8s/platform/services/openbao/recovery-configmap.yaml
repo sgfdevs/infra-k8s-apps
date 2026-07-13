@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-recovery
+data:
+  prepare.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    api=https://kubernetes.default.svc
+    ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+    auth="Authorization: Bearer ${token}"
+    pvc="data-${HOSTNAME}"
+
+    get() {
+      curl --fail --silent --show-error --cacert "$ca" -H "$auth" "$api$1"
+    }
+
+    pvc_uid=$(get "/api/v1/namespaces/openbao/persistentvolumeclaims/${pvc}" | jq -er .metadata.uid)
+    if [[ -n "$(ls -A /openbao/data/raft 2>/dev/null)" ]]; then
+      storage_state=nonempty
+    else
+      storage_state=empty
+    fi
+
+    curl --fail --silent --show-error --cacert "$ca" \
+      -H "$auth" \
+      -H 'Content-Type: application/merge-patch+json' \
+      -X PATCH \
+      --data "{\"data\":{\"${HOSTNAME}\":\"${storage_state}:${pvc_uid}\"}}" \
+      "$api/api/v1/namespaces/openbao/configmaps/openbao-recovery-state" >/dev/null
+
+    if [[ "$storage_state" = nonempty ]] || [[ "${HOSTNAME##*-}" != 0 ]]; then
+      exit 0
+    fi
+
+    while true; do
+      state=$(get /api/v1/namespaces/openbao/configmaps/openbao-recovery-state)
+      empty_followers=0
+      for peer in openbao-1 openbao-2; do
+        peer_uid=$(get "/api/v1/namespaces/openbao/persistentvolumeclaims/data-${peer}" | jq -er .metadata.uid)
+        peer_state=$(jq -r --arg peer "$peer" '.data[$peer] // ""' <<<"$state")
+        if [[ "$peer_state" = "nonempty:${peer_uid}" ]]; then
+          touch /recovery/join-existing-cluster
+          exit 0
+        fi
+        if [[ "$peer_state" = "empty:${peer_uid}" ]]; then
+          empty_followers=$((empty_followers + 1))
+        fi
+      done
+      if [[ "$empty_followers" -eq 2 ]]; then
+        break
+      fi
+      sleep 5
+    done
+
+    export RESTIC_PASSWORD=$(cat /recovery/restic-password)
+    export B2_ACCOUNT_ID=$(cat /recovery/b2-account-id)
+    export B2_ACCOUNT_KEY=$(cat /recovery/b2-account-key)
+    snapshots=$(restic snapshots --json --latest 1 --path /openbao-backup.snap)
+    snapshot_id=$(jq -er '.[0].id' <<<"${snapshots}")
+    restic dump "${snapshot_id}" /openbao-backup.snap > /recovery/openbao-backup.snap.tmp
+    test -s /recovery/openbao-backup.snap.tmp
+    mv /recovery/openbao-backup.snap.tmp /recovery/openbao-backup.snap
+
+  temporary.hcl: |
+    disable_mlock = true
+    api_addr = "http://127.0.0.1:18200"
+    cluster_addr = "https://openbao-0.openbao-internal:18201"
+
+    listener "tcp" {
+      tls_disable = 1
+      address = "127.0.0.1:18200"
+      cluster_address = "0.0.0.0:18201"
+    }
+
+    storage "raft" {
+      path = "/openbao/data"
+    }
+
+    seal "static" {
+      current_key_id = "openbao-unseal-v1"
+      current_key = "file:///openbao/seals/current.key"
+    }
+
+  recover.sh: |
+    #!/bin/sh
+    set -eu
+
+    raft_dir=/openbao/data/raft
+    ordinal=${HOSTNAME##*-}
+
+    if [ -d "$raft_dir" ] && [ -n "$(ls -A "$raft_dir" 2>/dev/null)" ]; then
+      exit 0
+    fi
+
+    if [ "$ordinal" != 0 ]; then
+      until BAO_ADDR=http://openbao-0.openbao-internal:8200 bao status >/dev/null 2>&1; do
+        sleep 5
+      done
+      exit 0
+    fi
+
+    if [ -f /recovery/join-existing-cluster ]; then
+      echo "Surviving Raft data exists; pod 0 will rejoin it"
+      exit 0
+    fi
+
+    # Prefer current Raft data on another member over an older backup.
+    for peer in openbao-1 openbao-2; do
+      if BAO_ADDR="http://${peer}.openbao-internal:8200" bao status >/dev/null 2>&1; then
+        echo "A healthy OpenBao peer exists; pod 0 will rejoin it"
+        exit 0
+      fi
+    done
+
+    test -s /recovery/openbao-backup.snap
+    umask 077
+    bao server -config=/recovery-config/temporary.hcl >/tmp/openbao-recovery.log 2>&1 &
+    server_pid=$!
+
+    cleanup() {
+      kill -TERM "$server_pid" 2>/dev/null || true
+      wait "$server_pid" 2>/dev/null || true
+    }
+    trap cleanup EXIT INT TERM
+
+    export BAO_ADDR=http://127.0.0.1:18200
+    until bao status -format=json >/tmp/status.json 2>/dev/null || [ "$?" -eq 2 ]; do
+      if ! kill -0 "$server_pid" 2>/dev/null; then
+        cat /tmp/openbao-recovery.log >&2
+        exit 1
+      fi
+      sleep 1
+    done
+
+    bao operator init \
+      -format=json \
+      -recovery-shares=1 \
+      -recovery-threshold=1 > /tmp/init.json
+    BAO_TOKEN=$(sed -n 's/.*"root_token":[[:space:]]*"\([^"]*\)".*/\1/p' /tmp/init.json)
+    rm -f /tmp/init.json
+    test -n "$BAO_TOKEN"
+    export BAO_TOKEN
+    bao operator raft snapshot restore /recovery/openbao-backup.snap
+    unset BAO_TOKEN
+
+    kill -TERM "$server_pid"
+    wait "$server_pid" || true
+    trap - EXIT INT TERM
+
+    node_id=$(cat "$raft_dir/node-id")
+    cat > "$raft_dir/peers.json" <<EOF
+    [{"id":"${node_id}","address":"openbao-0.openbao-internal:8201","non_voter":false}]
+    EOF
+    chmod 0600 "$raft_dir/peers.json"
+    echo "OpenBao Raft snapshot restored"

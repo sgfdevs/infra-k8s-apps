@@ -1,0 +1,23 @@
+apiVersion: k8up.io/v1
+kind: PreBackupPod
+metadata:
+  name: app-backup
+  labels:
+    backup.k8up.io/app: app
+spec:
+  backupCommand: sh -c 'exit 1'
+  fileExtension: .backup
+  pod:
+    spec:
+      serviceAccountName: app-backup
+      containers:
+        - name: backup
+          image: busybox:1.37.0
+          command: [sh, -c, sleep 3600]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

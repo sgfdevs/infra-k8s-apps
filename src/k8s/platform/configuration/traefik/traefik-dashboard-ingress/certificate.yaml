@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: traefik-dashboard-tls
+  namespace: kube-system
+spec:
+  secretName: traefik-dashboard-tls
+  duration: 8760h
+  renewBefore: 720h
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - traefik.sgf.dev

@@ -1,0 +1,29 @@
+- op: replace
+  path: /metadata/name
+  value: openbao-backup
+- op: replace
+  path: /metadata/labels/backup.k8up.io~1app
+  value: openbao
+- op: replace
+  path: /spec/fileExtension
+  value: .snap
+- op: replace
+  path: /spec/backupCommand
+  value: >-
+    sh -ec '
+      export BAO_ADDR=http://openbao-active:8200;
+      export VAULT_CLIENT_TIMEOUT=10m;
+      jwt=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
+      BAO_TOKEN=$(bao write -field=token auth/kubernetes/login role=raft-backup jwt="$jwt");
+      export BAO_TOKEN;
+      snapshot=$(mktemp);
+      trap "rm -f $snapshot" EXIT;
+      bao operator raft snapshot save "$snapshot" >/dev/null;
+      cat "$snapshot"
+    '
+- op: replace
+  path: /spec/pod/spec/serviceAccountName
+  value: openbao-backup
+- op: replace
+  path: /spec/pod/spec/containers/0/image
+  value: quay.io/openbao/openbao:2.5.5

@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openbao
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: platform
+  sources:
+    - chart: openbao
+      repoURL: https://openbao.github.io/openbao-helm
+      targetRevision: 0.28.4
+      helm:
+        valueFiles:
+          - $values/src/k8s/platform/openbao/values.yaml
+          - $values/src/k8s/platform/openbao/bootstrap-values.yaml
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      path: src/k8s/platform/services/openbao
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openbao
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      name: openbao-recovery-state
+      jsonPointers:
+        - /data
+    - group: cert-manager.io
+      kind: Certificate
+      jsonPointers:
+        - /spec/duration
+        - /spec/renewBefore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true

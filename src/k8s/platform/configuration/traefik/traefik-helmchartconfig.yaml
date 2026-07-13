@@ -1,0 +1,37 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    deployment:
+      replicas: 3
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: traefik
+    ports:
+      websecure:
+        transport:
+          respondingTimeouts:
+            idleTimeout: 0
+    providers:
+      kubernetesCRD:
+        allowCrossNamespace: true
+    tracing:
+      otlp:
+        enabled: true
+        grpc:
+          enabled: true
+          endpoint: otelcol-collector.observability.svc.cluster.local:4317
+          insecure: true
+    logs:
+      general:
+        format: json
+      access:
+        enabled: true
+        format: json

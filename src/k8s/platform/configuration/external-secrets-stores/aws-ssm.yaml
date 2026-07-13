@@ -1,0 +1,19 @@
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: aws-ssm
+spec:
+  provider:
+    aws:
+      service: ParameterStore
+      region: us-east-2
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: external-secrets-aws-creds
+            namespace: external-secrets
+            key: access_key_id
+          secretAccessKeySecretRef:
+            name: external-secrets-aws-creds
+            namespace: external-secrets
+            key: secret_access_key

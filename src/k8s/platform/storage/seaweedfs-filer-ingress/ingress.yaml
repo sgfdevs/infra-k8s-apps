@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: seaweedfs-filer-ui
+  namespace: seaweedfs
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: seaweedfs-seaweedfs-filer-https-redirect@kubernetescrd,oauth2-proxy-oauth2-forward-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - seaweedfs.sgf.dev
+      secretName: seaweedfs-filer-tls
+  rules:
+    - host: seaweedfs.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: seaweedfs-filer
+                port:
+                  number: 8888

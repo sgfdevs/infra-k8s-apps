@@ -1,0 +1,27 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ssm-cache
+  namespace: external-secrets
+  annotations:
+    external-secrets.io/force-sync: "1"
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-ssm
+  target:
+    name: ssm-cache
+  data:
+    - secretKey: githubClientID
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-github-oauth-client-id
+    - secretKey: githubClientSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-github-oauth-client-secret
+    - secretKey: cookieSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/oauth2-proxy-cookie-secret
+  dataFrom:
+    - extract:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-client-secrets

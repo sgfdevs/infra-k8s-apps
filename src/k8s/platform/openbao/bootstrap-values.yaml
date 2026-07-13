@@ -1,0 +1,145 @@
+server:
+  volumes:
+    - name: openbao-seal
+      emptyDir:
+        medium: Memory
+    - name: openbao-recovery-work
+      emptyDir:
+        medium: Memory
+    - name: openbao-recovery-config
+      configMap:
+        name: openbao-recovery
+  volumeMounts:
+    - name: openbao-seal
+      mountPath: /openbao/seals
+      readOnly: true
+  extraInitContainers:
+    - name: fetch-unseal-key
+      image: amazon/aws-cli:2.35.16
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          set -euo pipefail
+          echo "fetch-unseal-key: requesting unseal key from SSM..."
+          aws ssm get-parameter \
+            --with-decryption \
+            --name /vm-workloads/sgfdevs/infra-vm-workloads/openbao-unseal-key \
+            --query Parameter.Value \
+            --output text \
+            | tr -d '\n' > /openbao/seals/current.key
+          key_byte_count=$(wc -c < /openbao/seals/current.key)
+          echo "fetch-unseal-key: wrote ${key_byte_count} bytes to /openbao/seals/current.key"
+          if [ "${key_byte_count}" -ne 44 ]; then
+            echo "fetch-unseal-key: ERROR expected 44-byte base64 key, got ${key_byte_count}" >&2
+            exit 1
+          fi
+          if [ "${HOSTNAME##*-}" = 0 ] && [ -z "$(ls -A /openbao/data/raft 2>/dev/null)" ]; then
+            umask 077
+            if ! aws ssm get-parameter \
+                --with-decryption \
+                --name /vm-workloads/sgfdevs/infra-vm-workloads/backups/b2-account-id \
+                --query Parameter.Value \
+                --output text \
+                | tr -d '\n' > /recovery/b2-account-id; then
+              rm -f /recovery/b2-account-id
+            fi
+            if ! aws ssm get-parameter \
+                --with-decryption \
+                --name /vm-workloads/sgfdevs/infra-vm-workloads/backups/b2-account-key \
+                --query Parameter.Value \
+                --output text \
+                | tr -d '\n' > /recovery/b2-account-key; then
+              rm -f /recovery/b2-account-key
+            fi
+            if ! aws ssm get-parameter \
+                --with-decryption \
+                --name /vm-workloads/sgfdevs/infra-vm-workloads/backups/openbao/restic-password \
+                --query Parameter.Value \
+                --output text \
+                | tr -d '\n' > /recovery/restic-password; then
+              rm -f /recovery/restic-password
+            fi
+          fi
+          echo "fetch-unseal-key: done"
+      env:
+        - name: AWS_REGION
+          value: us-east-2
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: external-secrets-aws-creds
+              key: access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: external-secrets-aws-creds
+              key: secret_access_key
+      volumeMounts:
+        - name: openbao-seal
+          mountPath: /openbao/seals
+        - name: data
+          mountPath: /openbao/data
+        - name: openbao-recovery-work
+          mountPath: /recovery
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 250m
+          memory: 128Mi
+    - name: prepare-recovery
+      image: ghcr.io/k8up-io/k8up:v2.15.0
+      command: ["/bin/bash", "/recovery-config/prepare.sh"]
+      env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: RESTIC_REPOSITORY
+          value: b2:sgfdevs-vm-workloads-backups:openbao
+        - name: RESTIC_CACHE_DIR
+          value: /tmp/restic-cache
+      volumeMounts:
+        - name: data
+          mountPath: /openbao/data
+        - name: openbao-recovery-work
+          mountPath: /recovery
+        - name: openbao-recovery-config
+          mountPath: /recovery-config
+          readOnly: true
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 250m
+          memory: 256Mi
+    - name: recover-raft-or-join
+      image: quay.io/openbao/openbao:2.5.5
+      command: ["/bin/sh", "/recovery-config/recover.sh"]
+      env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: VAULT_CLIENT_TIMEOUT
+          value: 10m
+      volumeMounts:
+        - name: data
+          mountPath: /openbao/data
+        - name: openbao-seal
+          mountPath: /openbao/seals
+          readOnly: true
+        - name: openbao-recovery-work
+          mountPath: /recovery
+        - name: openbao-recovery-config
+          mountPath: /recovery-config
+          readOnly: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

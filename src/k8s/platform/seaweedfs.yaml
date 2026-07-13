@@ -1,0 +1,99 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: seaweedfs
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    infra.sgf.dev/health-gate: "true"
+spec:
+  project: platform
+  sources:
+    - chart: seaweedfs
+      repoURL: https://seaweedfs.github.io/seaweedfs/helm
+      targetRevision: 4.39.0
+      helm:
+        values: |
+          global:
+            seaweedfs:
+              enableReplication: true
+              replicationPlacement: "001"
+
+          master:
+            replicas: 3
+            defaultReplication: "001"
+            data:
+              type: persistentVolumeClaim
+              size: 2Gi
+              storageClass: local-path
+
+          volume:
+            replicas: 3
+            dataDirs:
+              - name: data1
+                type: persistentVolumeClaim
+                size: 20Gi
+                storageClass: local-path
+                maxVolumes: 0
+            idx:
+              type: persistentVolumeClaim
+              size: 5Gi
+              storageClass: local-path
+
+          filer:
+            replicas: 2
+            data:
+              type: persistentVolumeClaim
+              size: 10Gi
+              storageClass: local-path
+            defaultReplicaPlacement: "001"
+            extraEnvironmentVars:
+              WEED_MYSQL_ENABLED: "false"
+              WEED_LEVELDB2_ENABLED: "false"
+              WEED_POSTGRES2_ENABLED: "true"
+              WEED_POSTGRES2_SSLMODE: "disable"
+              WEED_POSTGRES2_CREATETABLE: 'CREATE TABLE IF NOT EXISTS "%s" (dirhash BIGINT, name VARCHAR(65535), directory VARCHAR(65535), meta bytea, PRIMARY KEY (dirhash, name))'
+            secretExtraEnvironmentVars:
+              WEED_POSTGRES2_HOSTNAME:
+                secretKeyRef:
+                  name: seaweedfs-db-app
+                  key: host
+              WEED_POSTGRES2_PORT:
+                secretKeyRef:
+                  name: seaweedfs-db-app
+                  key: port
+              WEED_POSTGRES2_DATABASE:
+                secretKeyRef:
+                  name: seaweedfs-db-app
+                  key: dbname
+              WEED_POSTGRES2_USERNAME:
+                secretKeyRef:
+                  name: seaweedfs-db-app
+                  key: username
+              WEED_POSTGRES2_PASSWORD:
+                secretKeyRef:
+                  name: seaweedfs-db-app
+                  key: password
+            s3:
+              enabled: true
+              enableAuth: true
+              existingConfigSecret: seaweedfs-s3-config
+              createBuckets:
+                - name: loki-chunks
+                - name: loki-ruler
+                - name: loki-admin
+                - name: tempo-traces
+                - name: thanos-metrics
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      path: src/k8s/platform/storage/seaweedfs-resources
+      targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: seaweedfs
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

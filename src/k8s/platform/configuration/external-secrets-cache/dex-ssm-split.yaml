@@ -1,0 +1,73 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: cache-k8s
+  target:
+    name: argocd-secrets
+  data:
+    - secretKey: argocdClientSecret
+      remoteRef:
+        key: ssm-cache
+        property: argocdClientSecret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: grafana-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: cache-k8s
+  target:
+    name: grafana-secrets
+  data:
+    - secretKey: grafanaClientSecret
+      remoteRef:
+        key: ssm-cache
+        property: grafanaClientSecret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oauth2-proxy-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: cache-k8s
+  target:
+    name: oauth2-proxy-secrets
+  data:
+    - secretKey: oauth2ProxyClientSecret
+      remoteRef:
+        key: ssm-cache
+        property: oauth2ProxyClientSecret
+    - secretKey: cookieSecret
+      remoteRef:
+        key: ssm-cache
+        property: cookieSecret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: dex-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: cache-k8s
+  target:
+    name: dex-secrets
+  dataFrom:
+    - extract:
+        key: ssm-cache

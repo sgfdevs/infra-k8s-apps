@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bootstrap-config
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    infra.sgf.dev/health-gate: "true"
+spec:
+  project: platform
+  source:
+    repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+    path: src/k8s/platform/configuration
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+  ignoreDifferences:
+    - group: cert-manager.io
+      kind: Certificate
+      jsonPointers:
+        - /spec/duration
+        - /spec/renewBefore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
