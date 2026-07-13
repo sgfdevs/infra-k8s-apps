@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+        revision: main
+        directories:
+          - path: src/k8s/apps/*
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  template:
+    metadata:
+      name: '{{.path.basename}}'
+      annotations:
+        argocd.argoproj.io/sync-wave: "2"
+    spec:
+      project: apps
+      source:
+        repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+        path: '{{.path.path}}'
+        targetRevision: main
+      destination:
+        namespace: '{{.path.basename}}'
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - FailOnSharedResource=true
+          - PruneLast=true

@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bootstrap
+  namespace: argocd
+spec:
+  sourceRepos:
+    - ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+  destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: ApplicationSet
+    - group: argoproj.io
+      kind: AppProject
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  sourceRepos:
+    - ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+    - https://charts.dexidp.io
+    - https://charts.external-secrets.io
+    - https://charts.jetstack.io
+    - https://charts.longhorn.io
+    - https://cloudnative-pg.github.io/charts
+    - https://grafana-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+    - https://keiailab.github.io/valkey-operator
+    - https://kubernetes-sigs.github.io/headlamp/
+    - https://k8up-io.github.io/k8up
+    - https://oauth2-proxy.github.io/manifests
+    - https://open-telemetry.github.io/opentelemetry-helm-charts
+    - https://openbao.github.io/openbao-helm
+    - https://prometheus-community.github.io/helm-charts
+    - https://seaweedfs.github.io/seaweedfs/helm
+    - https://stakater.github.io/stakater-charts
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  sourceRepos:
+    - ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
