@@ -13,9 +13,6 @@ spec:
   target:
     name: ssm-cache
   data:
-    - secretKey: githubClientID
-      remoteRef:
-        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-github-oauth-client-id
     - secretKey: githubClientSecret
       remoteRef:
         key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-github-oauth-client-secret

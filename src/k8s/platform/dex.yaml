@@ -60,7 +60,7 @@ spec:
                 id: github
                 name: GitHub
                 config:
-                  clientID: "${githubClientID}"
+                  clientID: "CHANGEME"
                   clientSecret: "${githubClientSecret}"
                   redirectURI: https://sso.sgf.dev/callback
                   useLoginAsID: true
