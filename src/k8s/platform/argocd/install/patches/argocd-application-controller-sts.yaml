@@ -1,0 +1,6 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: argocd-application-controller
+  annotations:
+    configmap.reloader.stakater.com/reload: argocd-cmd-params-cm

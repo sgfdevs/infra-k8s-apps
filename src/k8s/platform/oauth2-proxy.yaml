@@ -1,0 +1,86 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oauth2-proxy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: platform
+  sources:
+    - chart: oauth2-proxy
+      repoURL: https://oauth2-proxy.github.io/manifests
+      targetRevision: 10.7.0
+      helm:
+        values: |
+          podAnnotations:
+            reloader.stakater.com/auto: "true"
+
+          replicaCount: 2
+
+          image:
+            tag: v7.15.2
+
+          podDisruptionBudget:
+            enabled: true
+            minAvailable: 1
+
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: oauth2-proxy
+
+          config:
+            existingSecret: oauth2-proxy
+
+          extraEnv:
+            - name: OAUTH2_PROXY_PROVIDER
+              value: oidc
+            - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+              value: https://sso.sgf.dev
+            - name: OAUTH2_PROXY_REDIRECT_URL
+              value: https://auth.sgf.dev/oauth2/callback
+            - name: OAUTH2_PROXY_COOKIE_DOMAINS
+              value: ".sgf.dev"
+            - name: OAUTH2_PROXY_UPSTREAMS
+              value: static://200
+            - name: OAUTH2_PROXY_SET_AUTHORIZATION_HEADER
+              value: "true"
+            - name: OAUTH2_PROXY_WHITELIST_DOMAINS
+              value: ".sgf.dev"
+            - name: OAUTH2_PROXY_SKIP_PROVIDER_BUTTON
+              value: "true"
+            - name: OAUTH2_PROXY_REVERSE_PROXY
+              value: "true"
+
+          ingress:
+            enabled: false
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      path: src/k8s/platform/identity/oauth2-proxy
+      targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: oauth2-proxy
+  ignoreDifferences:
+    - group: cert-manager.io
+      kind: Certificate
+      jsonPointers:
+        - /spec/duration
+        - /spec/renewBefore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

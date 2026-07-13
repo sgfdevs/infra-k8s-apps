@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+data:
+  application.resourceTrackingMethod: annotation
+  resource.customizations.health.argoproj.io_Application: |
+    hs = {}
+    hs.status = "Healthy"
+    hs.message = "Health gate disabled"
+    if obj.metadata.annotations ~= nil and
+       obj.metadata.annotations["infra.sgf.dev/health-gate"] == "true" then
+      hs.status = "Progressing"
+      hs.message = "Waiting for child application"
+      if obj.status ~= nil and
+         obj.status.sync ~= nil and
+         obj.status.sync.status == "Synced" and
+         obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        if obj.status.health.message ~= nil then
+          hs.message = obj.status.health.message
+        end
+      end
+    end
+    return hs
+  url: https://argocd.sgf.dev
+  admin.enabled: "false"
+  oidc.config: |
+    name: Dex
+    issuer: https://sso.sgf.dev
+    clientID: argocd
+    clientSecret: $oidc.argocd.clientSecret
+    requestedScopes: ["openid", "profile", "email", "groups"]

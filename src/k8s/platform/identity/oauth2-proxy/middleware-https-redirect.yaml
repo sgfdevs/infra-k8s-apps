@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-proxy-https-redirect
+  namespace: oauth2-proxy
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

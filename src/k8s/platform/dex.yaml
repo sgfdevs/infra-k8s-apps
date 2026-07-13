@@ -1,0 +1,127 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dex
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: platform
+  sources:
+    - chart: dex
+      repoURL: https://charts.dexidp.io
+      targetRevision: 0.24.1
+      helm:
+        values: |
+          podAnnotations:
+            reloader.stakater.com/auto: "true"
+
+          replicaCount: 3
+
+          podDisruptionBudget:
+            enabled: true
+            minAvailable: 1
+
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchLabels:
+                        app.kubernetes.io/name: dex
+                    topologyKey: kubernetes.io/hostname
+
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: dex
+
+          envFrom:
+            - secretRef:
+                name: dex-secrets
+
+          config:
+            issuer: https://sso.sgf.dev
+
+            storage:
+              type: kubernetes
+              config:
+                inCluster: true
+
+            web:
+              http: 0.0.0.0:5556
+
+            connectors:
+              - type: github
+                id: github
+                name: GitHub
+                config:
+                  clientID: "${githubClientID}"
+                  clientSecret: "${githubClientSecret}"
+                  redirectURI: https://sso.sgf.dev/callback
+                  useLoginAsID: true
+                  loadAllGroups: false
+                  orgs:
+                    - name: sgfdevs
+                      teams:
+                        - platform-admins
+
+            staticClients:
+              - id: argocd
+                name: ArgoCD
+                secretEnv: argocdClientSecret
+                redirectURIs:
+                  - https://argocd.sgf.dev/auth/callback
+              - id: grafana
+                name: Grafana
+                secretEnv: grafanaClientSecret
+                redirectURIs:
+                  - https://grafana.sgf.dev/login/generic_oauth
+              - id: oauth2-proxy
+                name: oauth2-proxy
+                secretEnv: oauth2ProxyClientSecret
+                redirectURIs:
+                  - https://auth.sgf.dev/oauth2/callback
+              - id: openbao
+                name: OpenBao
+                secretEnv: openbaoClientSecret
+                redirectURIs:
+                  - https://secrets.sgf.dev/ui/vault/auth/oidc/oidc/callback
+                  - https://secrets.sgf.dev/auth/oidc/callback
+
+            oauth2:
+              skipApproval: true
+              alwaysShowLoginScreen: false
+
+          service:
+            port: 5556
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      path: src/k8s/platform/identity/dex
+      targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dex
+  ignoreDifferences:
+    - group: cert-manager.io
+      kind: Certificate
+      jsonPointers:
+        - /spec/duration
+        - /spec/renewBefore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

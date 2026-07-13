@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+data:
+  controller.operation.processors: "3"
+  server.insecure: "true"
+  redis.server: argocd-redis-ha-haproxy:6379
+  dexserver.disable: "true"

@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: headlamp
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: platform
+  sources:
+    - chart: headlamp
+      repoURL: https://kubernetes-sigs.github.io/headlamp/
+      targetRevision: 0.43.0
+      helm:
+        values: |
+          replicaCount: 2
+
+          podDisruptionBudget:
+            enabled: true
+            minAvailable: 1
+
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchLabels:
+                        app.kubernetes.io/name: headlamp
+                    topologyKey: kubernetes.io/hostname
+
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: headlamp
+
+          config:
+            inCluster: true
+            inClusterContextName: "sgfdevs-k3s"
+            unsafeUseServiceAccountToken: true
+            watchPlugins: true
+            extraArgs:
+              - "-proxy-auth=true"
+              - "-proxy-auth-username-header=X-Auth-Request-User"
+              - "-proxy-auth-email-header=X-Auth-Request-Email"
+          ingress:
+            enabled: false
+          pluginsManager:
+            enabled: true
+            baseImage: node:26.4.0
+            configContent: |
+              plugins:
+                - name: cert-manager
+                  source: https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_cert-manager
+                  version: 0.1.1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      path: src/k8s/platform/services/headlamp
+      targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: headlamp
+  ignoreDifferences:
+    - group: cert-manager.io
+      kind: Certificate
+      jsonPointers:
+        - /spec/duration
+        - /spec/renewBefore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
