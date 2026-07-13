@@ -8,7 +8,7 @@ spec:
       name: app-k8up-repo-password
       key: password
     b2:
-      bucket: sgfdevs-vm-workloads-backups
+      bucket: sgfdevs-on-prem-k3s-backups
       path: app
       accountIDSecretRef:
         name: k8up-b2-credentials

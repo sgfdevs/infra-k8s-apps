@@ -94,7 +94,7 @@ server:
             fieldRef:
               fieldPath: metadata.name
         - name: RESTIC_REPOSITORY
-          value: b2:sgfdevs-vm-workloads-backups:openbao
+          value: b2:sgfdevs-on-prem-k3s-backups:openbao
         - name: RESTIC_CACHE_DIR
           value: /tmp/restic-cache
       volumeMounts:
