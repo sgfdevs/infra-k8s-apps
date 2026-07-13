@@ -4,6 +4,7 @@ namespace: oauth2-proxy
 resources:
   - namespace.yaml
   - middleware-https-redirect.yaml
+  - middleware-sign-in-errors.yaml
   - middleware-forward-auth.yaml
   - certificate.yaml
   - ingress.yaml

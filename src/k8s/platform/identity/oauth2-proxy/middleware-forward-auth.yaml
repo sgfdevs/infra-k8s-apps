@@ -15,7 +15,7 @@ spec:
       - _oauth2_proxy
       - _oauth2_proxy_csrf
     maxResponseBodySize: 1048576
-    trustForwardHeader: false
+    trustForwardHeader: true
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -34,7 +34,7 @@ spec:
       - _oauth2_proxy
       - _oauth2_proxy_csrf
     maxResponseBodySize: 1048576
-    trustForwardHeader: false
+    trustForwardHeader: true
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -53,7 +53,7 @@ spec:
       - _oauth2_proxy
       - _oauth2_proxy_csrf
     maxResponseBodySize: 1048576
-    trustForwardHeader: false
+    trustForwardHeader: true
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -72,4 +72,4 @@ spec:
       - _oauth2_proxy
       - _oauth2_proxy_csrf
     maxResponseBodySize: 1048576
-    trustForwardHeader: false
+    trustForwardHeader: true
