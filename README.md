@@ -25,4 +25,4 @@ Holds the Kubernetes manifests for base infrastructure and applications deployed
 - K8up uses `src/k8s/platform/services/backup-base/` for shared Backblaze scheduling and retention in `sgfdevs-on-prem-k3s-backups`.
 - OpenBao uses logical Raft snapshots and restores the latest snapshot only when all three current PVCs are empty.
 - A new empty backup repository permits first-time initialization; missing credentials and inaccessible or invalid existing repositories fail closed.
-- OpenBao initialization and OIDC policy configuration are one-time operator steps after the first platform bootstrap.
+- OpenBao initialization is a one-time operator step after the first platform bootstrap; `infra-app-config` manages OIDC and backup authentication afterward.
