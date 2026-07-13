@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: otelcol-pve-ingress
+  name: otelcol-ingress
   namespace: observability
 spec:
   podSelector:
@@ -17,13 +17,5 @@ spec:
       ports:
         - protocol: TCP
           port: 4317
-        - protocol: TCP
-          port: 4318
-    - from:
-        - ipBlock:
-            cidr: 10.0.0.3/32
-        - ipBlock:
-            cidr: 10.0.0.4/32
-      ports:
         - protocol: TCP
           port: 4318
