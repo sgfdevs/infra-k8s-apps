@@ -16,6 +16,8 @@ spec:
         deploymentMode: Monolithic
         loki:
           auth_enabled: false
+          server:
+            log_level: warn
           commonConfig:
             replication_factor: 3
           schemaConfig:
@@ -52,6 +54,12 @@ spec:
           extraEnvFrom:
             - secretRef:
                 name: seaweedfs-s3-observability
+        sidecar:
+          rules:
+            enabled: false
+        chunksCache:
+          allocatedMemory: 512
+          defaultValidity: 168h
         singleBinary:
           replicas: 3
           persistence:
