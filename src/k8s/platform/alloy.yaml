@@ -15,12 +15,18 @@ spec:
         values: |
           alloy:
             clustering:
-              enabled: true
+              enabled: false
             enableReporting: false
+            storagePath: /var/lib/alloy
             configMap:
               create: false
               name: alloy-config
               key: config.alloy
+            mounts:
+              varlog: true
+              extra:
+                - name: alloy-storage
+                  mountPath: /var/lib/alloy
             resources:
               requests:
                 cpu: 50m
@@ -30,8 +36,15 @@ spec:
                 memory: 256Mi
 
           controller:
+            type: daemonset
             tolerations:
               - operator: Exists
+            volumes:
+              extra:
+                - name: alloy-storage
+                  hostPath:
+                    path: /var/lib/alloy
+                    type: DirectoryOrCreate
 
           serviceMonitor:
             enabled: true

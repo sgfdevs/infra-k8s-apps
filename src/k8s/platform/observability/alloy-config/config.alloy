@@ -5,6 +5,11 @@ logging {
 
 discovery.kubernetes "pods" {
 	role = "pod"
+
+	selectors {
+		role  = "pod"
+		field = "spec.nodeName=" + sys.env("HOSTNAME")
+	}
 }
 
 discovery.relabel "pod_metadata" {
@@ -34,9 +39,23 @@ discovery.relabel "pod_metadata" {
 		source_labels = ["__meta_kubernetes_pod_label_service"]
 		target_label  = "service"
 	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+		separator     = "/"
+		target_label  = "__path__"
+		replacement   = "/var/log/pods/*$1/*.log"
+	}
 }
 
 loki.process "parse_logs" {
+	stage.cri { }
+
+	stage.drop {
+		older_than          = "167h"
+		drop_counter_reason = "too_old"
+	}
+
 	stage.json {
 		expressions = {
 			level   = "level",
@@ -163,11 +182,13 @@ loki.process "parse_logs" {
 	forward_to = [loki.write.loki.receiver]
 }
 
-loki.source.kubernetes "pod_logs" {
-	targets    = discovery.relabel.pod_metadata.output
-	forward_to = [loki.process.parse_logs.receiver]
+loki.source.file "pod_logs" {
+	targets                 = discovery.relabel.pod_metadata.output
+	forward_to              = [loki.process.parse_logs.receiver]
+	tail_from_end           = true
+	on_positions_file_error = "restart_from_end"
 
-	clustering {
+	file_match {
 		enabled = true
 	}
 }
