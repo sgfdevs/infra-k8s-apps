@@ -105,6 +105,11 @@ spec:
           grafana:
             enabled: true
             replicas: 2
+            serviceMonitor:
+              metricRelabelings:
+                - sourceLabels: [__name__]
+                  regex: 'grafana_(alerting_result_total|stat_totals_dashboard|build_info|http_request_duration_seconds_(bucket|count|sum)|datasource_request_(total|in_flight)|authentication_attempts|database_conn_(open|in_use|idle|max_open|wait_count_total|wait_duration_seconds)|alerting_(alerts_invalid_total|notification_history_writes_failed_total|remote_alertmanager_(configuration_sync|state_sync)_failures_total|scheduler_behind_seconds))'
+                  action: keep
             podAnnotations:
               reloader.stakater.com/auto: "true"
             podDisruptionBudget:
