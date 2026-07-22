@@ -77,12 +77,12 @@ data:
   temporary.hcl: |
     disable_mlock = true
     api_addr = "http://127.0.0.1:18200"
-    cluster_addr = "https://openbao-0.openbao-internal:18201"
+    cluster_addr = "https://openbao-0.openbao-internal:8201"
 
     listener "tcp" {
       tls_disable = 1
       address = "127.0.0.1:18200"
-      cluster_address = "0.0.0.0:18201"
+      cluster_address = "0.0.0.0:8201"
     }
 
     storage "raft" {
@@ -165,7 +165,7 @@ data:
     wait "$server_pid" || true
     trap - EXIT INT TERM
 
-    node_id=$(cat "$raft_dir/node-id")
+    node_id=$(cat /openbao/data/node-id)
     cat > "$raft_dir/peers.json" <<EOF
     [{"id":"${node_id}","address":"openbao-0.openbao-internal:8201","non_voter":false}]
     EOF
