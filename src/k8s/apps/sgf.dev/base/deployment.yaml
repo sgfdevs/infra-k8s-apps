@@ -16,6 +16,7 @@ spec:
       labels:
         app.kubernetes.io/name: sgf-dev
     spec:
+      hostname: sgf-dev
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
       initContainers:
@@ -52,19 +53,22 @@ spec:
             httpGet:
               path: /health/live
               port: http
-            periodSeconds: 5
-            failureThreshold: 60
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 150
           livenessProbe:
             httpGet:
               path: /health/live
               port: http
             periodSeconds: 10
+            timeoutSeconds: 2
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health/ready
               port: http
-            periodSeconds: 10
+            periodSeconds: 2
+            timeoutSeconds: 2
             failureThreshold: 3
           resources:
             requests:
