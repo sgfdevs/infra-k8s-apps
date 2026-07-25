@@ -41,6 +41,12 @@ discovery.relabel "pod_metadata" {
 	}
 
 	rule {
+		source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+		target_label  = "service"
+		regex         = "(.+)"
+	}
+
+	rule {
 		source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
 		separator     = "/"
 		target_label  = "__path__"
@@ -67,6 +73,33 @@ loki.process "parse_logs" {
 		values = {
 			level   = "",
 			service = "",
+		}
+	}
+
+	stage.match {
+		selector = `{namespace=~"sgf-dev-(staging|production)"}`
+
+		stage.static_labels {
+			values = {
+				level = "info",
+			}
+		}
+
+		stage.json {
+			expressions = {
+				serilog_level = `"@l"`,
+			}
+		}
+
+		stage.template {
+			source   = "serilog_level"
+			template = "{{ ToLower .Value }}"
+		}
+
+		stage.labels {
+			values = {
+				level = "serilog_level",
+			}
 		}
 	}
 
