@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sgf-dev
+data:
+  SGFDevs__Site__AnalyticsEnabled: "true"
+  SGFDevs__Site__SearchIndexingEnabled: "true"
+  Umbraco__CMS__Global__Smtp__From: Sgf Devs <website@sgf.dev>
+  Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://www.sgf.dev

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sgf-dev-production
+  labels:
+    app.kubernetes.io/name: sgf-dev
+    app.kubernetes.io/instance: production

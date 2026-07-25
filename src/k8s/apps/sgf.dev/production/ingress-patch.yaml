@@ -1,0 +1,10 @@
+- op: replace
+  path: /metadata/annotations/traefik.ingress.kubernetes.io~1router.middlewares
+  value: sgf-dev-production-sgf-dev-https-redirect@kubernetescrd
+- op: replace
+  path: /spec/tls/0/hosts
+  value:
+    - www.sgf.dev
+- op: replace
+  path: /spec/rules/0/host
+  value: www.sgf.dev

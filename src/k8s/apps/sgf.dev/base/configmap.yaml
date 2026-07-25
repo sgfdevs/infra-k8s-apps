@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sgf-dev
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+  ConnectionStrings__umbracoDbDSN: Data Source=|DataDirectory|/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True;Default Timeout=60
+  SGFDevs__NewsletterEndpoint: https://newsletter.sgf.dev/api/public/subscription
+  SGFDevs__NewsletterListId: 56b22e2e-8990-4ac9-ad20-5c8368e59826
+  SGFDevs__EventSyncEnabled: "true"
+  SGFDevs__EventTimeZoneId: America/Chicago
+  SGFDevs__Sessionize__BaseUrl: https://sessionize.com/api/v2/63r359th/view
+  SGFDevs__MeetupApi__BaseUrl: https://sgf-meetup-api.opensgf.org
+  SGFDevs__MeetupApi__ClientId: sgf-devs-website
+  SGFDevs__MeetupApi__GroupId: sgfdevs
+  Umbraco__CMS__Global__Smtp__Host: email-smtp.us-east-2.amazonaws.com
+  Umbraco__CMS__Global__Smtp__Port: "587"
+  Umbraco__CMS__Global__Smtp__SecureSocketOptions: StartTls
