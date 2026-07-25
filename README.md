@@ -10,6 +10,13 @@ Holds the Kubernetes manifests for base infrastructure and applications deployed
 - `src/k8s/platform/`: Cluster configuration, storage, identity, observability, and shared services.
 - `src/k8s/apps/`: The primary set of applications deployed to the cluster.
 
+Applications can use either of these layouts:
+
+- Flat applications place `kustomization.yaml` directly under `src/k8s/apps/<app>/`.
+- Applications with overlays place shared resources under `src/k8s/apps/<app>/base/` and each deployable environment in a sibling directory containing its own `kustomization.yaml`.
+
+The application generator discovers top-level Kustomizations and nested overlay Kustomizations, excluding directories named `base`. An overlay application must not have a Kustomization at its application root.
+
 ## Public ingress model
 - Public `*.sgf.dev` hostnames resolve to the shared public edge node.
 - The edge cluster forwards `*.sgf.dev` traffic to the three internal SGF k3s nodes.

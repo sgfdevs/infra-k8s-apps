@@ -8,14 +8,17 @@ spec:
     - git:
         repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
         revision: main
-        directories:
-          - path: src/k8s/apps/*
+        files:
+          - path: src/k8s/apps/*/kustomization.yaml
+          - path: src/k8s/apps/*/*/kustomization.yaml
+          - path: src/k8s/apps/*/base/kustomization.yaml
+            exclude: true
   goTemplate: true
   goTemplateOptions:
     - missingkey=error
   template:
     metadata:
-      name: '{{.path.basename}}'
+      name: '{{ trimPrefix "src/k8s/apps/" .path.path | replace "/" "-" | replace "." "-" | normalize }}'
       annotations:
         argocd.argoproj.io/sync-wave: "2"
     spec:
@@ -25,7 +28,7 @@ spec:
         path: '{{.path.path}}'
         targetRevision: main
       destination:
-        namespace: '{{.path.basename}}'
+        namespace: '{{ trimPrefix "src/k8s/apps/" .path.path | replace "/" "-" | replace "." "-" | normalize }}'
         server: https://kubernetes.default.svc
       syncPolicy:
         automated:
