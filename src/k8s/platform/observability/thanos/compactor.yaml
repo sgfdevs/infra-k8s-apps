@@ -13,6 +13,8 @@ spec:
   serviceName: thanos-compactor
   template:
     metadata:
+      annotations:
+        secret.reloader.stakater.com/reload: thanos-objstore-config
       labels:
         app.kubernetes.io/name: thanos-compactor
     spec:

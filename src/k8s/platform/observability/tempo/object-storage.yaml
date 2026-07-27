@@ -1,0 +1,83 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: Bucket
+metadata:
+  name: tempo-traces
+  namespace: observability
+spec:
+  clusterRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  placement:
+    replication: "001"
+  reclaimPolicy: Retain
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Identity
+metadata:
+  name: tempo
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: observability-tempo
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Credentials
+metadata:
+  name: tempo
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  identityRef:
+    name: tempo
+  secretRef:
+    name: tempo-s3-credentials
+    accessKeyField: AWS_ACCESS_KEY_ID
+    secretKeyField: AWS_SECRET_ACCESS_KEY
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Policy
+metadata:
+  name: tempo
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: observability-tempo
+  statements:
+    - effect: Allow
+      actions:
+        - s3:GetBucketLocation
+        - s3:ListBucket
+      resources:
+        - tempo-traces
+    - effect: Allow
+      actions:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      resources:
+        - tempo-traces/*
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3PolicyBinding
+metadata:
+  name: tempo
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  policyRef:
+    name: tempo
+  subjects:
+    - kind: S3Identity
+      name: tempo
+  reclaimPolicy: Delete

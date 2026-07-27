@@ -1,0 +1,83 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: Bucket
+metadata:
+  name: thanos-metrics
+  namespace: observability
+spec:
+  clusterRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  placement:
+    replication: "001"
+  reclaimPolicy: Retain
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Identity
+metadata:
+  name: thanos
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: observability-thanos
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Credentials
+metadata:
+  name: thanos
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  identityRef:
+    name: thanos
+  secretRef:
+    name: thanos-s3-credentials
+    accessKeyField: AWS_ACCESS_KEY_ID
+    secretKeyField: AWS_SECRET_ACCESS_KEY
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Policy
+metadata:
+  name: thanos
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: observability-thanos
+  statements:
+    - effect: Allow
+      actions:
+        - s3:GetBucketLocation
+        - s3:ListBucket
+      resources:
+        - thanos-metrics
+    - effect: Allow
+      actions:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      resources:
+        - thanos-metrics/*
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3PolicyBinding
+metadata:
+  name: thanos
+  namespace: observability
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  policyRef:
+    name: thanos
+  subjects:
+    - kind: S3Identity
+      name: thanos
+  reclaimPolicy: Delete

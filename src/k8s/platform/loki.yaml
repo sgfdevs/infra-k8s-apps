@@ -7,98 +7,101 @@ metadata:
     argocd.argoproj.io/sync-wave: "4"
 spec:
   project: platform
-  source:
-    chart: loki
-    repoURL: https://grafana-community.github.io/helm-charts
-    targetRevision: 18.4.4
-    helm:
-      values: |
-        deploymentMode: Monolithic
-        loki:
-          auth_enabled: false
-          server:
-            log_level: warn
-          commonConfig:
-            replication_factor: 3
-          schemaConfig:
-            configs:
-              - from: "2026-01-01"
-                store: tsdb
-                object_store: s3
-                schema: v13
-                index:
-                  prefix: loki_index_
-                  period: 24h
-          storage:
-            type: s3
-            bucketNames:
-              chunks: loki-chunks
-              ruler: loki-ruler
-              admin: loki-admin
-            s3:
-              endpoint: seaweedfs-s3.seaweedfs.svc.cluster.local:8333
-              region: us-east-1
-              insecure: true
-              s3ForcePathStyle: true
-          storage_config:
-            aws:
-              s3forcepathstyle: true
-          limits_config:
-            retention_period: 168h
-            max_query_lookback: 168h
+  sources:
+    - chart: loki
+      repoURL: https://grafana-community.github.io/helm-charts
+      targetRevision: 18.4.4
+      helm:
+        values: |
+          deploymentMode: Monolithic
+          loki:
+            auth_enabled: false
+            server:
+              log_level: warn
+            commonConfig:
+              replication_factor: 3
+            schemaConfig:
+              configs:
+                - from: "2026-01-01"
+                  store: tsdb
+                  object_store: s3
+                  schema: v13
+                  index:
+                    prefix: loki_index_
+                    period: 24h
+            storage:
+              type: s3
+              bucketNames:
+                chunks: loki-chunks
+                ruler: loki-ruler
+                admin: loki-admin
+              s3:
+                endpoint: seaweedfs-s3.seaweedfs.svc.cluster.local:8333
+                region: us-east-1
+                insecure: true
+                s3ForcePathStyle: true
+            storage_config:
+              aws:
+                s3forcepathstyle: true
+            limits_config:
+              retention_period: 168h
+              max_query_lookback: 168h
+            compactor:
+              working_directory: /var/loki/compactor
+              retention_enabled: true
+              delete_request_store: s3
+          defaults:
+            extraEnvFrom:
+              - secretRef:
+                  name: seaweedfs-s3-observability
+          sidecar:
+            rules:
+              enabled: false
+          chunksCache:
+            allocatedMemory: 512
+            defaultValidity: 168h
+          singleBinary:
+            replicas: 3
+            persistence:
+              size: 5Gi
+          backend:
+            replicas: 0
+          read:
+            replicas: 0
+          write:
+            replicas: 0
+          ingester:
+            replicas: 0
+          querier:
+            replicas: 0
+          queryFrontend:
+            replicas: 0
+          queryScheduler:
+            replicas: 0
+          distributor:
+            replicas: 0
           compactor:
-            working_directory: /var/loki/compactor
-            retention_enabled: true
-            delete_request_store: s3
-        defaults:
-          extraEnvFrom:
-            - secretRef:
-                name: seaweedfs-s3-observability
-        sidecar:
-          rules:
-            enabled: false
-        chunksCache:
-          allocatedMemory: 512
-          defaultValidity: 168h
-        singleBinary:
-          replicas: 3
-          persistence:
-            size: 5Gi
-        backend:
-          replicas: 0
-        read:
-          replicas: 0
-        write:
-          replicas: 0
-        ingester:
-          replicas: 0
-        querier:
-          replicas: 0
-        queryFrontend:
-          replicas: 0
-        queryScheduler:
-          replicas: 0
-        distributor:
-          replicas: 0
-        compactor:
-          replicas: 0
-        indexGateway:
-          replicas: 0
-        bloomPlanner:
-          replicas: 0
-        bloomBuilder:
-          replicas: 0
-        bloomGateway:
-          replicas: 0
-        lokiCanary:
-          extraArgs:
-            - -labelname=pod
-            - -labelvalue=$(POD_NAME)
-            - -streamname=app
-            - -streamvalue=loki-canary
-            - -interval=10s
-          podLabels:
-            service: loki-canary
+            replicas: 0
+          indexGateway:
+            replicas: 0
+          bloomPlanner:
+            replicas: 0
+          bloomBuilder:
+            replicas: 0
+          bloomGateway:
+            replicas: 0
+          lokiCanary:
+            extraArgs:
+              - -labelname=pod
+              - -labelvalue=$(POD_NAME)
+              - -streamname=app
+              - -streamvalue=loki-canary
+              - -interval=10s
+            podLabels:
+              service: loki-canary
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      targetRevision: main
+      path: src/k8s/platform/observability/loki
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
