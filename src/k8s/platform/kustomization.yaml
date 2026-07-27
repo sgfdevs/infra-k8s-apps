@@ -15,7 +15,6 @@ resources:
   - openbao
   - otel-collector.yaml
   - prometheus-pushgateway.yaml
-  - seaweedfs-db.yaml
   - seaweedfs-filer-ingress.yaml
   - seaweedfs-metadata.yaml
   - seaweedfs.yaml
