@@ -1,0 +1,26 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: ResourceReferenceGrant
+metadata:
+  name: observability
+  namespace: seaweedfs
+spec:
+  from:
+    - group: seaweed.seaweedfs.com
+      kind: Bucket
+      namespace: observability
+    - group: seaweed.seaweedfs.com
+      kind: S3Identity
+      namespace: observability
+    - group: seaweed.seaweedfs.com
+      kind: S3Credentials
+      namespace: observability
+    - group: seaweed.seaweedfs.com
+      kind: S3Policy
+      namespace: observability
+    - group: seaweed.seaweedfs.com
+      kind: S3PolicyBinding
+      namespace: observability
+  to:
+    - group: seaweed.seaweedfs.com
+      kind: Seaweed
+      name: seaweedfs

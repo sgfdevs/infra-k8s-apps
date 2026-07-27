@@ -1,0 +1,92 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: Seaweed
+metadata:
+  name: seaweedfs
+  namespace: seaweedfs
+spec:
+  image: chrislusf/seaweedfs:4.40
+  imagePullPolicy: IfNotPresent
+  pvReclaimPolicy: Retain
+  volumeServerDiskCount: 1
+  master:
+    replicas: 3
+    defaultReplication: "001"
+    volumeSizeLimitMB: 1024
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: master
+                app.kubernetes.io/instance: seaweedfs
+            topologyKey: kubernetes.io/hostname
+  volume:
+    replicas: 3
+    storageClassName: local-path
+    requests:
+      storage: 20Gi
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: volume
+                app.kubernetes.io/instance: seaweedfs
+            topologyKey: kubernetes.io/hostname
+  filer:
+    replicas: 2
+    config: |
+      [leveldb2]
+      enabled = false
+
+      [postgres2]
+      enabled = true
+    env:
+      - name: WEED_POSTGRES2_HOSTNAME
+        valueFrom:
+          secretKeyRef:
+            name: seaweedfs-metadata-app
+            key: host
+      - name: WEED_POSTGRES2_PORT
+        valueFrom:
+          secretKeyRef:
+            name: seaweedfs-metadata-app
+            key: port
+      - name: WEED_POSTGRES2_DATABASE
+        valueFrom:
+          secretKeyRef:
+            name: seaweedfs-metadata-app
+            key: dbname
+      - name: WEED_POSTGRES2_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: seaweedfs-metadata-app
+            key: username
+      - name: WEED_POSTGRES2_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: seaweedfs-metadata-app
+            key: password
+      - name: WEED_POSTGRES2_SSLMODE
+        value: disable
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: filer
+                app.kubernetes.io/instance: seaweedfs
+            topologyKey: kubernetes.io/hostname
+  s3:
+    replicas: 2
+    iam: true
+    extraArgs:
+      - -iam.readOnly=false
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: s3
+                app.kubernetes.io/instance: seaweedfs
+            topologyKey: kubernetes.io/hostname

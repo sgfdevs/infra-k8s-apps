@@ -53,7 +53,7 @@ spec:
           defaults:
             extraEnvFrom:
               - secretRef:
-                  name: seaweedfs-s3-observability
+                  name: loki-s3-credentials
           sidecar:
             rules:
               enabled: false
