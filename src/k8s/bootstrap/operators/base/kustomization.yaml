@@ -7,3 +7,4 @@ resources:
   - k8up.yaml
   - longhorn.yaml
   - prometheus-operator-crds.yaml
+  - seaweedfs-operator.yaml

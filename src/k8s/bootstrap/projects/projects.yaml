@@ -40,6 +40,7 @@ spec:
     - https://openbao.github.io/openbao-helm
     - https://prometheus-community.github.io/helm-charts
     - https://seaweedfs.github.io/seaweedfs/helm
+    - https://seaweedfs.github.io/seaweedfs-operator/
     - https://stakater.github.io/stakater-charts
   destinations:
     - namespace: '*'
