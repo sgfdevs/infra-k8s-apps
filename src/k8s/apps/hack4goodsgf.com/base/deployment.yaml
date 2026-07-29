@@ -31,6 +31,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: hack4goodsgf
+            - secretRef:
+                name: hack4goodsgf-smtp
           env:
             - name: WORDPRESS_DB_HOST
               value: hack4goodsgf-mysql-mysql:3306

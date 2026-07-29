@@ -5,3 +5,8 @@ metadata:
 data:
   WORDPRESS_HOME: https://staging.hack4goodsgf.com
   WORDPRESS_SITEURL: https://staging.hack4goodsgf.com
+  WORDPRESS_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
+  WORDPRESS_SMTP_PORT: "587"
+  WORDPRESS_SMTP_ENCRYPTION: tls
+  WORDPRESS_SMTP_FROM_EMAIL: hack4good-staging@sgf.dev
+  WORDPRESS_SMTP_FROM_NAME: Hack4Good SGF
