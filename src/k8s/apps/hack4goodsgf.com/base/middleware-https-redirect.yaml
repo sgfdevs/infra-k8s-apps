@@ -1,0 +1,8 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hack4goodsgf-https-redirect
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

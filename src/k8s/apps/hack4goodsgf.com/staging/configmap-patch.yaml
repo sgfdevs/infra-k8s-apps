@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hack4goodsgf
+data:
+  WORDPRESS_HOME: https://staging.hack4goodsgf.com
+  WORDPRESS_SITEURL: https://staging.hack4goodsgf.com

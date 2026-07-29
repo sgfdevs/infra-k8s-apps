@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hack4goodsgf
+data:
+  WORDPRESS_HOME: https://hack4goodsgf.com.invalid
+  WORDPRESS_SITEURL: https://hack4goodsgf.com.invalid
+  WORDPRESS_TABLE_PREFIX: wp_
+  WORDPRESS_CONFIG_EXTRA: |
+    if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strpos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false) {
+        $_SERVER['HTTPS'] = 'on';
+    }
+    define('WP_HOME', getenv('WORDPRESS_HOME'));
+    define('WP_SITEURL', getenv('WORDPRESS_SITEURL'));
+    define('WP_REDIS_HOST', 'hack4goodsgf-valkey');
+    define('WP_REDIS_PORT', 6379);
+    define('WP_REDIS_PASSWORD', getenv('WORDPRESS_REDIS_PASSWORD'));
+    define('WP_CACHE', true);

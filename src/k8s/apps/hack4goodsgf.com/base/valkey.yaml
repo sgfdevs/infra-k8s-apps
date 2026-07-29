@@ -1,0 +1,25 @@
+apiVersion: cache.keiailab.io/v1alpha1
+kind: Valkey
+metadata:
+  name: hack4goodsgf-valkey
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  mode: Standalone
+  replicas: 1
+  version:
+    image: docker.io/valkey/valkey
+    version: 9.1.0
+  service:
+    type: ClusterIP
+  storage:
+    ephemeral: true
+  auth:
+    enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

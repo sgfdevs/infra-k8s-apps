@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hack4goodsgf
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: hack4goodsgf-hack4goodsgf-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - hack4goodsgf.com.invalid
+      secretName: hack4goodsgf-tls
+  rules:
+    - host: hack4goodsgf.com.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hack4goodsgf
+                port:
+                  number: 80

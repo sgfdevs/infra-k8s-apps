@@ -1,0 +1,10 @@
+apiVersion: kinda.rocks/v1beta1
+kind: Database
+metadata:
+  name: wordpress
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instance: hack4goodsgf-staging-mysql
+  secretName: hack4goodsgf-wordpress-database
+  deletionProtected: true
