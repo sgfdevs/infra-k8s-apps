@@ -25,11 +25,14 @@ metadata:
 spec:
   sourceRepos:
     - ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+    - https://apecloud.github.io/helm-charts
     - https://charts.dexidp.io
+    - https://db-operator.github.io/charts
     - https://charts.external-secrets.io
     - https://charts.jetstack.io
     - https://charts.longhorn.io
     - https://cloudnative-pg.github.io/charts
+    - https://github.com/apecloud/kubeblocks.git
     - https://grafana-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts
     - https://keiailab.github.io/valkey-operator

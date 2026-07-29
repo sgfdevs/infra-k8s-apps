@@ -5,6 +5,7 @@ resources:
   - cnpg.yaml
   - external-secrets.yaml
   - k8up.yaml
+  - kubeblocks-crds.yaml
   - longhorn.yaml
   - prometheus-operator-crds.yaml
   - seaweedfs-operator.yaml
