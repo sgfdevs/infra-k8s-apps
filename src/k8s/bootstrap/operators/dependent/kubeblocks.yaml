@@ -22,6 +22,11 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kb-system
+  ignoreDifferences:
+    - group: extensions.kubeblocks.io
+      kind: Addon
+      managedFieldsManagers:
+        - kubeblocks
   syncPolicy:
     automated:
       prune: true
