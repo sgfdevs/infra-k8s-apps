@@ -1,0 +1,96 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hack4goodsgf-wordpress-bootstrap
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  activeDeadlineSeconds: 900
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 33
+      containers:
+        - name: bootstrap
+          image: ghcr.io/sgfdevs/hack4goodsgf.com:latest
+          command:
+            - sh
+            - -ec
+            - |
+              cp -R /usr/src/wordpress/. /var/www/html/
+
+              wp config create \
+                --dbname="$WORDPRESS_DB_NAME" \
+                --dbuser="$WORDPRESS_DB_USER" \
+                --dbpass="$WORDPRESS_DB_PASSWORD" \
+                --dbhost="$WORDPRESS_DB_HOST" \
+                --skip-check \
+                --skip-salts \
+                --force
+
+              for attempt in $(seq 1 120); do
+                if wp core is-installed 2>/dev/null; then
+                  echo "WordPress is already installed"
+                  exit 0
+                fi
+
+                if wp core install \
+                  --url="$WORDPRESS_HOME" \
+                  --title="Hack4Good SGF Staging" \
+                  --admin_user="$WORDPRESS_ADMIN_USER" \
+                  --admin_password="$WORDPRESS_ADMIN_PASSWORD" \
+                  --admin_email="$WORDPRESS_ADMIN_EMAIL" \
+                  --skip-email; then
+                  exit 0
+                fi
+
+                echo "Database is not ready; retrying ($attempt/120)"
+                sleep 5
+              done
+
+              echo "Timed out waiting to install WordPress" >&2
+              exit 1
+          workingDir: /var/www/html
+          env:
+            - name: WORDPRESS_HOME
+              valueFrom:
+                configMapKeyRef:
+                  name: hack4goodsgf
+                  key: WORDPRESS_HOME
+            - name: WORDPRESS_DB_HOST
+              value: hack4goodsgf-mysql-mysql:3306
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: hack4goodsgf-wordpress-database
+                  key: DB
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: hack4goodsgf-wordpress-database
+                  key: USER
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hack4goodsgf-wordpress-database
+                  key: PASSWORD
+          envFrom:
+            - secretRef:
+                name: hack4goodsgf-wordpress-admin
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 33
+            runAsNonRoot: true
+            runAsUser: 33
+          volumeMounts:
+            - name: wordpress
+              mountPath: /var/www/html
+      volumes:
+        - name: wordpress
+          emptyDir: {}

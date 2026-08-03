@@ -7,13 +7,15 @@ resources:
   - service-account.yaml
   - secret-store.yaml
   - external-secret.yaml
+  - wordpress-admin-external-secret.yaml
+  - wordpress-bootstrap-job.yaml
 labels:
   - pairs:
       app.kubernetes.io/instance: staging
     includeSelectors: true
 images:
   - name: ghcr.io/sgfdevs/hack4goodsgf.com
-    newTag: 1.1.0
+    newTag: 1.2.0
 patches:
   - path: configmap-patch.yaml
     target:
