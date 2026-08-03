@@ -10,6 +10,8 @@ resources:
   - wordpress-admin-external-secret.yaml
   - wordpress-bootstrap-job.yaml
   - db-instance.yaml
+transformers:
+  - db-instance-namespace-patch.yaml
 labels:
   - pairs:
       app.kubernetes.io/instance: staging

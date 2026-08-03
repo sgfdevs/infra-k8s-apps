@@ -1,0 +1,11 @@
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: remove-db-instance-namespace
+patch: |-
+  - op: remove
+    path: /metadata/namespace
+target:
+  group: kinda.rocks
+  version: v1beta1
+  kind: DbInstance
