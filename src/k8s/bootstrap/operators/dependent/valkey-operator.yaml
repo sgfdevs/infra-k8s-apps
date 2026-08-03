@@ -32,7 +32,7 @@ spec:
           backup:
             enabled: false
           autoscaling:
-            enabled: false
+            enabled: true
   destination:
     server: https://kubernetes.default.svc
     namespace: valkey-operator-system
