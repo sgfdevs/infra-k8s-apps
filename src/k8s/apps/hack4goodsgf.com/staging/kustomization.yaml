@@ -9,6 +9,7 @@ resources:
   - external-secret.yaml
   - wordpress-admin-external-secret.yaml
   - wordpress-bootstrap-job.yaml
+  - db-instance.yaml
 labels:
   - pairs:
       app.kubernetes.io/instance: staging
