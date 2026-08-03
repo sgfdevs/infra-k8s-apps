@@ -1,6 +1,6 @@
 - op: replace
   path: /metadata/annotations/traefik.ingress.kubernetes.io~1router.middlewares
-  value: hack4goodsgf-com-staging-hack4goodsgf-https-redirect@kubernetescrd
+  value: hack4goodsgf-com-staging-hack4goodsgf-https-redirect@kubernetescrd,hack4goodsgf-com-staging-hack4goodsgf-noindex@kubernetescrd
 - op: replace
   path: /spec/tls/0/hosts
   value:

@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hack4goodsgf
+spec:
+  template:
+    spec:
+      containers:
+        - name: wordpress
+          volumeMounts:
+            - name: robots
+              mountPath: /var/www/html/robots.txt
+              subPath: robots.txt
+              readOnly: true
+      volumes:
+        - name: robots
+          configMap:
+            name: hack4goodsgf-robots

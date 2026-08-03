@@ -10,6 +10,8 @@ resources:
   - wordpress-admin-external-secret.yaml
   - wordpress-bootstrap-job.yaml
   - db-instance.yaml
+  - middleware-noindex.yaml
+  - robots-configmap.yaml
 transformers:
   - db-instance-namespace-patch.yaml
 labels:
@@ -31,4 +33,8 @@ patches:
   - path: ingress-patch.yaml
     target:
       kind: Ingress
+      name: hack4goodsgf
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
       name: hack4goodsgf
