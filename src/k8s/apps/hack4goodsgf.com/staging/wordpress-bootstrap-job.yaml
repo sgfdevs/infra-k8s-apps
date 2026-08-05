@@ -15,7 +15,7 @@ spec:
         fsGroup: 33
       containers:
         - name: bootstrap
-          image: ghcr.io/sgfdevs/hack4goodsgf.com:latest
+          image: ghcr.io/sgfdevs/hack4goodsgf.com:1.2.1
           command:
             - sh
             - -ec

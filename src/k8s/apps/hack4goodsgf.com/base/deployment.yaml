@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: wordpress
-          image: ghcr.io/sgfdevs/hack4goodsgf.com:latest
+          image: ghcr.io/sgfdevs/hack4goodsgf.com:1.2.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
