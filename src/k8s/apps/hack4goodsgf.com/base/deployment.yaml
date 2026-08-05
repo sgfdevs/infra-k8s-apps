@@ -35,21 +35,21 @@ spec:
                 name: hack4goodsgf-smtp
           env:
             - name: WORDPRESS_DB_HOST
-              value: hack4goodsgf-mysql-migration-mysql:3306
+              value: hack4goodsgf-mysql-mysql:3306
             - name: WORDPRESS_DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: hack4goodsgf-wordpress-database-migration
+                  name: hack4goodsgf-wordpress-database
                   key: DB
             - name: WORDPRESS_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: hack4goodsgf-wordpress-database-migration
+                  name: hack4goodsgf-wordpress-database
                   key: USER
             - name: WORDPRESS_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: hack4goodsgf-wordpress-database-migration
+                  name: hack4goodsgf-wordpress-database
                   key: PASSWORD
             - name: WORDPRESS_REDIS_PASSWORD
               valueFrom:
