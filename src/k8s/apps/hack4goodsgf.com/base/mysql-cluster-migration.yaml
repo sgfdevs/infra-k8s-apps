@@ -1,0 +1,30 @@
+apiVersion: apps.kubeblocks.io/v1
+kind: Cluster
+metadata:
+  name: hack4goodsgf-mysql-migration
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  clusterDef: mysql
+  topology: semisync
+  terminationPolicy: DoNotTerminate
+  componentSpecs:
+    - name: mysql
+      serviceVersion: 8.0.44
+      replicas: 2
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: local-path
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi

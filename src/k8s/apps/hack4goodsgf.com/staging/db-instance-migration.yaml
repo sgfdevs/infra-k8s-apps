@@ -1,0 +1,14 @@
+apiVersion: kinda.rocks/v1beta1
+kind: DbInstance
+metadata:
+  name: hack4goodsgf-staging-mysql-migration
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  engine: mysql
+  adminSecretRef:
+    Name: hack4goodsgf-mysql-migration-mysql-account-root
+    Namespace: hack4goodsgf-com-staging
+  generic:
+    host: hack4goodsgf-mysql-migration-mysql.hack4goodsgf-com-staging.svc.cluster.local
+    port: 3306
