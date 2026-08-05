@@ -26,6 +26,7 @@ spec:
   sourceRepos:
     - ssh://git@github.com/sgfdevs/infra-k8s-apps.git
     - https://apecloud.github.io/helm-charts
+    - https://argoproj.github.io/argo-helm
     - https://charts.dexidp.io
     - https://db-operator.github.io/charts
     - https://charts.external-secrets.io
