@@ -1,6 +1,28 @@
 apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
+  name: argo-workflows-k8s
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: external-secrets
+      server:
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+          namespace: external-secrets
+      auth:
+        serviceAccount:
+          name: eso-argo-workflows-reader
+          namespace: external-secrets
+  conditions:
+    - namespaces:
+        - argo-workflows
+---
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
   name: argocd-k8s
 spec:
   provider:

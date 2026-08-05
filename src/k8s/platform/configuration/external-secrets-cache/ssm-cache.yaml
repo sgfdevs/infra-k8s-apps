@@ -19,6 +19,18 @@ spec:
     - secretKey: cookieSecret
       remoteRef:
         key: /vm-workloads/sgfdevs/infra-vm-workloads/oauth2-proxy-cookie-secret
-  dataFrom:
-    - extract:
-        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-client-secrets
+    - secretKey: argoWorkflowsClientSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-argo-workflows-client-secret
+    - secretKey: argocdClientSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-argocd-client-secret
+    - secretKey: grafanaClientSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-grafana-client-secret
+    - secretKey: oauth2ProxyClientSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-oauth2-proxy-client-secret
+    - secretKey: openbaoClientSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-openbao-client-secret

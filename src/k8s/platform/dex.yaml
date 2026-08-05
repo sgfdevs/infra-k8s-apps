@@ -93,6 +93,11 @@ spec:
                 redirectURIs:
                   - https://secrets.sgf.dev/ui/vault/auth/oidc/oidc/callback
                   - https://secrets.sgf.dev/auth/oidc/callback
+              - id: argo-workflows
+                name: Argo Workflows
+                secretEnv: argoWorkflowsClientSecret
+                redirectURIs:
+                  - https://workflows.sgf.dev/oauth2/callback
 
             oauth2:
               skipApproval: true

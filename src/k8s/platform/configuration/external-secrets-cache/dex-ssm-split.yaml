@@ -1,6 +1,24 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  name: argo-workflows-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: cache-k8s
+  target:
+    name: argo-workflows-secrets
+  data:
+    - secretKey: argoWorkflowsClientSecret
+      remoteRef:
+        key: ssm-cache
+        property: argoWorkflowsClientSecret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
   name: argocd-secrets
   namespace: external-secrets
 spec:
