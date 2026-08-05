@@ -4,6 +4,15 @@ metadata:
   name: argocd-cm
 data:
   application.resourceTrackingMethod: annotation
+  resource.customizations.ignoreDifferences.apps_Deployment: |
+    jsonPointers:
+      - /spec/template/metadata/annotations/reloader.stakater.com~1last-reloaded-from
+  resource.customizations.ignoreDifferences.apps_StatefulSet: |
+    jsonPointers:
+      - /spec/template/metadata/annotations/reloader.stakater.com~1last-reloaded-from
+  resource.customizations.ignoreDifferences.apps_DaemonSet: |
+    jsonPointers:
+      - /spec/template/metadata/annotations/reloader.stakater.com~1last-reloaded-from
   resource.customizations.health.argoproj.io_Application: |
     hs = {}
     hs.status = "Healthy"

@@ -15,6 +15,7 @@ spec:
       values: |
         reloader:
           enableHA: true
+          reloadStrategy: annotations
           deployment:
             replicas: 2
             resources:
