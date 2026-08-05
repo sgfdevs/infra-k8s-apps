@@ -10,8 +10,6 @@ resources:
   - wordpress-admin-external-secret.yaml
   - wordpress-bootstrap-job.yaml
   - db-instance.yaml
-  - db-instance-migration.yaml
-  - database-migration.yaml
   - middleware-noindex.yaml
   - robots-configmap.yaml
 transformers:
