@@ -7,4 +7,4 @@ metadata:
 spec:
   instance: hack4goodsgf-staging-mysql
   secretName: hack4goodsgf-wordpress-database
-  deletionProtected: true
+  deletionProtected: false
