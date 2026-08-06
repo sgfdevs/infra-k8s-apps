@@ -1,0 +1,21 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: argo-workflows-sso-login-redirect
+  namespace: argo-workflows
+spec:
+  redirectRegex:
+    regex: '^https://workflows\.sgf\.dev/login\?redirect=(.+)$'
+    replacement: 'https://workflows.sgf.dev/oauth2/redirect?redirect=${1}'
+    permanent: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: argo-workflows-sso-login-default
+  namespace: argo-workflows
+spec:
+  redirectRegex:
+    regex: '^https://workflows\.sgf\.dev/login/?$'
+    replacement: 'https://workflows.sgf.dev/oauth2/redirect?redirect=/workflows'
+    permanent: false

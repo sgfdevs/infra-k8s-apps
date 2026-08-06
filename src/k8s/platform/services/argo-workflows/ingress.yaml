@@ -5,7 +5,7 @@ metadata:
   namespace: argo-workflows
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.middlewares: argo-workflows-argo-workflows-https-redirect@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: argo-workflows-argo-workflows-https-redirect@kubernetescrd,argo-workflows-argo-workflows-sso-login-redirect@kubernetescrd,argo-workflows-argo-workflows-sso-login-default@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:

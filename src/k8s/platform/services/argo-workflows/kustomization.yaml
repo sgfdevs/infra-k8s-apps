@@ -6,5 +6,6 @@ resources:
   - external-secret.yaml
   - rbac.yaml
   - middleware-https-redirect.yaml
+  - middleware-sso-login-redirect.yaml
   - certificate.yaml
   - ingress.yaml
