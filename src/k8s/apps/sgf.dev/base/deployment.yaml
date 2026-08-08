@@ -77,6 +77,8 @@ spec:
           env:
             - name: SGFDevs__ServerRole
               value: Subscriber
+            - name: ConnectionStrings__umbracoDbDSN
+              value: Data Source=/var/lib/sgf-dev/Umbraco.sqlite.db;Mode=ReadOnly;Foreign Keys=True;Pooling=True;Default Timeout=60
             - name: Umbraco__CMS__Hosting__MachineIdentifier
               value: sgf-dev-subscriber
             - name: Umbraco__CMS__Unattended__UpgradeUnattended
