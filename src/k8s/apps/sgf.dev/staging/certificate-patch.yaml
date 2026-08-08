@@ -2,3 +2,4 @@
   path: /spec/dnsNames
   value:
     - staging.sgf.dev
+    - media-staging.sgf.dev
