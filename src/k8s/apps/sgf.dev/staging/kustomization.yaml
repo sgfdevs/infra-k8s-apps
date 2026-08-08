@@ -10,15 +10,15 @@ labels:
     app.kubernetes.io/instance: staging
 images:
 - name: ghcr.io/sgfdevs/sgf.dev
-  newTag: 1.9.0
+  newTag: 1.10.0
 patches:
 - path: configmap-patch.yaml
 - path: deployment-patch.yaml
   target:
     group: apps
-    version: v1
     kind: Deployment
     labelSelector: app.kubernetes.io/part-of=sgf-dev
+    version: v1
 - path: environment-patch.yaml
   target:
     kind: SecretStore
