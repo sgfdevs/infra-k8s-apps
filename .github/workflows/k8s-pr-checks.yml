@@ -8,8 +8,9 @@ permissions:
 
 jobs:
   checks:
-    uses: glitchedmob/infra-gha/.github/workflows/k8s-pr-checks.yml@v0.9.1
+    uses: glitchedmob/infra-gha/.github/workflows/k8s-pr-checks.yml@v0.10.0
     with:
+      kubernetes-version: 1.36.2
       kustomization-roots: |
         src/k8s/bootstrap/operators/base
         src/k8s/bootstrap/operators/dependent
