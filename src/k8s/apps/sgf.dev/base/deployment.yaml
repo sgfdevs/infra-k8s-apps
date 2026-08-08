@@ -19,9 +19,6 @@ spec:
       hostname: sgf-dev
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
-      securityContext:
-        fsGroup: 1654
-        fsGroupChangePolicy: OnRootMismatch
       initContainers:
         - name: initialize-data
           image: busybox:1.37.0
@@ -35,8 +32,6 @@ spec:
                   chown -R 1654:1654 "$path"
                 fi
               done
-          securityContext:
-            runAsUser: 0
           volumeMounts:
             - name: data
               mountPath: /data
@@ -52,15 +47,7 @@ spec:
           image: ghcr.io/sgfdevs/sgf.dev:latest
           imagePullPolicy: IfNotPresent
           securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            runAsGroup: 1654
             runAsNonRoot: true
-            runAsUser: 1654
-            seccompProfile:
-              type: RuntimeDefault
           ports:
             - name: http
               containerPort: 8080
