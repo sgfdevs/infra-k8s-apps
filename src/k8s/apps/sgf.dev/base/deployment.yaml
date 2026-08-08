@@ -19,13 +19,24 @@ spec:
       hostname: sgf-dev
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 1654
+        fsGroupChangePolicy: OnRootMismatch
       initContainers:
         - name: initialize-data
           image: busybox:1.37.0
           command:
             - sh
             - -ec
-            - mkdir -p /data/umbraco /data/data-protection-keys
+            - |
+              mkdir -p /data/umbraco /data/data-protection-keys
+              for path in /data/umbraco /data/data-protection-keys; do
+                if [ "$(stat -c '%u:%g' "$path")" != "1654:1654" ]; then
+                  chown -R 1654:1654 "$path"
+                fi
+              done
+          securityContext:
+            runAsUser: 0
           volumeMounts:
             - name: data
               mountPath: /data
@@ -40,9 +51,19 @@ spec:
         - name: sgf-dev
           image: ghcr.io/sgfdevs/sgf.dev:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 1654
+            runAsNonRoot: true
+            runAsUser: 1654
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
               protocol: TCP
           envFrom:
             - configMapRef:
@@ -82,7 +103,7 @@ spec:
               mountPath: /usr/src/main/umbraco/Data
               subPath: umbraco
             - name: data
-              mountPath: /root/.aspnet/DataProtection-Keys
+              mountPath: /home/app/.aspnet/DataProtection-Keys
               subPath: data-protection-keys
       volumes:
         - name: data
