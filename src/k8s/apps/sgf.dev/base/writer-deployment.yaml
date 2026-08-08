@@ -19,6 +19,8 @@ spec:
       app.kubernetes.io/component: writer
   template:
     metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
       labels:
         app.kubernetes.io/name: sgf-dev-writer
         app.kubernetes.io/component: writer
