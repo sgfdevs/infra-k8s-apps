@@ -1,0 +1,18 @@
+name: Kubernetes PR Checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: glitchedmob/infra-gha/.github/workflows/k8s-pr-checks.yml@v0.9.1
+    with:
+      kustomization-roots: |
+        src/k8s/bootstrap/operators/base
+        src/k8s/bootstrap/operators/dependent
+        src/k8s/bootstrap/projects
+        src/k8s/apps
+        src/k8s/platform
