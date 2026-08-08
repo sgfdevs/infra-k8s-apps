@@ -1,6 +1,3 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: sgf-dev
-spec:
-  replicas: 1
+- op: replace
+  path: /spec/replicas
+  value: 1

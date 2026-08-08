@@ -5,7 +5,7 @@ metadata:
 data:
   ASPNETCORE_ENVIRONMENT: Production
   ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
-  ConnectionStrings__umbracoDbDSN: Data Source=|DataDirectory|/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True;Default Timeout=60
+  ConnectionStrings__umbracoDbDSN: Data Source=/var/lib/sgf-dev/Umbraco.sqlite.db;Foreign Keys=True;Pooling=True;Default Timeout=60
   SGFDevs__NewsletterEndpoint: https://newsletter.sgf.dev/api/public/subscription
   SGFDevs__NewsletterListId: 56b22e2e-8990-4ac9-ad20-5c8368e59826
   SGFDevs__EventSyncEnabled: "true"

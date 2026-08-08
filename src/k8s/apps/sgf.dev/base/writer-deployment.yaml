@@ -1,28 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sgf-dev
+  name: sgf-dev-writer
   labels:
-    app.kubernetes.io/name: sgf-dev
-    app.kubernetes.io/component: subscriber
+    app.kubernetes.io/name: sgf-dev-writer
+    app.kubernetes.io/component: writer
     app.kubernetes.io/part-of: sgf-dev
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    # Argo must wait for this Deployment to finish migrations before updating the subscriber.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app.kubernetes.io/name: sgf-dev
+      app.kubernetes.io/name: sgf-dev-writer
+      app.kubernetes.io/component: writer
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: sgf-dev
-        app.kubernetes.io/component: subscriber
+        app.kubernetes.io/name: sgf-dev-writer
+        app.kubernetes.io/component: writer
         app.kubernetes.io/part-of: sgf-dev
     spec:
-      hostname: sgf-dev-subscriber
+      hostname: sgf-dev-writer
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
       affinity:
@@ -32,6 +34,13 @@ spec:
                 matchLabels:
                   app.kubernetes.io/part-of: sgf-dev
               topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: sgf-dev
+                topologyKey: kubernetes.io/hostname
       initContainers:
         - name: initialize-data
           image: busybox:1.37.0
@@ -39,8 +48,8 @@ spec:
             - sh
             - -ec
             - |
-              mkdir -p /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/subscriber/examine
-              for path in /data/umbraco /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/subscriber/examine; do
+              mkdir -p /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/writer/examine
+              for path in /data/umbraco /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/writer/examine; do
                 if [ "$(stat -c '%u:%g' "$path")" != "1654:1654" ]; then
                   chown -R 1654:1654 "$path"
                 fi
@@ -72,13 +81,13 @@ spec:
                 name: sgf-dev
           env:
             - name: SGFDevs__ServerRole
-              value: Subscriber
+              value: SchedulingPublisher
             - name: Umbraco__CMS__Hosting__MachineIdentifier
-              value: sgf-dev-subscriber
+              value: sgf-dev-writer
             - name: Umbraco__CMS__Unattended__UpgradeUnattended
-              value: "false"
+              value: "true"
             - name: Umbraco__CMS__Unattended__PackageMigrationsUnattended
-              value: "false"
+              value: "true"
           startupProbe:
             httpGet:
               path: /health/live
@@ -119,7 +128,7 @@ spec:
               subPath: umbraco/TEMP/MediaCache
             - name: data
               mountPath: /usr/src/main/umbraco/Data/TEMP/ExamineIndexes
-              subPath: pods/subscriber/examine
+              subPath: pods/writer/examine
       volumes:
         - name: data
           persistentVolumeClaim:
