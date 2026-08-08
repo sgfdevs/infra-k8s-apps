@@ -40,7 +40,7 @@ spec:
             - -ec
             - |
               mkdir -p /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/subscriber/examine
-              for path in /data/umbraco /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/subscriber/examine; do
+              for path in /data/umbraco /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/subscriber/examine /temp; do
                 if [ "$(stat -c '%u:%g' "$path")" != "1654:1654" ]; then
                   chown -R 1654:1654 "$path"
                 fi
@@ -48,6 +48,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: temp
+              mountPath: /temp
           resources:
             requests:
               cpu: 5m
@@ -114,6 +116,8 @@ spec:
             - name: data
               mountPath: /home/app/.aspnet/DataProtection-Keys
               subPath: data-protection-keys
+            - name: temp
+              mountPath: /usr/src/main/umbraco/Data/TEMP
             - name: data
               mountPath: /usr/src/main/umbraco/Data/TEMP/MediaCache
               subPath: umbraco/TEMP/MediaCache
@@ -124,3 +128,5 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: sgf-dev-data
+        - name: temp
+          emptyDir: {}
