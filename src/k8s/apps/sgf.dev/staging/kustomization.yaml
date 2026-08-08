@@ -3,6 +3,8 @@ kind: Kustomization
 namespace: sgf-dev-staging
 resources:
 - ../base
+- media-ingress.yaml
+- media-path-middleware.yaml
 - namespace.yaml
 labels:
 - includeSelectors: true
