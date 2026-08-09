@@ -1,0 +1,27 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sgf-dev-restore-workflow
+  namespace: argocd
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    resourceNames: ["sgf-dev-staging", "sgf-dev-production"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sgf-dev-restore-workflow
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sgf-dev-restore-workflow
+subjects:
+  - kind: ServiceAccount
+    name: sgf-dev-restore-workflow
+    namespace: sgf-dev-staging
+  - kind: ServiceAccount
+    name: sgf-dev-restore-workflow
+    namespace: sgf-dev-production

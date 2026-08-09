@@ -3,28 +3,88 @@ kind: ConfigMap
 metadata:
   name: sgf-dev-workflow-scripts
 data:
-  restore.sh: |
+  prepare-restore.sh: |
     #!/bin/sh
     set -eu
 
-    apk add --no-cache kubectl restic sqlite >/dev/null
+    apk add --no-cache kubectl >/dev/null
 
-    case "$SNAPSHOT_ID" in
-      ""|*[!0-9a-f]*) echo "Snapshot ID must contain only lowercase hexadecimal characters." >&2; exit 1 ;;
-    esac
-    if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
-      echo "Snapshot ID must be between 8 and 64 characters." >&2
-      exit 1
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or contain only lowercase hexadecimal characters." >&2; exit 1 ;;
+      esac
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
+      fi
     fi
     if [ "$CONFIRMATION" != "RESTORE $TARGET_NAMESPACE" ]; then
       echo "Confirmation must exactly match: RESTORE $TARGET_NAMESPACE" >&2
       exit 1
     fi
 
+    backup_states=$(kubectl get backups.k8up.io -o jsonpath='{range .items[*]}{.metadata.name}{"="}{.status.conditions[?(@.type=="Completed")].status}{"\n"}{end}')
+    active_backups=
+    while IFS='=' read -r backup completed; do
+      if [ -n "$backup" ] && [ "$completed" != True ]; then
+        active_backups="${active_backups}${backup}\n"
+      fi
+    done <<EOF
+    $backup_states
+    EOF
+    if [ -n "$active_backups" ]; then
+      echo "K8up backups are still active in $TARGET_NAMESPACE:" >&2
+      printf '%b' "$active_backups" >&2
+      exit 1
+    fi
+
+    application=$(kubectl -n argocd get application "$TARGET_NAMESPACE" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $application
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ]; then
+      echo "Argo CD Application $TARGET_NAMESPACE is already paused or managed by a restore." >&2
+      exit 1
+    fi
+    if [ "$self_heal" != true ]; then
+      echo "Argo CD Application $TARGET_NAMESPACE must have self-heal enabled before restore." >&2
+      exit 1
+    fi
+    if [ "$operation" = Running ]; then
+      echo "Argo CD Application $TARGET_NAMESPACE has a sync operation in progress." >&2
+      exit 1
+    fi
+
+    for deployment in sgf-dev sgf-dev-writer; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+      if [ -n "$original" ]; then
+        echo "$TARGET_NAMESPACE/$deployment has stale restore state; cleanup is required." >&2
+        exit 1
+      fi
+    done
+    for deployment in sgf-dev sgf-dev-writer; do
+      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
+      kubectl annotate deployment "$deployment" restore.sgf.dev/original-replicas="$replicas" --overwrite
+    done
+
+    kubectl -n argocd patch application "$TARGET_NAMESPACE" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+    kubectl scale deployment sgf-dev sgf-dev-writer --replicas=0
+    pods=$(kubectl get pods -l app.kubernetes.io/part-of=sgf-dev -o name)
+    if [ -n "$pods" ]; then
+      kubectl wait --for=delete pod -l app.kubernetes.io/part-of=sgf-dev --timeout=180s
+    fi
+    echo "$TARGET_NAMESPACE is paused and scaled to zero."
+
+  restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    apk add --no-cache jq kubectl restic sqlite >/dev/null
+
     for deployment in sgf-dev sgf-dev-writer; do
       replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
       if [ "$replicas" != 0 ]; then
-        echo "$TARGET_NAMESPACE/$deployment must be scaled to zero through GitOps before restore." >&2
+        echo "$TARGET_NAMESPACE/$deployment was not scaled to zero by restore preparation." >&2
         exit 1
       fi
     done
@@ -51,6 +111,12 @@ data:
       exit 1
     fi
 
+    snapshot_path="/$TARGET_NAMESPACE-backup.sqlite.db"
+    if [ "$SNAPSHOT_ID" = latest ]; then
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | jq -er 'if length == 1 then .[0].id else error("No matching snapshot found") end')
+      echo "Resolved latest snapshot to $SNAPSHOT_ID."
+    fi
+
     database=/data/umbraco/Umbraco.sqlite.db
     temporary=$(mktemp /data/umbraco/.Umbraco.sqlite.db.restore.XXXXXX)
     sidecars=
@@ -66,7 +132,7 @@ data:
       fi
     }
     trap cleanup EXIT
-    restic dump "$SNAPSHOT_ID" "/$TARGET_NAMESPACE-backup.sqlite.db" > "$temporary"
+    restic dump "$SNAPSHOT_ID" "$snapshot_path" > "$temporary"
     test -s "$temporary"
     test "$(sqlite3 "$temporary" 'PRAGMA integrity_check;')" = ok
     chown 1654:1654 "$temporary"
@@ -84,3 +150,37 @@ data:
     sidecars=
 
     echo "Snapshot $SNAPSHOT_ID was restored to $TARGET_NAMESPACE and passed SQLite integrity checks."
+
+  cleanup-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    apk add --no-cache kubectl >/dev/null
+
+    app_original=$(kubectl get deployment sgf-dev -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    writer_original=$(kubectl get deployment sgf-dev-writer -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    for original in "$app_original" "$writer_original"; do
+      case "$original" in
+        "") ;;
+        *[!0-9]*) echo "Invalid saved replica count: $original" >&2; exit 1 ;;
+      esac
+    done
+
+    if [ -n "$app_original" ]; then
+      kubectl scale deployment sgf-dev --replicas="$app_original"
+    fi
+    if [ -n "$writer_original" ]; then
+      kubectl scale deployment sgf-dev-writer --replicas="$writer_original"
+    fi
+    if [ -n "$app_original" ]; then
+      kubectl annotate deployment sgf-dev restore.sgf.dev/original-replicas-
+    fi
+    if [ -n "$writer_original" ]; then
+      kubectl annotate deployment sgf-dev-writer restore.sgf.dev/original-replicas-
+    fi
+
+    managed=$(kubectl -n argocd get application "$TARGET_NAMESPACE" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    if [ "$managed" = true ]; then
+      kubectl -n argocd patch application "$TARGET_NAMESPACE" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.sgf.dev/managed":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}'
+    fi
+    echo "$TARGET_NAMESPACE replica counts and Argo CD reconciliation settings were restored."

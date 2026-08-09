@@ -4,6 +4,13 @@ metadata:
   name: apps
   namespace: argocd
 spec:
+  preservedFields:
+    annotations:
+      - argocd.argoproj.io/skip-reconcile
+      - restore.sgf.dev/managed
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy/automated/selfHeal
   generators:
     - git:
         repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
