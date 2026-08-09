@@ -3,9 +3,13 @@ kind: Kustomization
 namespace: sgf-dev-staging
 resources:
 - ../base
+- ../../../platform/services/backup-base
 - media-ingress.yaml
 - media-path-middleware.yaml
 - namespace.yaml
+- backup-serviceaccount.yaml
+- externalsecret-backup-credentials.yaml
+- workflow-rbac.yaml
 labels:
 - includeSelectors: true
   pairs:
@@ -15,6 +19,18 @@ images:
   newTag: 1.10.1
 patches:
 - path: configmap-patch.yaml
+- path: backup-patch.yaml
+  target:
+    group: k8up.io
+    kind: PreBackupPod
+    name: app-backup
+    version: v1
+- path: schedule-patch.yaml
+  target:
+    group: k8up.io
+    kind: Schedule
+    name: app-backup
+    version: v1
 - path: deployment-patch.yaml
   target:
     group: apps

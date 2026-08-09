@@ -1,0 +1,48 @@
+- op: replace
+  path: /metadata/name
+  value: sgf-dev-backup
+- op: replace
+  path: /metadata/labels/backup.k8up.io~1app
+  value: sgf-dev
+- op: replace
+  path: /spec/fileExtension
+  value: .sqlite.db
+- op: replace
+  path: /spec/backupCommand
+  value: >-
+    sh -ec '
+      apk add --no-cache sqlite >/dev/null;
+      database=/data/umbraco/Umbraco.sqlite.db;
+      snapshot=$(mktemp);
+      trap "rm -f $snapshot" EXIT;
+      test -s "$database";
+      sqlite3 "$database" ".timeout 60000" ".backup $snapshot";
+      test "$(sqlite3 "$snapshot" "PRAGMA integrity_check;")" = ok;
+      cat "$snapshot"
+    '
+- op: replace
+  path: /spec/pod/spec/serviceAccountName
+  value: sgf-dev-backup
+- op: replace
+  path: /spec/pod/spec/containers/0/image
+  value: alpine:3.22.1
+- op: add
+  path: /spec/pod/spec/affinity
+  value:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: sgf-dev
+          topologyKey: kubernetes.io/hostname
+- op: add
+  path: /spec/pod/spec/containers/0/volumeMounts
+  value:
+    - name: data
+      mountPath: /data
+- op: add
+  path: /spec/pod/spec/volumes
+  value:
+    - name: data
+      persistentVolumeClaim:
+        claimName: sgf-dev-data

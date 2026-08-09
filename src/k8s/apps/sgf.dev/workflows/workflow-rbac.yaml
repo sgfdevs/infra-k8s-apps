@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sgf-dev-staging-backup
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sgf-dev-staging-restore
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sgf-dev-production-backup
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sgf-dev-production-restore
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sgf-dev-workflow-executor
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtaskresults"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sgf-dev-workflow-executor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sgf-dev-workflow-executor
+subjects:
+  - kind: ServiceAccount
+    name: sgf-dev-staging-backup
+  - kind: ServiceAccount
+    name: sgf-dev-staging-restore
+  - kind: ServiceAccount
+    name: sgf-dev-production-backup
+  - kind: ServiceAccount
+    name: sgf-dev-production-restore

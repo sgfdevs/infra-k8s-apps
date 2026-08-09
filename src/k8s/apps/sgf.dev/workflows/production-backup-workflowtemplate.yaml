@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: sgf-dev-production-backup
+spec:
+  entrypoint: backup
+  serviceAccountName: sgf-dev-production-backup
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  templates:
+    - name: backup
+      container:
+        image: registry.k8s.io/kubectl:v1.36.2
+        command: [/scripts/backup.sh]
+        env:
+          - name: TARGET_NAMESPACE
+            value: sgf-dev-production
+          - name: BACKEND_PATH
+            value: sgf-dev-production
+          - name: WORKFLOW_UID
+            value: "{{workflow.uid}}"
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: sgf-dev-workflow-scripts
+            defaultMode: 0555
