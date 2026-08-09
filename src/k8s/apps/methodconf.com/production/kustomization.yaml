@@ -14,7 +14,7 @@ labels:
       app.kubernetes.io/instance: production
 images:
   - name: ghcr.io/sgfdevs/methodconf.com
-    newTag: 1.2.0
+    newTag: 1.2.1
   - name: ghcr.io/sgfdevs/cms.methodconf.com
     newTag: 1.1.0
 patches:
