@@ -4,6 +4,7 @@ metadata:
   name: argocd-cmd-params-cm
 data:
   controller.operation.processors: "3"
+  controller.sync.timeout.seconds: "900"
   server.insecure: "true"
   redis.server: argocd-redis-ha-haproxy:6379
   dexserver.disable: "true"
