@@ -16,7 +16,7 @@ labels:
     app.kubernetes.io/instance: staging
 images:
 - name: ghcr.io/sgfdevs/cms.methodconf.com
-  newTag: 1.1.0
+  newTag: 1.1.2
 - name: ghcr.io/sgfdevs/methodconf.com
   newTag: 1.2.1
 patches:
