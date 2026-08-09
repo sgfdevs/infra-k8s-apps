@@ -14,6 +14,9 @@ spec:
       - name: snapshot-id
         value: latest
       - name: confirmation
+        description: >-
+          Enter "RESTORE sgf-dev-staging" or "RESTORE sgf-dev-production",
+          matching the namespace where this workflow is submitted.
   activeDeadlineSeconds: 1200
   ttlStrategy:
     secondsAfterCompletion: 86400
