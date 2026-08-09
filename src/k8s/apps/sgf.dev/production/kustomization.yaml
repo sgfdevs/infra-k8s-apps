@@ -7,6 +7,8 @@ resources:
 - namespace.yaml
 - backup-serviceaccount.yaml
 - externalsecret-backup-credentials.yaml
+- middleware-www-redirect.yaml
+- apex-ingress.yaml
 labels:
 - includeSelectors: true
   pairs:

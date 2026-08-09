@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sgf-dev-www-redirect
+spec:
+  redirectRegex:
+    regex: ^https?://sgf\.dev(.*)
+    replacement: https://www.sgf.dev${1}
+    permanent: true
