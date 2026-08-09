@@ -15,7 +15,7 @@ labels:
     app.kubernetes.io/instance: staging
 images:
 - name: ghcr.io/sgfdevs/sgf.dev
-  newTag: 1.10.2
+  newTag: 1.10.3
 patches:
 - path: configmap-patch.yaml
 - path: backup-patch.yaml
