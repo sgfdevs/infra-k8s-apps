@@ -1,4 +1,5 @@
-- op: replace
-  path: /spec/dnsNames
-  value:
-    - www.sgf.dev
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sgf-dev-tls
+$patch: delete
