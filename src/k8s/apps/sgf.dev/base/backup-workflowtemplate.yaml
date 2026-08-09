@@ -8,6 +8,7 @@ spec:
   synchronization:
     mutexes:
       - name: sgf-dev-maintenance
+  activeDeadlineSeconds: 3600
   ttlStrategy:
     secondsAfterCompletion: 86400
   podGC:
@@ -15,21 +16,35 @@ spec:
     deleteDelayDuration: 10m
   templates:
     - name: backup
-      container:
-        image: registry.k8s.io/kubectl:v1.36.2
-        command: [/scripts/backup.sh]
-        env:
-          - name: TARGET_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          - name: WORKFLOW_UID
-            value: "{{workflow.uid}}"
-        volumeMounts:
-          - name: scripts
-            mountPath: /scripts
-      volumes:
-        - name: scripts
-          configMap:
-            name: sgf-dev-workflow-scripts
-            defaultMode: 0555
+      resource:
+        action: create
+        successCondition: status.conditions.#(type=="Completed").reason == Succeeded
+        failureCondition: status.conditions.#(type=="Completed").reason == Failed
+        manifest: |
+          apiVersion: k8up.io/v1
+          kind: Backup
+          metadata:
+            name: sgf-dev-on-demand-{{workflow.uid}}
+          spec:
+            failedJobsHistoryLimit: 2
+            successfulJobsHistoryLimit: 2
+            tags:
+              - {{workflow.namespace}}
+              - sgf-dev
+              - on-demand
+            labelSelectors:
+              - matchLabels:
+                  backup.k8up.io/app: sgf-dev
+            backend:
+              repoPasswordSecretRef:
+                name: sgf-dev-k8up-repo-password
+                key: password
+              b2:
+                bucket: sgfdevs-on-prem-k3s-backups
+                path: {{workflow.namespace}}
+                accountIDSecretRef:
+                  name: k8up-b2-credentials
+                  key: account-id
+                accountKeySecretRef:
+                  name: k8up-b2-credentials
+                  key: account-key

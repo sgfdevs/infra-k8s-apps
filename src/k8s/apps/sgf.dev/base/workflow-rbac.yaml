@@ -15,7 +15,7 @@ metadata:
 rules:
   - apiGroups: ["k8up.io"]
     resources: ["backups"]
-    verbs: ["create", "get", "list", "watch"]
+    verbs: ["create", "get", "watch"]
   - apiGroups: ["argoproj.io"]
     resources: ["workflowtaskresults"]
     verbs: ["create", "patch"]
