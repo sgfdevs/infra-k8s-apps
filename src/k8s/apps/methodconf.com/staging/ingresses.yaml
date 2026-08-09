@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: methodconf-frontend
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: methodconf-com-staging-methodconf-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - staging.methodconf.com
+      secretName: methodconf-tls
+  rules:
+    - host: staging.methodconf.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: methodconf-frontend
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: methodconf-cms
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: methodconf-com-staging-methodconf-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - cms-staging.methodconf.com
+      secretName: methodconf-tls
+  rules:
+    - host: cms-staging.methodconf.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: methodconf-cms
+                port:
+                  number: 80

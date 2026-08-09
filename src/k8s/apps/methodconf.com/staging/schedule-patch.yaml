@@ -1,0 +1,15 @@
+- op: replace
+  path: /metadata/name
+  value: methodconf-backup
+- op: replace
+  path: /spec/backend/repoPasswordSecretRef/name
+  value: methodconf-k8up-repo-password
+- op: replace
+  path: /spec/backend/b2/path
+  value: methodconf-com-staging
+- op: replace
+  path: /spec/backup/schedule
+  value: "30 7 * * *"
+- op: replace
+  path: /spec/backup/labelSelectors/0/matchLabels/backup.k8up.io~1app
+  value: methodconf

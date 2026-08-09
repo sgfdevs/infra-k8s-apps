@@ -7,6 +7,7 @@ spec:
   preservedFields:
     annotations:
       - argocd.argoproj.io/skip-reconcile
+      - restore.methodconf.com/managed
       - restore.sgf.dev/managed
   ignoreApplicationDifferences:
     - jsonPointers:

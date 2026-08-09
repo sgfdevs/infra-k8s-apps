@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: methodconf-frontend
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: www.methodconf.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: methodconf-frontend
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: methodconf-cms
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: cms.methodconf.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: methodconf-cms
+                port:
+                  number: 80

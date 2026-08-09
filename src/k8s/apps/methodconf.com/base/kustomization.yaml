@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - service-account.yaml
+  - secret-store.yaml
+  - external-secrets.yaml
+  - configmaps.yaml
+  - pvc.yaml
+  - cms-deployment.yaml
+  - frontend-deployment.yaml
+  - services.yaml
+  - frontend-pdb.yaml
+  - workflow-rbac.yaml
+  - workflow-scripts.yaml
+  - backup-workflowtemplate.yaml
+  - restore-workflowtemplate.yaml

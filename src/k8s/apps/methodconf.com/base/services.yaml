@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: methodconf-cms
+  labels:
+    app.kubernetes.io/name: methodconf-cms
+    app.kubernetes.io/component: cms
+    app.kubernetes.io/part-of: methodconf
+spec:
+  selector:
+    app.kubernetes.io/name: methodconf-cms
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: methodconf-frontend
+  labels:
+    app.kubernetes.io/name: methodconf-frontend
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: methodconf
+spec:
+  selector:
+    app.kubernetes.io/name: methodconf-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
