@@ -7,7 +7,6 @@ resources:
 - namespace.yaml
 - backup-serviceaccount.yaml
 - externalsecret-backup-credentials.yaml
-- workflow-rbac.yaml
 labels:
 - includeSelectors: true
   pairs:

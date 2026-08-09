@@ -1,13 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: sgf-dev-production-backup
+  name: sgf-dev-backup
 spec:
   entrypoint: backup
-  serviceAccountName: sgf-dev-production-backup
+  serviceAccountName: sgf-dev-backup-workflow
   synchronization:
     mutexes:
-      - name: sgf-dev-production-maintenance
+      - name: sgf-dev-maintenance
   ttlStrategy:
     secondsAfterCompletion: 86400
   podGC:
@@ -20,9 +20,9 @@ spec:
         command: [/scripts/backup.sh]
         env:
           - name: TARGET_NAMESPACE
-            value: sgf-dev-production
-          - name: BACKEND_PATH
-            value: sgf-dev-production
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
           - name: WORKFLOW_UID
             value: "{{workflow.uid}}"
         volumeMounts:
