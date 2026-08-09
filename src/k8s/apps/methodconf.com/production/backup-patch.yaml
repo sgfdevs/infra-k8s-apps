@@ -6,19 +6,23 @@
   value: methodconf
 - op: replace
   path: /spec/fileExtension
-  value: .sqlite.db
+  value: .tar.gz
 - op: replace
   path: /spec/backupCommand
   value: >-
     sh -ec '
-      apk add --no-cache sqlite >/dev/null;
+      apk add --no-cache sqlite tar >/dev/null;
       database=/data/database/Umbraco.sqlite.db;
-      snapshot=$(mktemp);
-      trap "rm -f $snapshot" EXIT;
+      staging=$(mktemp -d);
+      trap "rm -rf $staging" EXIT;
+      mkdir -p "$staging/database";
+      snapshot="$staging/database/Umbraco.sqlite.db";
       test -s "$database";
+      test -d /data/media;
+      test -d /data/data-protection-keys;
       sqlite3 "$database" ".timeout 60000" ".backup $snapshot";
       test "$(sqlite3 "$snapshot" "PRAGMA integrity_check;")" = ok;
-      cat "$snapshot"
+      tar -czf - -C "$staging" database -C /data media data-protection-keys
     '
 - op: replace
   path: /spec/pod/spec/serviceAccountName

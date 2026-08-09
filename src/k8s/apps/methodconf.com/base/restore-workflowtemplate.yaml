@@ -28,8 +28,8 @@ spec:
       steps:
         - - name: prepare
             template: prepare
-        - - name: restore-database
-            template: restore-database
+        - - name: restore-data
+            template: restore-data
     - name: prepare
       container:
         image: alpine:3.22.1
@@ -58,7 +58,7 @@ spec:
           configMap:
             name: methodconf-workflow-scripts
             defaultMode: 0555
-    - name: restore-database
+    - name: restore-data
       container:
         image: alpine:3.22.1
         command: [/scripts/restore.sh]
