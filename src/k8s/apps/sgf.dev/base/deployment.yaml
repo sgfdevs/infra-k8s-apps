@@ -124,6 +124,8 @@ spec:
               subPath: data-protection-keys
             - name: temp
               mountPath: /usr/src/main/umbraco/Data/TEMP
+            - name: runtime-temp
+              mountPath: /tmp
             - name: data
               mountPath: /usr/src/main/umbraco/Data/TEMP/MediaCache
               subPath: umbraco/TEMP/MediaCache
@@ -137,6 +139,8 @@ spec:
           persistentVolumeClaim:
             claimName: sgf-dev-data
         - name: temp
+          emptyDir: {}
+        - name: runtime-temp
           emptyDir: {}
         - name: media
           emptyDir: {}
