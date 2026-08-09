@@ -1,0 +1,45 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: methodconf-com-production
+resources:
+  - ../base
+  - ../../../platform/services/backup-base
+  - namespace.yaml
+  - backup-serviceaccount.yaml
+  - externalsecret-backup-credentials.yaml
+  - ingresses.yaml
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/instance: production
+images:
+  - name: ghcr.io/sgfdevs/methodconf.com
+    newTag: 1.1.0
+  - name: ghcr.io/sgfdevs/cms.methodconf.com
+    newTag: 1.1.0
+patches:
+  - path: configmaps-patch.yaml
+  - path: environment-patch.yaml
+    target:
+      kind: SecretStore
+      name: openbao
+  - path: cms-external-secret-patch.yaml
+    target:
+      kind: ExternalSecret
+      name: methodconf-cms
+  - path: frontend-external-secret-patch.yaml
+    target:
+      kind: ExternalSecret
+      name: methodconf-frontend
+  - path: backup-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: PreBackupPod
+      name: app-backup
+  - path: schedule-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: Schedule
+      name: app-backup

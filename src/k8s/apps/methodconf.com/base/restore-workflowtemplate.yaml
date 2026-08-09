@@ -1,0 +1,132 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: methodconf-restore
+spec:
+  entrypoint: restore
+  onExit: cleanup
+  serviceAccountName: methodconf-restore-workflow
+  synchronization:
+    mutexes:
+      - name: methodconf-maintenance
+  arguments:
+    parameters:
+      - name: snapshot-id
+        value: latest
+      - name: confirmation
+        description: >-
+          Enter "RESTORE methodconf-com-staging" or "RESTORE methodconf-com-production",
+          matching the namespace where this workflow is submitted.
+  activeDeadlineSeconds: 1200
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  templates:
+    - name: restore
+      steps:
+        - - name: prepare
+            template: prepare
+        - - name: restore-database
+            template: restore-database
+    - name: prepare
+      container:
+        image: alpine:3.22.1
+        command: [/scripts/prepare-restore.sh]
+        env:
+          - name: TARGET_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: CONFIRMATION
+            value: "{{workflow.parameters.confirmation}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: methodconf-workflow-scripts
+            defaultMode: 0555
+    - name: restore-database
+      container:
+        image: alpine:3.22.1
+        command: [/scripts/restore.sh]
+        env:
+          - name: TARGET_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: RESTIC_REPOSITORY
+            value: b2:sgfdevs-on-prem-k3s-backups:$(TARGET_NAMESPACE)
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: methodconf-k8up-repo-password
+                key: password
+          - name: B2_ACCOUNT_ID
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-id
+          - name: B2_ACCOUNT_KEY
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-key
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+          - name: data
+            mountPath: /data
+      volumes:
+        - name: scripts
+          configMap:
+            name: methodconf-workflow-scripts
+            defaultMode: 0555
+        - name: data
+          persistentVolumeClaim:
+            claimName: methodconf-cms-data
+    - name: cleanup
+      container:
+        image: alpine:3.22.1
+        command: [/scripts/cleanup-restore.sh]
+        env:
+          - name: TARGET_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: methodconf-workflow-scripts
+            defaultMode: 0555

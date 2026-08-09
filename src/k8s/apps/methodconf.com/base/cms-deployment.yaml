@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: methodconf-cms
+  labels:
+    app.kubernetes.io/name: methodconf-cms
+    app.kubernetes.io/component: cms
+    app.kubernetes.io/part-of: methodconf
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: methodconf-cms
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
+      labels:
+        app.kubernetes.io/name: methodconf-cms
+        app.kubernetes.io/component: cms
+        app.kubernetes.io/part-of: methodconf
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 1654
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: initialize-data
+          image: busybox:1.37.0
+          command: [sh, -ec]
+          args:
+            - mkdir -p /data/database /data/media /data/data-protection-keys
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1654
+            runAsGroup: 1654
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+      containers:
+        - name: cms
+          image: ghcr.io/sgfdevs/cms.methodconf.com:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: methodconf-cms
+            - secretRef:
+                name: methodconf-cms
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 150
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/methodconf
+              subPath: database
+            - name: data
+              mountPath: /app/wwwroot/media
+              subPath: media
+            - name: data
+              mountPath: /home/app/.aspnet/DataProtection-Keys
+              subPath: data-protection-keys
+            - name: umbraco-temp
+              mountPath: /app/umbraco/Data/TEMP
+            - name: umbraco-logs
+              mountPath: /app/umbraco/Logs
+            - name: runtime-temp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: methodconf-cms-data
+        - name: umbraco-temp
+          emptyDir: {}
+        - name: umbraco-logs
+          emptyDir: {}
+        - name: runtime-temp
+          emptyDir: {}

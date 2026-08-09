@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: methodconf-cms
+data:
+  Umbraco__CMS__Global__Smtp__From: Method Conf <website@methodconf.com>
+  Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://cms.methodconf.com/

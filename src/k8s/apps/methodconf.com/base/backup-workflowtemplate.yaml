@@ -1,0 +1,97 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: methodconf-backup
+spec:
+  entrypoint: backup
+  serviceAccountName: methodconf-backup-workflow
+  synchronization:
+    mutexes:
+      - name: methodconf-maintenance
+  activeDeadlineSeconds: 3600
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  templates:
+    - name: backup
+      steps:
+        - - name: ensure-idle
+            template: ensure-idle
+        - - name: create
+            template: create
+        - - name: wait
+            template: wait
+    - name: ensure-idle
+      container:
+        image: alpine/k8s:1.36.2
+        command: [sh, -ec]
+        args:
+          - |
+            for backup in $(kubectl get backups.k8up.io -o name); do
+              completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+              if [ "$completed" != True ]; then
+                echo "Another K8up Backup is still active: $backup" >&2
+                exit 1
+              fi
+            done
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+    - name: create
+      resource:
+        action: create
+        manifest: |
+          apiVersion: k8up.io/v1
+          kind: Backup
+          metadata:
+            name: {{workflow.name}}
+          spec:
+            failedJobsHistoryLimit: 2
+            successfulJobsHistoryLimit: 2
+            tags:
+              - {{workflow.namespace}}
+              - methodconf
+              - on-demand
+            labelSelectors:
+              - matchLabels:
+                  backup.k8up.io/app: methodconf
+            backend:
+              repoPasswordSecretRef:
+                name: methodconf-k8up-repo-password
+                key: password
+              b2:
+                bucket: sgfdevs-on-prem-k3s-backups
+                path: {{workflow.namespace}}
+                accountIDSecretRef:
+                  name: k8up-b2-credentials
+                  key: account-id
+                accountKeySecretRef:
+                  name: k8up-b2-credentials
+                  key: account-key
+    - name: wait
+      container:
+        image: alpine/k8s:1.36.2
+        command: [sh, -ec]
+        args:
+          - |
+            backup={{workflow.name}}
+            kubectl wait --for=condition=Completed "backups.k8up.io/$backup" --timeout=3500s
+            reason=$(kubectl get "backups.k8up.io/$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].reason}')
+            message=$(kubectl get "backups.k8up.io/$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].message}')
+            if [ "$reason" != Succeeded ] || [ "$message" = "nothing to backup" ]; then
+              echo "Backup completed with reason '$reason': $message" >&2
+              exit 1
+            fi
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi

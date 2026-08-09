@@ -1,0 +1,27 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: methodconf-restore-workflow
+  namespace: argocd
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    resourceNames: ["methodconf-com-staging", "methodconf-com-production"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: methodconf-restore-workflow
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: methodconf-restore-workflow
+subjects:
+  - kind: ServiceAccount
+    name: methodconf-restore-workflow
+    namespace: methodconf-com-staging
+  - kind: ServiceAccount
+    name: methodconf-restore-workflow
+    namespace: methodconf-com-production

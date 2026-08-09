@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: methodconf-com-staging
+  labels:
+    app.kubernetes.io/name: methodconf
+    app.kubernetes.io/instance: staging

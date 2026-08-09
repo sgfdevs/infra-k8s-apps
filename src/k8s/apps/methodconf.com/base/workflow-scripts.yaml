@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: methodconf-workflow-scripts
+data:
+  prepare-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    apk add --no-cache kubectl >/dev/null
+
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or contain only lowercase hexadecimal characters." >&2; exit 1 ;;
+      esac
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
+      fi
+    fi
+    if [ "$CONFIRMATION" != "RESTORE $TARGET_NAMESPACE" ]; then
+      echo "Confirmation must exactly match: RESTORE $TARGET_NAMESPACE" >&2
+      exit 1
+    fi
+
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+
+    application=$(kubectl -n argocd get application "$TARGET_NAMESPACE" -o jsonpath='{.metadata.annotations.restore\.methodconf\.com/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $application
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ]; then
+      echo "Argo CD Application $TARGET_NAMESPACE is already paused or managed by a restore." >&2
+      exit 1
+    fi
+    if [ "$self_heal" != true ]; then
+      echo "Argo CD Application $TARGET_NAMESPACE must have self-heal enabled before restore." >&2
+      exit 1
+    fi
+    if [ "$operation" = Running ]; then
+      echo "Argo CD Application $TARGET_NAMESPACE has a sync operation in progress." >&2
+      exit 1
+    fi
+
+    original=$(kubectl get deployment methodconf-cms -o jsonpath='{.metadata.annotations.restore\.methodconf\.com/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "$TARGET_NAMESPACE/methodconf-cms has stale restore state; cleanup is required." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment methodconf-cms -o jsonpath='{.spec.replicas}')
+    kubectl annotate deployment methodconf-cms restore.methodconf.com/original-replicas="$replicas" --overwrite
+
+    kubectl -n argocd patch application "$TARGET_NAMESPACE" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.methodconf.com/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+    kubectl scale deployment methodconf-cms --replicas=0
+    pods=$(kubectl get pods -l app.kubernetes.io/name=methodconf-cms -o name)
+    if [ -n "$pods" ]; then
+      kubectl wait --for=delete pod -l app.kubernetes.io/name=methodconf-cms --timeout=180s
+    fi
+
+  restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    apk add --no-cache jq kubectl restic sqlite >/dev/null
+
+    replicas=$(kubectl get deployment methodconf-cms -o jsonpath='{.spec.replicas}')
+    if [ "$replicas" != 0 ]; then
+      echo "$TARGET_NAMESPACE/methodconf-cms was not scaled to zero by restore preparation." >&2
+      exit 1
+    fi
+    if [ -n "$(kubectl get pods -l app.kubernetes.io/name=methodconf-cms -o name)" ]; then
+      echo "MethodConf CMS pods still exist in $TARGET_NAMESPACE." >&2
+      exit 1
+    fi
+
+    snapshot_path="/$TARGET_NAMESPACE-backup.sqlite.db"
+    if [ "$SNAPSHOT_ID" = latest ]; then
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | jq -er 'if length == 1 then .[0].id else error("No matching snapshot found") end')
+    fi
+
+    database=/data/database/Umbraco.sqlite.db
+    temporary=$(mktemp /data/database/.Umbraco.sqlite.db.restore.XXXXXX)
+    trap 'rm -f "$temporary"' EXIT
+    restic dump "$SNAPSHOT_ID" "$snapshot_path" > "$temporary"
+    test -s "$temporary"
+    test "$(sqlite3 "$temporary" 'PRAGMA integrity_check;')" = ok
+    chown 1654:1654 "$temporary"
+    chmod 0644 "$temporary"
+    sync "$temporary"
+    rm -f "$database-wal" "$database-shm"
+    mv -f "$temporary" "$database"
+    trap - EXIT
+
+  cleanup-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    apk add --no-cache kubectl >/dev/null
+
+    cms_original=$(kubectl get deployment methodconf-cms -o jsonpath='{.metadata.annotations.restore\.methodconf\.com/original-replicas}')
+    case "$cms_original" in
+      "") ;;
+      *[!0-9]*) echo "Invalid saved replica count: $cms_original" >&2; exit 1 ;;
+    esac
+
+    if [ -n "$cms_original" ]; then
+      kubectl scale deployment methodconf-cms --replicas="$cms_original"
+      kubectl annotate deployment methodconf-cms restore.methodconf.com/original-replicas-
+    fi
+    managed=$(kubectl -n argocd get application "$TARGET_NAMESPACE" -o jsonpath='{.metadata.annotations.restore\.methodconf\.com/managed}')
+    if [ "$managed" = true ]; then
+      kubectl -n argocd patch application "$TARGET_NAMESPACE" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.methodconf.com/managed":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}'
+    fi
