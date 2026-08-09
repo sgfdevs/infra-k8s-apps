@@ -137,9 +137,13 @@ spec:
             - name: data
               mountPath: /usr/src/main/umbraco/Data/TEMP/ExamineIndexes
               subPath: pods/writer/examine
+            - name: media
+              mountPath: /usr/src/main/wwwroot/media
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: sgf-dev-data
         - name: temp
+          emptyDir: {}
+        - name: media
           emptyDir: {}
