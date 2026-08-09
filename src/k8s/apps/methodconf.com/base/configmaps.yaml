@@ -22,3 +22,4 @@ metadata:
   name: methodconf-frontend
 data:
   NEWSLETTER_ENDPOINT: https://newsletter.sgf.dev/api/public/subscription
+  UMBRACO_BASE_URL: http://methodconf-cms
