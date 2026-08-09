@@ -20,7 +20,7 @@ images:
 - name: ghcr.io/sgfdevs/cms.methodconf.com
   newTag: 1.1.0
 - name: ghcr.io/sgfdevs/methodconf.com
-  newTag: 1.2.1
+  newTag: 1.2.3
 patches:
 - path: configmaps-patch.yaml
 - path: environment-patch.yaml
