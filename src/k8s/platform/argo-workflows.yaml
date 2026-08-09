@@ -17,8 +17,6 @@ spec:
             pullPolicy: IfNotPresent
 
           controller:
-            workflowNamespaces:
-              - argo-workflows
             workflowRestrictions:
               templateReferencing: Secure
             resources:
@@ -28,6 +26,12 @@ spec:
               limits:
                 cpu: 500m
                 memory: 512Mi
+
+          workflow:
+            serviceAccount:
+              create: false
+            rbac:
+              create: false
 
           server:
             authModes:

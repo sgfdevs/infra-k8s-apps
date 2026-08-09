@@ -12,3 +12,7 @@ resources:
   - middleware-https-redirect.yaml
   - certificate.yaml
   - ingress.yaml
+  - workflow-rbac.yaml
+  - workflow-scripts.yaml
+  - backup-workflowtemplate.yaml
+  - restore-workflowtemplate.yaml

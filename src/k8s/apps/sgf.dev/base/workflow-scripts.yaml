@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sgf-dev-workflow-scripts
+data:
+  backup.sh: |
+    #!/bin/sh
+    set -eu
+
+    backup="sgf-dev-on-demand-$WORKFLOW_UID"
+
+    cat <<EOF | kubectl create -f -
+    apiVersion: k8up.io/v1
+    kind: Backup
+    metadata:
+      name: $backup
+    spec:
+      failedJobsHistoryLimit: 2
+      successfulJobsHistoryLimit: 2
+      tags:
+        - $TARGET_NAMESPACE
+        - sgf-dev
+        - on-demand
+      labelSelectors:
+        - matchLabels:
+            backup.k8up.io/app: sgf-dev
+      backend:
+        repoPasswordSecretRef:
+          name: sgf-dev-k8up-repo-password
+          key: password
+        b2:
+          bucket: sgfdevs-on-prem-k3s-backups
+          path: $TARGET_NAMESPACE
+          accountIDSecretRef:
+            name: k8up-b2-credentials
+            key: account-id
+          accountKeySecretRef:
+            name: k8up-b2-credentials
+            key: account-key
+    EOF
+
+    deadline=$(($(date +%s) + 3600))
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+      reason=$(kubectl get backup "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].reason}' 2>/dev/null || true)
+      case "$reason" in
+        Succeeded)
+          echo "Backup $TARGET_NAMESPACE/$backup completed successfully."
+          exit 0
+          ;;
+        Failed)
+          kubectl describe backup "$backup" || true
+          exit 1
+          ;;
+      esac
+      sleep 10
+    done
+
+    kubectl describe backup "$backup" || true
+    exit 1
+
+  restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    apk add --no-cache kubectl restic sqlite >/dev/null
+
+    case "$SNAPSHOT_ID" in
+      ""|*[!0-9a-f]*) echo "Snapshot ID must contain only lowercase hexadecimal characters." >&2; exit 1 ;;
+    esac
+    if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+      echo "Snapshot ID must be between 8 and 64 characters." >&2
+      exit 1
+    fi
+    if [ "$CONFIRMATION" != "RESTORE $TARGET_NAMESPACE" ]; then
+      echo "Confirmation must exactly match: RESTORE $TARGET_NAMESPACE" >&2
+      exit 1
+    fi
+
+    for deployment in sgf-dev sgf-dev-writer; do
+      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
+      if [ "$replicas" != 0 ]; then
+        echo "$TARGET_NAMESPACE/$deployment must be scaled to zero through GitOps before restore." >&2
+        exit 1
+      fi
+    done
+
+    pods=$(kubectl get pods -l app.kubernetes.io/part-of=sgf-dev -o name)
+    if [ -n "$pods" ]; then
+      echo "Application pods still exist in $TARGET_NAMESPACE:" >&2
+      echo "$pods" >&2
+      exit 1
+    fi
+
+    backup_states=$(kubectl get backups.k8up.io -o jsonpath='{range .items[*]}{.metadata.name}{"="}{.status.conditions[?(@.type=="Completed")].status}{"\n"}{end}')
+    active_backups=
+    while IFS='=' read -r backup completed; do
+      if [ -n "$backup" ] && [ "$completed" != True ]; then
+        active_backups="${active_backups}${backup}\n"
+      fi
+    done <<EOF
+    $backup_states
+    EOF
+    if [ -n "$active_backups" ]; then
+      echo "K8up backups are still active in $TARGET_NAMESPACE:" >&2
+      printf '%b' "$active_backups" >&2
+      exit 1
+    fi
+
+    database=/data/umbraco/Umbraco.sqlite.db
+    temporary=$(mktemp /data/umbraco/.Umbraco.sqlite.db.restore.XXXXXX)
+    sidecars=
+    cleanup() {
+      rm -f "$temporary"
+      if [ -n "$sidecars" ] && [ -d "$sidecars" ]; then
+        for sidecar in "$sidecars"/*; do
+          if [ -e "$sidecar" ]; then
+            mv "$sidecar" /data/umbraco/
+          fi
+        done
+        rmdir "$sidecars"
+      fi
+    }
+    trap cleanup EXIT
+    restic dump "$SNAPSHOT_ID" "/$TARGET_NAMESPACE-backup.sqlite.db" > "$temporary"
+    test -s "$temporary"
+    test "$(sqlite3 "$temporary" 'PRAGMA integrity_check;')" = ok
+    chown 1654:1654 "$temporary"
+    chmod 0644 "$temporary"
+    sync "$temporary"
+
+    sidecars=$(mktemp -d /data/umbraco/.restore-sidecars.XXXXXX)
+    for sidecar in "$database-wal" "$database-shm"; do
+      if [ -e "$sidecar" ]; then
+        mv "$sidecar" "$sidecars/"
+      fi
+    done
+    mv -f "$temporary" "$database"
+    rm -rf "$sidecars"
+    sidecars=
+
+    echo "Snapshot $SNAPSHOT_ID was restored to $TARGET_NAMESPACE and passed SQLite integrity checks."
