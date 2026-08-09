@@ -29,6 +29,9 @@ spec:
       hostname: sgf-dev-writer
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 1654
+        fsGroupChangePolicy: OnRootMismatch
       affinity:
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -46,21 +49,19 @@ spec:
       initContainers:
         - name: initialize-data
           image: busybox:1.37.0
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1654
+            runAsGroup: 1654
+            readOnlyRootFilesystem: true
           command:
             - sh
             - -ec
             - |
               mkdir -p /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/writer/examine
-              for path in /data/umbraco /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/writer/examine /temp; do
-                if [ "$(stat -c '%u:%g' "$path")" != "1654:1654" ]; then
-                  chown -R 1654:1654 "$path"
-                fi
-              done
           volumeMounts:
             - name: data
               mountPath: /data
-            - name: temp
-              mountPath: /temp
           resources:
             requests:
               cpu: 5m
@@ -74,6 +75,7 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8080
