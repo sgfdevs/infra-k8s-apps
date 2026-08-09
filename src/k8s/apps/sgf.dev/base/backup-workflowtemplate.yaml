@@ -17,20 +17,37 @@ spec:
   templates:
     - name: backup
       steps:
+        - - name: ensure-idle
+            template: ensure-idle
         - - name: create
             template: create
-        - - name: require-success
-            template: fail
-            when: "{{steps.create.outputs.parameters.reason}} != Succeeded"
-            arguments:
-              parameters:
-                - name: reason
-                  value: "{{steps.create.outputs.parameters.reason}}"
+        - - name: wait
+            template: wait
+
+    - name: ensure-idle
+      container:
+        image: alpine/k8s:1.36.2
+        command: [sh, -ec]
+        args:
+          - |
+            for backup in $(kubectl get backups.k8up.io -o name); do
+              completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+              if [ "$completed" != True ]; then
+                echo "Another K8up Backup is still active: $backup" >&2
+                exit 1
+              fi
+            done
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
 
     - name: create
       resource:
         action: create
-        successCondition: status.finished == true
         manifest: |
           apiVersion: k8up.io/v1
           kind: Backup
@@ -59,28 +76,25 @@ spec:
                 accountKeySecretRef:
                   name: k8up-b2-credentials
                   key: account-key
-      outputs:
-        parameters:
-          - name: reason
-            valueFrom:
-              jqFilter: '.status.conditions[] | select(.type == "Completed") | .reason'
 
-    - name: fail
-      inputs:
-        parameters:
-          - name: reason
+    - name: wait
       container:
-        image: alpine:3.22.1
-        command: [sh, -c]
+        image: alpine/k8s:1.36.2
+        command: [sh, -ec]
         args:
-          - 'echo "Backup completed with reason: $REASON" >&2; exit 1'
-        env:
-          - name: REASON
-            value: "{{inputs.parameters.reason}}"
+          - |
+            backup={{workflow.name}}
+            kubectl wait --for=condition=Completed "backups.k8up.io/$backup" --timeout=3500s
+            reason=$(kubectl get "backups.k8up.io/$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].reason}')
+            message=$(kubectl get "backups.k8up.io/$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].message}')
+            if [ "$reason" != Succeeded ] || [ "$message" = "nothing to backup" ]; then
+              echo "Backup completed with reason '$reason': $message" >&2
+              exit 1
+            fi
         resources:
           requests:
-            cpu: 5m
-            memory: 8Mi
-          limits:
-            cpu: 50m
+            cpu: 10m
             memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
