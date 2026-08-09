@@ -5,6 +5,9 @@ metadata:
 spec:
   entrypoint: backup
   serviceAccountName: sgf-dev-staging-backup
+  synchronization:
+    mutexes:
+      - name: sgf-dev-staging-maintenance
   ttlStrategy:
     secondsAfterCompletion: 86400
   podGC:

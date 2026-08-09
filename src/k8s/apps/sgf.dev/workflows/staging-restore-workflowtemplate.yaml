@@ -5,6 +5,9 @@ metadata:
 spec:
   entrypoint: restore
   serviceAccountName: sgf-dev-staging-restore
+  synchronization:
+    mutexes:
+      - name: sgf-dev-staging-maintenance
   arguments:
     parameters:
       - name: snapshot-id
@@ -24,6 +27,8 @@ spec:
             value: sgf-dev-staging
           - name: BACKEND_PATH
             value: sgf-dev-staging
+          - name: BACKUP_PATH
+            value: /sgf-dev-staging-backup.sqlite.db
           - name: WORKFLOW_UID
             value: "{{workflow.uid}}"
           - name: SNAPSHOT_ID

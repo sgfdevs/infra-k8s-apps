@@ -111,6 +111,21 @@ data:
       exit 1
     fi
 
+    backup_states=$(kubectl get backups.k8up.io -n "$TARGET_NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"="}{.status.conditions[?(@.type=="Completed")].status}{"\n"}{end}')
+    active_backups=
+    while IFS='=' read -r backup completed; do
+      if [ -n "$backup" ] && [ "$completed" != True ]; then
+        active_backups="${active_backups}${backup}\n"
+      fi
+    done <<EOF
+    $backup_states
+    EOF
+    if [ -n "$active_backups" ]; then
+      echo "K8up backups are still active in $TARGET_NAMESPACE:" >&2
+      printf '%b' "$active_backups" >&2
+      exit 1
+    fi
+
     restore_job="sgf-dev-restore-$WORKFLOW_UID"
 
     cat <<EOF | kubectl create -f -
@@ -135,14 +150,20 @@ data:
                   database=/data/umbraco/Umbraco.sqlite.db
                   temporary=\$(mktemp /data/umbraco/.Umbraco.sqlite.db.restore.XXXXXX)
                   trap 'rm -f "\$temporary"' EXIT
-                  restic dump "$SNAPSHOT_ID" /sgf-dev-backup.sqlite.db > "\$temporary"
+                  restic dump "$SNAPSHOT_ID" "$BACKUP_PATH" > "\$temporary"
                   test -s "\$temporary"
                   test "\$(sqlite3 "\$temporary" 'PRAGMA integrity_check;')" = ok
                   chown 1654:1654 "\$temporary"
                   chmod 0644 "\$temporary"
                   sync "\$temporary"
+                  sidecars=\$(mktemp -d /data/umbraco/.restore-sidecars.XXXXXX)
+                  for sidecar in "\$database-wal" "\$database-shm"; do
+                    if [ -e "\$sidecar" ]; then
+                      mv "\$sidecar" "\$sidecars/"
+                    fi
+                  done
                   mv -f "\$temporary" "\$database"
-                  rm -f "\$database-wal" "\$database-shm"
+                  rm -rf "\$sidecars"
               env:
                 - name: RESTIC_REPOSITORY
                   value: b2:sgfdevs-on-prem-k3s-backups:$BACKEND_PATH
