@@ -6,4 +6,7 @@ data:
   SGFDevs__Site__AnalyticsEnabled: "true"
   SGFDevs__Site__SearchIndexingEnabled: "true"
   Umbraco__CMS__Global__Smtp__From: Sgf Devs <website@sgf.dev>
+  Umbraco__CMS__Imaging__Cache__BrowserMaxAge: "365.00:00:00"
   Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://www.sgf.dev
+  Umbraco__Storage__Cdn__RemoveMediaFromPath: "true"
+  Umbraco__Storage__Cdn__Url: https://media.sgf.dev/

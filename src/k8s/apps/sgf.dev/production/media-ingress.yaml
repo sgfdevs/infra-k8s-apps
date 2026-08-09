@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sgf-dev-media
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: sgf-dev-production-sgf-dev-https-redirect@kubernetescrd,sgf-dev-production-sgf-dev-media-path@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - media.sgf.dev
+      secretName: sgf-dev-tls
+  rules:
+    - host: media.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sgf-dev
+                port:
+                  number: 80
