@@ -3,61 +3,6 @@ kind: ConfigMap
 metadata:
   name: sgf-dev-workflow-scripts
 data:
-  backup.sh: |
-    #!/bin/sh
-    set -eu
-
-    backup="sgf-dev-on-demand-$WORKFLOW_UID"
-
-    cat <<EOF | kubectl create -f -
-    apiVersion: k8up.io/v1
-    kind: Backup
-    metadata:
-      name: $backup
-    spec:
-      failedJobsHistoryLimit: 2
-      successfulJobsHistoryLimit: 2
-      tags:
-        - $TARGET_NAMESPACE
-        - sgf-dev
-        - on-demand
-      labelSelectors:
-        - matchLabels:
-            backup.k8up.io/app: sgf-dev
-      backend:
-        repoPasswordSecretRef:
-          name: sgf-dev-k8up-repo-password
-          key: password
-        b2:
-          bucket: sgfdevs-on-prem-k3s-backups
-          path: $TARGET_NAMESPACE
-          accountIDSecretRef:
-            name: k8up-b2-credentials
-            key: account-id
-          accountKeySecretRef:
-            name: k8up-b2-credentials
-            key: account-key
-    EOF
-
-    deadline=$(($(date +%s) + 3600))
-    while [ "$(date +%s)" -lt "$deadline" ]; do
-      reason=$(kubectl get backup "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].reason}' 2>/dev/null || true)
-      case "$reason" in
-        Succeeded)
-          echo "Backup $TARGET_NAMESPACE/$backup completed successfully."
-          exit 0
-          ;;
-        Failed)
-          kubectl describe backup "$backup" || true
-          exit 1
-          ;;
-      esac
-      sleep 10
-    done
-
-    kubectl describe backup "$backup" || true
-    exit 1
-
   restore.sh: |
     #!/bin/sh
     set -eu
