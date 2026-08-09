@@ -17,10 +17,6 @@ spec:
             pullPolicy: IfNotPresent
 
           controller:
-            workflowNamespaces:
-              - argo-workflows
-              - sgf-dev-staging
-              - sgf-dev-production
             workflowRestrictions:
               templateReferencing: Secure
             resources:
