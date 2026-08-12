@@ -4,5 +4,6 @@ metadata:
   name: argocd-rbac-cm
 data:
   policy.csv: |
-    g, sgfdevs:platform-admins, role:admin
+    g, sgfdevs:infra-platform-admins, role:admin
+    g, sgfdevs:infra-maintainers, role:admin
   scopes: "[groups]"

@@ -69,7 +69,8 @@ spec:
                   orgs:
                     - name: sgfdevs
                       teams:
-                        - platform-admins
+                        - infra-platform-admins
+                        - infra-maintainers
 
             staticClients:
               - id: argocd

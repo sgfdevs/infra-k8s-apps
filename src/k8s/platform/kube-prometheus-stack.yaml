@@ -149,10 +149,10 @@ spec:
                 api_url: http://dex.dex.svc.cluster.local:5556/userinfo
                 scopes: openid profile email groups
                 groups_attribute_path: groups
-                allowed_groups: sgfdevs:platform-admins
+                allowed_groups: sgfdevs:infra-platform-admins,sgfdevs:infra-maintainers
                 auto_assign_org: true
                 auto_assign_org_role: Viewer
-                role_attribute_path: "contains(groups[*], 'sgfdevs:platform-admins') && 'Admin' || 'Viewer'"
+                role_attribute_path: "(contains(groups[*], 'sgfdevs:infra-platform-admins') || contains(groups[*], 'sgfdevs:infra-maintainers')) && 'Admin' || 'Viewer'"
                 use_pkce: true
             envFromSecret: dex-grafana-client-secret
             extraSecretMounts:

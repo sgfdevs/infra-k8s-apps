@@ -5,7 +5,7 @@ metadata:
   namespace: oauth2-proxy
 spec:
   forwardAuth:
-    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Aplatform-admins
+    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Ainfra-platform-admins%2Csgfdevs%3Ainfra-maintainers
     authResponseHeaders:
       - X-Auth-Request-User
       - X-Auth-Request-Email
@@ -24,7 +24,7 @@ metadata:
   namespace: oauth2-proxy
 spec:
   forwardAuth:
-    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Aplatform-admins
+    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Ainfra-platform-admins%2Csgfdevs%3Ainfra-maintainers
     authResponseHeaders:
       - X-Auth-Request-User
       - X-Auth-Request-Email
@@ -43,7 +43,7 @@ metadata:
   namespace: oauth2-proxy
 spec:
   forwardAuth:
-    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Aplatform-admins
+    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Ainfra-platform-admins%2Csgfdevs%3Ainfra-maintainers
     authResponseHeaders:
       - X-Auth-Request-User
       - X-Auth-Request-Email
@@ -62,7 +62,7 @@ metadata:
   namespace: oauth2-proxy
 spec:
   forwardAuth:
-    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Aplatform-admins
+    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local:80/oauth2/auth?allowed_groups=sgfdevs%3Ainfra-platform-admins%2Csgfdevs%3Ainfra-maintainers
     authResponseHeaders:
       - X-Auth-Request-User
       - X-Auth-Request-Email

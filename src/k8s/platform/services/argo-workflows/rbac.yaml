@@ -4,7 +4,7 @@ metadata:
   name: argo-workflows-admin
   namespace: argo-workflows
   annotations:
-    workflows.argoproj.io/rbac-rule: "'sgfdevs:platform-admins' in groups"
+    workflows.argoproj.io/rbac-rule: "'sgfdevs:infra-platform-admins' in groups || 'sgfdevs:infra-maintainers' in groups"
     workflows.argoproj.io/rbac-rule-precedence: "10"
 ---
 apiVersion: v1
