@@ -7,17 +7,19 @@ spec:
     repoPasswordSecretRef:
       name: app-k8up-repo-password
       key: password
-    b2:
-      bucket: sgfdevs-on-prem-k3s-backups
-      path: app
-      accountIDSecretRef:
+    s3:
+      endpoint: https://s3.us-east-005.backblazeb2.com
+      # K8up appends bucket verbatim; Restic interprets the suffix as the repository prefix.
+      bucket: sgfdevs-on-prem-k3s-backups/app
+      accessKeyIDSecretRef:
         name: k8up-b2-credentials
         key: account-id
-      accountKeySecretRef:
+      secretAccessKeySecretRef:
         name: k8up-b2-credentials
         key: account-key
   backup:
     schedule: '0 8 * * *'
+    activeDeadlineSeconds: 1800
     clusterName: sgfdevs
     promURL: http://prometheus-pushgateway.observability.svc.cluster.local:9091
     failedJobsHistoryLimit: 2
@@ -27,8 +29,10 @@ spec:
           backup.k8up.io/app: app
   check:
     schedule: '0 9 * * 1'
+    activeDeadlineSeconds: 1800
   prune:
     schedule: '0 10 * * 0'
+    activeDeadlineSeconds: 1800
     retention:
       keepLast: 5
       keepDaily: 14

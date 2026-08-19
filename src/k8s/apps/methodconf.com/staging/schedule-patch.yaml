@@ -5,8 +5,8 @@
   path: /spec/backend/repoPasswordSecretRef/name
   value: methodconf-k8up-repo-password
 - op: replace
-  path: /spec/backend/b2/path
-  value: methodconf-com-staging
+  path: /spec/backend/s3/bucket
+  value: sgfdevs-on-prem-k3s-backups/methodconf-com-staging
 - op: replace
   path: /spec/backup/schedule
   value: "30 7 * * *"

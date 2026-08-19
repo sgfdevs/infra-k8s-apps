@@ -52,6 +52,7 @@ spec:
           metadata:
             name: {{workflow.name}}
           spec:
+            activeDeadlineSeconds: 1800
             failedJobsHistoryLimit: 2
             successfulJobsHistoryLimit: 2
             tags:
@@ -65,13 +66,13 @@ spec:
               repoPasswordSecretRef:
                 name: methodconf-k8up-repo-password
                 key: password
-              b2:
-                bucket: sgfdevs-on-prem-k3s-backups
-                path: {{workflow.namespace}}
-                accountIDSecretRef:
+              s3:
+                endpoint: https://s3.us-east-005.backblazeb2.com
+                bucket: sgfdevs-on-prem-k3s-backups/{{workflow.namespace}}
+                accessKeyIDSecretRef:
                   name: k8up-b2-credentials
                   key: account-id
-                accountKeySecretRef:
+                secretAccessKeySecretRef:
                   name: k8up-b2-credentials
                   key: account-key
     - name: wait

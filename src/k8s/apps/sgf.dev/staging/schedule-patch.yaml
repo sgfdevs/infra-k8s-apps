@@ -5,8 +5,8 @@
   path: /spec/backend/repoPasswordSecretRef/name
   value: sgf-dev-k8up-repo-password
 - op: replace
-  path: /spec/backend/b2/path
-  value: sgf-dev-staging
+  path: /spec/backend/s3/bucket
+  value: sgfdevs-on-prem-k3s-backups/sgf-dev-staging
 - op: replace
   path: /spec/backup/schedule
   value: "0 7 * * *"
