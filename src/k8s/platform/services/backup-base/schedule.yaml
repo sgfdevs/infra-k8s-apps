@@ -9,7 +9,6 @@ spec:
       key: password
     s3:
       endpoint: https://s3.us-east-005.backblazeb2.com
-      # K8up appends bucket verbatim; Restic interprets the suffix as the repository prefix.
       bucket: sgfdevs-on-prem-k3s-backups/app
       accessKeyIDSecretRef:
         name: k8up-b2-credentials
