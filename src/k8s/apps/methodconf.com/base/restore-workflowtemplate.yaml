@@ -70,18 +70,18 @@ spec:
           - name: SNAPSHOT_ID
             value: "{{workflow.parameters.snapshot-id}}"
           - name: RESTIC_REPOSITORY
-            value: b2:sgfdevs-on-prem-k3s-backups:$(TARGET_NAMESPACE)
+            value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/$(TARGET_NAMESPACE)
           - name: RESTIC_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: methodconf-k8up-repo-password
                 key: password
-          - name: B2_ACCOUNT_ID
+          - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
                 name: k8up-b2-credentials
                 key: account-id
-          - name: B2_ACCOUNT_KEY
+          - name: AWS_SECRET_ACCESS_KEY
             valueFrom:
               secretKeyRef:
                 name: k8up-b2-credentials

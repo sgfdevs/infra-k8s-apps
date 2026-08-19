@@ -5,8 +5,8 @@
   path: /spec/backend/repoPasswordSecretRef/name
   value: openbao-k8up-repo-password
 - op: replace
-  path: /spec/backend/b2/path
-  value: openbao
+  path: /spec/backend/s3/bucket
+  value: sgfdevs-on-prem-k3s-backups/openbao
 - op: replace
   path: /spec/backup/schedule
   value: '0 */6 * * *'
