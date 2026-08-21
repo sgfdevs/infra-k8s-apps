@@ -39,11 +39,11 @@ metadata:
 rules:
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    resourceNames: ["sgf-dev", "sgf-dev-writer"]
+    resourceNames: ["sgf-dev"]
     verbs: ["get", "patch"]
   - apiGroups: ["apps"]
     resources: ["deployments/scale"]
-    resourceNames: ["sgf-dev", "sgf-dev-writer"]
+    resourceNames: ["sgf-dev"]
     verbs: ["get", "patch"]
   - apiGroups: ["k8up.io"]
     resources: ["backups"]

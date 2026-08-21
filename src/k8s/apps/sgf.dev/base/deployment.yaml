@@ -4,10 +4,7 @@ metadata:
   name: sgf-dev
   labels:
     app.kubernetes.io/name: sgf-dev
-    app.kubernetes.io/component: subscriber
     app.kubernetes.io/part-of: sgf-dev
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
 spec:
   replicas: 1
   strategy:
@@ -21,22 +18,14 @@ spec:
         reloader.stakater.com/auto: "true"
       labels:
         app.kubernetes.io/name: sgf-dev
-        app.kubernetes.io/component: subscriber
         app.kubernetes.io/part-of: sgf-dev
     spec:
-      hostname: sgf-dev-subscriber
+      hostname: sgf-dev
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
       securityContext:
         fsGroup: 1654
         fsGroupChangePolicy: OnRootMismatch
-      affinity:
-        podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app.kubernetes.io/part-of: sgf-dev
-              topologyKey: kubernetes.io/hostname
       initContainers:
         - name: initialize-data
           image: busybox:1.37.0
@@ -49,7 +38,7 @@ spec:
             - sh
             - -ec
             - |
-              mkdir -p /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/pods/subscriber/examine
+              mkdir -p /data/umbraco/TEMP/MediaCache /data/data-protection-keys /data/examine
           volumeMounts:
             - name: data
               mountPath: /data
@@ -77,14 +66,12 @@ spec:
             - secretRef:
                 name: sgf-dev
           env:
-            - name: SGFDevs__ServerRole
-              value: Subscriber
             - name: Umbraco__CMS__Hosting__MachineIdentifier
-              value: sgf-dev-subscriber
+              value: sgf-dev
             - name: Umbraco__CMS__Unattended__UpgradeUnattended
-              value: "false"
+              value: "true"
             - name: Umbraco__CMS__Unattended__PackageMigrationsUnattended
-              value: "false"
+              value: "true"
           startupProbe:
             httpGet:
               path: /health/live
@@ -129,7 +116,7 @@ spec:
               subPath: umbraco/TEMP/MediaCache
             - name: data
               mountPath: /usr/src/main/umbraco/Data/TEMP/ExamineIndexes
-              subPath: pods/subscriber/examine
+              subPath: examine
             - name: media
               mountPath: /usr/src/main/wwwroot/media
       volumes:
