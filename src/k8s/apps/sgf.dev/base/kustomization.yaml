@@ -7,7 +7,6 @@ resources:
   - configmap.yaml
   - pvc.yaml
   - deployment.yaml
-  - writer-deployment.yaml
   - service.yaml
   - middleware-https-redirect.yaml
   - certificate.yaml

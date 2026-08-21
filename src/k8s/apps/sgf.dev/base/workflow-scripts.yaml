@@ -55,20 +55,16 @@ data:
       exit 1
     fi
 
-    for deployment in sgf-dev sgf-dev-writer; do
-      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
-      if [ -n "$original" ]; then
-        echo "$TARGET_NAMESPACE/$deployment has stale restore state; cleanup is required." >&2
-        exit 1
-      fi
-    done
-    for deployment in sgf-dev sgf-dev-writer; do
-      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
-      kubectl annotate deployment "$deployment" restore.sgf.dev/original-replicas="$replicas" --overwrite
-    done
+    original=$(kubectl get deployment sgf-dev -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "$TARGET_NAMESPACE/sgf-dev has stale restore state; cleanup is required." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment sgf-dev -o jsonpath='{.spec.replicas}')
+    kubectl annotate deployment sgf-dev restore.sgf.dev/original-replicas="$replicas" --overwrite
 
     kubectl -n argocd patch application "$TARGET_NAMESPACE" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
-    kubectl scale deployment sgf-dev sgf-dev-writer --replicas=0
+    kubectl scale deployment sgf-dev --replicas=0
     pods=$(kubectl get pods -l app.kubernetes.io/part-of=sgf-dev -o name)
     if [ -n "$pods" ]; then
       kubectl wait --for=delete pod -l app.kubernetes.io/part-of=sgf-dev --timeout=180s
@@ -81,13 +77,11 @@ data:
 
     apk add --no-cache jq kubectl restic sqlite >/dev/null
 
-    for deployment in sgf-dev sgf-dev-writer; do
-      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
-      if [ "$replicas" != 0 ]; then
-        echo "$TARGET_NAMESPACE/$deployment was not scaled to zero by restore preparation." >&2
-        exit 1
-      fi
-    done
+    replicas=$(kubectl get deployment sgf-dev -o jsonpath='{.spec.replicas}')
+    if [ "$replicas" != 0 ]; then
+      echo "$TARGET_NAMESPACE/sgf-dev was not scaled to zero by restore preparation." >&2
+      exit 1
+    fi
 
     pods=$(kubectl get pods -l app.kubernetes.io/part-of=sgf-dev -o name)
     if [ -n "$pods" ]; then
@@ -157,26 +151,15 @@ data:
 
     apk add --no-cache kubectl >/dev/null
 
-    app_original=$(kubectl get deployment sgf-dev -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
-    writer_original=$(kubectl get deployment sgf-dev-writer -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
-    for original in "$app_original" "$writer_original"; do
-      case "$original" in
-        "") ;;
-        *[!0-9]*) echo "Invalid saved replica count: $original" >&2; exit 1 ;;
-      esac
-    done
+    original=$(kubectl get deployment sgf-dev -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    case "$original" in
+      "") ;;
+      *[!0-9]*) echo "Invalid saved replica count: $original" >&2; exit 1 ;;
+    esac
 
-    if [ -n "$app_original" ]; then
-      kubectl scale deployment sgf-dev --replicas="$app_original"
-    fi
-    if [ -n "$writer_original" ]; then
-      kubectl scale deployment sgf-dev-writer --replicas="$writer_original"
-    fi
-    if [ -n "$app_original" ]; then
+    if [ -n "$original" ]; then
+      kubectl scale deployment sgf-dev --replicas="$original"
       kubectl annotate deployment sgf-dev restore.sgf.dev/original-replicas-
-    fi
-    if [ -n "$writer_original" ]; then
-      kubectl annotate deployment sgf-dev-writer restore.sgf.dev/original-replicas-
     fi
 
     managed=$(kubectl -n argocd get application "$TARGET_NAMESPACE" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')

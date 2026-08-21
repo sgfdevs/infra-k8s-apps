@@ -4,28 +4,9 @@ metadata:
   name: sgf-dev
   labels:
     app.kubernetes.io/name: sgf-dev
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
 spec:
   selector:
-    app.kubernetes.io/part-of: sgf-dev
-  ports:
-    - name: http
-      port: 80
-      targetPort: http
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: sgf-dev-writer
-  labels:
-    app.kubernetes.io/name: sgf-dev-writer
-    app.kubernetes.io/component: writer
-    app.kubernetes.io/part-of: sgf-dev
-spec:
-  selector:
-    app.kubernetes.io/name: sgf-dev-writer
-    app.kubernetes.io/component: writer
+    app.kubernetes.io/name: sgf-dev
   ports:
     - name: http
       port: 80
