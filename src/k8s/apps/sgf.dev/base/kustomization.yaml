@@ -6,6 +6,7 @@ resources:
   - external-secret.yaml
   - configmap.yaml
   - pvc.yaml
+  - image-prepuller.yaml
   - deployment.yaml
   - service.yaml
   - middleware-https-redirect.yaml
