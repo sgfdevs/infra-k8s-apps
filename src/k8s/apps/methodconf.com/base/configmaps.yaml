@@ -6,6 +6,7 @@ data:
   ASPNETCORE_ENVIRONMENT: Production
   ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
   ConnectionStrings__umbracoDbDSN: Data Source=/var/lib/methodconf/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True;Default Timeout=60
+  Umbraco__CMS__Hosting__MachineIdentifier: methodconf-cms
   Umbraco__CMS__Global__DisableElectionForSingleServer: "true"
   Umbraco__CMS__Global__DistributedLockingMechanism: SqliteDistributedLockingMechanism
   Umbraco__CMS__Global__Smtp__Host: email-smtp.us-east-2.amazonaws.com
