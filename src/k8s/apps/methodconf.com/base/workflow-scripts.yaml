@@ -23,13 +23,20 @@ data:
       exit 1
     fi
 
-    for backup in $(kubectl get backups.k8up.io -o name); do
-      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
-      if [ "$completed" != True ]; then
-        echo "K8up backup is still active: $backup" >&2
-        exit 1
+    backup_states=$(kubectl get backups.k8up.io -o jsonpath='{range .items[*]}{.metadata.name}{"="}{.status.conditions[?(@.type=="Completed")].status}{"\n"}{end}')
+    active_backups=
+    while IFS='=' read -r backup completed; do
+      if [ -n "$backup" ] && [ "$completed" != True ]; then
+        active_backups="${active_backups}${backup}\n"
       fi
-    done
+    done <<EOF
+    $backup_states
+    EOF
+    if [ -n "$active_backups" ]; then
+      echo "K8up backups are still active in $TARGET_NAMESPACE:" >&2
+      printf '%b' "$active_backups" >&2
+      exit 1
+    fi
 
     application=$(kubectl -n argocd get application "$TARGET_NAMESPACE" -o jsonpath='{.metadata.annotations.restore\.methodconf\.com/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
     IFS='|' read -r managed skipped self_heal operation <<EOF

@@ -6,6 +6,7 @@ resources:
   - external-secrets.yaml
   - configmaps.yaml
   - pvc.yaml
+  - cms-image-prepuller.yaml
   - cms-deployment.yaml
   - frontend-deployment.yaml
   - services.yaml
