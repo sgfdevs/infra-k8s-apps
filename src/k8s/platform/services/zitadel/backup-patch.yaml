@@ -1,0 +1,35 @@
+- op: replace
+  path: /metadata/name
+  value: zitadel-backup
+- op: replace
+  path: /metadata/labels/backup.k8up.io~1app
+  value: zitadel
+- op: replace
+  path: /spec/fileExtension
+  value: .dump
+- op: replace
+  path: /spec/backupCommand
+  value: >-
+    sh -ec 'pg_dump
+    --host=zitadel-db-rw
+    --username=zitadel
+    --dbname=zitadel
+    --format=custom
+    --no-owner
+    --no-privileges'
+- op: replace
+  path: /spec/pod/spec/serviceAccountName
+  value: zitadel-backup
+- op: replace
+  path: /spec/pod/spec/containers/0/image
+  value: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+- op: add
+  path: /spec/pod/spec/containers/0/env
+  value:
+    - name: PGPASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: zitadel-db-app
+          key: password
+    - name: PGSSLMODE
+      value: require

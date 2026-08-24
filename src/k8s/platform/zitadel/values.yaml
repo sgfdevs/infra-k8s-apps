@@ -1,0 +1,161 @@
+replicaCount: 2
+
+annotations:
+  argocd.argoproj.io/sync-wave: "3"
+
+podAnnotations:
+  secret.reloader.stakater.com/reload: zitadel-bootstrap,zitadel-db-app,zitadel-login-service-key
+
+zitadel:
+  masterkeySecretName: zitadel-bootstrap
+  configmapConfig:
+    ExternalDomain: id.sgf.dev
+    ExternalPort: 443
+    ExternalSecure: true
+    TLS:
+      Enabled: false
+    DefaultInstance:
+      LoginPolicy:
+        AllowRegister: false
+    FirstInstance:
+      InstanceName: sgf.dev
+      Org:
+        Name: SGF Devs
+        Human:
+          UserName: platform@sgf.dev
+          FirstName: SGF
+          LastName: Devs
+          Email:
+            Address: platform@sgf.dev
+            Verified: true
+          PasswordChangeRequired: true
+        Machine:
+          Machine:
+            Username: infra-app-config
+            Name: infra-app-config
+          MachineKey:
+            ExpirationDate: "2036-01-01T00:00:00Z"
+            Type: 1
+          Pat: null
+
+env:
+  - name: ZITADEL_DATABASE_POSTGRES_DSN
+    valueFrom:
+      secretKeyRef:
+        name: zitadel-db-app
+        key: uri
+  - name: ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: zitadel-bootstrap
+        key: initialAdminPassword
+
+configMap:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    helm.sh/hook: null
+    helm.sh/hook-delete-policy: null
+    helm.sh/hook-weight: null
+
+serviceAccount:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    helm.sh/hook: null
+    helm.sh/hook-delete-policy: null
+    helm.sh/hook-weight: null
+
+initJob:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
+    infra.sgf.dev/bootstrap-revision: "1"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+setupJob:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "2"
+    infra.sgf.dev/bootstrap-revision: "1"
+  activeDeadlineSeconds: 600
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: zitadel
+        topologyKey: kubernetes.io/hostname
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+
+login:
+  loginServiceKeySecretName: zitadel-login-service-key
+  replicaCount: 2
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  podAnnotations:
+    secret.reloader.stakater.com/reload: zitadel-login-service-key
+  configMap:
+    annotations:
+      argocd.argoproj.io/sync-wave: "0"
+      helm.sh/hook: null
+      helm.sh/hook-delete-policy: null
+      helm.sh/hook-weight: null
+  serviceAccount:
+    annotations:
+      argocd.argoproj.io/sync-wave: "0"
+      helm.sh/hook: null
+      helm.sh/hook-delete-policy: null
+      helm.sh/hook-weight: null
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: zitadel-login
+          topologyKey: kubernetes.io/hostname
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+postgresql:
+  enabled: false

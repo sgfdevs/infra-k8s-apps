@@ -1,0 +1,15 @@
+- op: replace
+  path: /metadata/name
+  value: zitadel-backup
+- op: replace
+  path: /spec/backend/repoPasswordSecretRef/name
+  value: zitadel-k8up-repo-password
+- op: replace
+  path: /spec/backend/s3/bucket
+  value: sgfdevs-on-prem-k3s-backups/zitadel
+- op: replace
+  path: /spec/backup/schedule
+  value: '30 7 * * *'
+- op: replace
+  path: /spec/backup/labelSelectors/0/matchLabels/backup.k8up.io~1app
+  value: zitadel
