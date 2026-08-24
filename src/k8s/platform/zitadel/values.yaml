@@ -22,11 +22,11 @@ zitadel:
       Org:
         Name: SGF Devs
         Human:
-          UserName: platform@sgf.dev
+          UserName: sgfdevs@gmail.com
           FirstName: SGF
           LastName: Devs
           Email:
-            Address: platform@sgf.dev
+            Address: sgfdevs@gmail.com
             Verified: true
           PasswordChangeRequired: true
         Machine:
