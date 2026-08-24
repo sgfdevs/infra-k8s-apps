@@ -7,5 +7,6 @@ resources:
   - k8up.yaml
   - kubeblocks-crds.yaml
   - longhorn.yaml
+  - percona-mongodb-crds.yaml
   - prometheus-operator-crds.yaml
   - seaweedfs-operator.yaml
