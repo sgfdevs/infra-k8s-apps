@@ -1,0 +1,162 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zitadel-workflow-scripts
+data:
+  prepare-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or contain only lowercase hexadecimal characters." >&2; exit 1 ;;
+      esac
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
+      fi
+    fi
+    if [ "$CONFIRMATION" != "RESTORE zitadel" ]; then
+      echo "Confirmation must exactly match: RESTORE zitadel" >&2
+      exit 1
+    fi
+
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+
+    application=$(kubectl -n argocd get application zitadel -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $application
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ]; then
+      echo "Argo CD Application zitadel is already paused or managed by a restore." >&2
+      exit 1
+    fi
+    if [ "$self_heal" != true ]; then
+      echo "Argo CD Application zitadel must have self-heal enabled before restore." >&2
+      exit 1
+    fi
+    if [ "$operation" = Running ]; then
+      echo "Argo CD Application zitadel has a sync operation in progress." >&2
+      exit 1
+    fi
+
+    for deployment in zitadel zitadel-login; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+      if [ -n "$original" ]; then
+        echo "$deployment has stale restore state; cleanup is required." >&2
+        exit 1
+      fi
+      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
+      kubectl annotate deployment "$deployment" restore.sgf.dev/original-replicas="$replicas" --overwrite
+    done
+
+    kubectl -n argocd patch application zitadel --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+    kubectl scale deployment zitadel zitadel-login --replicas=0
+    pods=$(kubectl get pods -l 'app.kubernetes.io/name in (zitadel,zitadel-login)' -o name)
+    if [ -n "$pods" ]; then
+      kubectl wait --for=delete pod -l 'app.kubernetes.io/name in (zitadel,zitadel-login)' --timeout=180s
+    fi
+    echo "Zitadel is paused and scaled to zero."
+
+  download-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    snapshot_path=/zitadel-backup.dump
+    if [ "$SNAPSHOT_ID" = latest ]; then
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
+      if [ -z "$SNAPSHOT_ID" ]; then
+        echo "No Zitadel backup snapshot was found." >&2
+        exit 1
+      fi
+      echo "Resolved latest snapshot to $SNAPSHOT_ID."
+    fi
+    restic dump "$SNAPSHOT_ID" "$snapshot_path" > /restore/zitadel.dump
+    test -s /restore/zitadel.dump
+
+  restore-database.sh: |
+    #!/bin/sh
+    set -eu
+
+    test -s /restore/zitadel.dump
+    pg_restore --list /restore/zitadel.dump >/dev/null
+    psql --set=ON_ERROR_STOP=1 <<'SQL'
+    SELECT pg_terminate_backend(pid)
+    FROM pg_stat_activity
+    WHERE datname = current_database()
+      AND pid <> pg_backend_pid();
+    SQL
+    pg_restore --clean --if-exists --single-transaction --exit-on-error --no-owner --no-privileges --dbname=zitadel /restore/zitadel.dump
+    table_count=$(psql --tuples-only --no-align --command="SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname = 'public';")
+    if [ "$table_count" -eq 0 ]; then
+      echo "Restored database contains no public tables." >&2
+      exit 1
+    fi
+    echo "Zitadel database restored successfully with $table_count public tables."
+
+  verify-paused.sh: |
+    #!/bin/sh
+    set -eu
+
+    for deployment in zitadel zitadel-login; do
+      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
+      if [ "$replicas" != 0 ]; then
+        echo "$deployment is not scaled to zero." >&2
+        exit 1
+      fi
+    done
+    pods=$(kubectl get pods -l 'app.kubernetes.io/name in (zitadel,zitadel-login)' -o name)
+    if [ -n "$pods" ]; then
+      echo "Zitadel application pods still exist:" >&2
+      echo "$pods" >&2
+      exit 1
+    fi
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+
+  cleanup-restore.sh: |
+    #!/bin/sh
+    set -u
+
+    failed=0
+
+    for deployment in zitadel zitadel-login; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}') || {
+        echo "Unable to read restore state for $deployment." >&2
+        failed=1
+        continue
+      }
+      case "$original" in
+        "") ;;
+        *[!0-9]*) echo "Invalid saved replica count for $deployment: $original" >&2; failed=1; continue ;;
+      esac
+      if [ -n "$original" ]; then
+        kubectl scale deployment "$deployment" --replicas="$original" || failed=1
+        kubectl annotate deployment "$deployment" restore.sgf.dev/original-replicas- || failed=1
+      fi
+    done
+
+    managed=$(kubectl -n argocd get application zitadel -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}') || {
+      echo "Unable to read Argo CD restore state." >&2
+      failed=1
+      managed=
+    }
+    if [ "$managed" = true ]; then
+      kubectl -n argocd patch application zitadel --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.sgf.dev/managed":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}' || failed=1
+    fi
+    for deployment in zitadel zitadel-login; do
+      kubectl rollout status deployment "$deployment" --timeout=300s || failed=1
+    done
+    echo "Zitadel replica counts and Argo CD reconciliation settings were restored."
+    exit "$failed"

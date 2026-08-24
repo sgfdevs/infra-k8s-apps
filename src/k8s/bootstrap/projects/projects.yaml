@@ -46,6 +46,7 @@ spec:
     - https://seaweedfs.github.io/seaweedfs/helm
     - https://seaweedfs.github.io/seaweedfs-operator/
     - https://stakater.github.io/stakater-charts
+    - https://charts.zitadel.com
   destinations:
     - namespace: '*'
       server: https://kubernetes.default.svc

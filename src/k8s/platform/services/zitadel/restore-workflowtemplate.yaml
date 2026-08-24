@@ -1,0 +1,180 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: zitadel-restore
+spec:
+  entrypoint: restore
+  onExit: cleanup
+  serviceAccountName: zitadel-restore-workflow
+  synchronization:
+    mutexes:
+      - name: zitadel-maintenance
+  arguments:
+    parameters:
+      - name: snapshot-id
+        value: latest
+      - name: confirmation
+        description: Enter "RESTORE zitadel" to authorize replacing the database.
+  activeDeadlineSeconds: 1800
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  volumeClaimTemplates:
+    - metadata:
+        name: restore-data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 10Gi
+  templates:
+    - name: restore
+      steps:
+        - - name: prepare
+            template: prepare
+        - - name: download
+            template: download
+        - - name: verify-paused
+            template: verify-paused
+        - - name: restore-database
+            template: restore-database
+    - name: prepare
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/prepare-restore.sh]
+        env:
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: CONFIRMATION
+            value: "{{workflow.parameters.confirmation}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: zitadel-workflow-scripts
+            defaultMode: 0555
+    - name: download
+      container:
+        image: restic/restic:0.18.1
+        command: [/scripts/download-restore.sh]
+        env:
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: RESTIC_REPOSITORY
+            value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/zitadel
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: zitadel-k8up-repo-password
+                key: password
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-key
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+          - name: restore-data
+            mountPath: /restore
+      volumes:
+        - name: scripts
+          configMap:
+            name: zitadel-workflow-scripts
+            defaultMode: 0555
+    - name: verify-paused
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/verify-paused.sh]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: zitadel-workflow-scripts
+            defaultMode: 0555
+    - name: restore-database
+      container:
+        image: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+        command: [/scripts/restore-database.sh]
+        env:
+          - name: PGHOST
+            value: zitadel-db-rw
+          - name: PGDATABASE
+            value: zitadel
+          - name: PGUSER
+            value: zitadel
+          - name: PGSSLMODE
+            value: require
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: zitadel-db-app
+                key: password
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+          - name: restore-data
+            mountPath: /restore
+      volumes:
+        - name: scripts
+          configMap:
+            name: zitadel-workflow-scripts
+            defaultMode: 0555
+    - name: cleanup
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/cleanup-restore.sh]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: zitadel-workflow-scripts
+            defaultMode: 0555
