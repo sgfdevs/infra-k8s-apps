@@ -4,6 +4,7 @@ metadata:
   name: cloudflared-opensgf
 spec:
   minAvailable: 2
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: cloudflared
