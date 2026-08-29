@@ -6,6 +6,7 @@ resources:
   - argocd-ingress.yaml
   - argocd-install.yaml
   - bootstrap-config.yaml
+  - cloudflared.yaml
   - dex.yaml
   - grafana-infra.yaml
   - headlamp.yaml
