@@ -55,9 +55,9 @@ data:
       sleep 5
     done
 
-    export RESTIC_PASSWORD=$(cat /recovery/restic-password)
-    export AWS_ACCESS_KEY_ID=$(cat /recovery/s3-access-key-id)
-    export AWS_SECRET_ACCESS_KEY=$(cat /recovery/s3-secret-access-key)
+    export RESTIC_PASSWORD=$(cat /recovery-credentials/repository/password)
+    export AWS_ACCESS_KEY_ID=$(cat /recovery-credentials/b2/account-id)
+    export AWS_SECRET_ACCESS_KEY=$(cat /recovery-credentials/b2/account-key)
     if ! snapshots=$(restic snapshots --json --latest 1 --path /openbao-backup.snap); then
       echo "OpenBao backup repository is not readable; attempting first-time initialization"
       restic init
