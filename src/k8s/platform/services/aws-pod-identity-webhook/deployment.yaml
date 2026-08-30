@@ -37,6 +37,13 @@ spec:
         fsGroup: 65534
         seccompProfile:
           type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: aws-pod-identity-webhook
+              topologyKey: kubernetes.io/hostname
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
@@ -111,6 +118,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: aws-pod-identity-webhook
