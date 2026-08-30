@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: k8s-oidc-tls
+  namespace: k8s-oidc
+spec:
+  secretName: k8s-oidc-tls
+  duration: 8760h
+  renewBefore: 720h
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - k8s-oidc.sgf.dev

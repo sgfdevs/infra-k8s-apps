@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oidc-discovery-proxy
+  namespace: k8s-oidc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oidc-discovery-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oidc-discovery-proxy
+    spec:
+      serviceAccountName: oidc-discovery-proxy
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kubectl-proxy
+          image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+          args:
+            - proxy
+            - --kubeconfig=/etc/kubectl/kubeconfig
+            - --address=0.0.0.0
+            - --port=8001
+            - --accept-hosts=^k8s-oidc\.sgf\.dev$
+            - --accept-paths=^/(\.well-known/openid-configuration|openid/v1/jwks)$
+            - --reject-methods=^(HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE)$
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /openid/v1/jwks
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: k8s-oidc.sgf.dev
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /etc/kubectl
+              readOnly: true
+      volumes:
+        - name: kubeconfig
+          configMap:
+            name: oidc-discovery-proxy-kubeconfig
