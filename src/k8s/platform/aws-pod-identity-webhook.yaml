@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-pod-identity-webhook
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    infra.sgf.dev/health-gate: "true"
+spec:
+  project: platform
+  source:
+    repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+    path: src/k8s/platform/services/aws-pod-identity-webhook
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: aws-pod-identity-webhook
+  ignoreDifferences:
+    - group: cert-manager.io
+      kind: Certificate
+      jsonPointers:
+        - /spec/duration
+        - /spec/renewBefore
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

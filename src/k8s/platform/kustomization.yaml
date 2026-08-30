@@ -5,6 +5,7 @@ resources:
   - argo-workflows.yaml
   - argocd-ingress.yaml
   - argocd-install.yaml
+  - aws-pod-identity-webhook.yaml
   - bootstrap-config.yaml
   - cloudflared.yaml
   - dex.yaml

@@ -1,0 +1,10 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: aws-role-arn-expansion.infra.sgf.dev
+spec:
+  policyName: aws-role-arn-expansion.infra.sgf.dev
+  paramRef:
+    name: aws-runtime
+    namespace: kube-system
+    parameterNotFoundAction: Deny
