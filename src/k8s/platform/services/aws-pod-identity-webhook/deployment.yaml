@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aws-pod-identity-webhook
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  selector:
+    app.kubernetes.io/name: aws-pod-identity-webhook
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aws-pod-identity-webhook
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aws-pod-identity-webhook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-pod-identity-webhook
+    spec:
+      serviceAccountName: aws-pod-identity-webhook
+      priorityClassName: system-cluster-critical
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: aws-pod-identity-webhook
+      containers:
+        - name: webhook
+          # Includes aws/amazon-eks-pod-identity-webhook#310 for AdmissionReview v1 support.
+          image: public.ecr.aws/eks/amazon-eks-pod-identity-webhook@sha256:56b48fceffad3d2ded0b1a57808ae6ef6bd47068352fda0eccc8cfb3dd5b8320
+          imagePullPolicy: IfNotPresent
+          command: ["/webhook"]
+          args:
+            - --in-cluster=false
+            - --annotation-prefix=eks.amazonaws.com
+            - --token-audience=sts.amazonaws.com
+            - --token-expiration=3600
+            - --aws-default-region=us-east-2
+            - --sts-regional-endpoint=true
+            - --service-account-lookup-grace-period=1s
+            - --port=9443
+            - --tls-min-version=1.2
+            - --logtostderr
+          ports:
+            - name: webhook
+              containerPort: 9443
+            - name: metrics
+              containerPort: 9999
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: webhook
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: webhook
+              scheme: HTTPS
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: aws-pod-identity-webhook-tls
+            defaultMode: 0440
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: aws-pod-identity-webhook
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aws-pod-identity-webhook

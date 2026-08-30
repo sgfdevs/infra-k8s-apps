@@ -1,0 +1,39 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: aws-role-arn-expansion.infra.sgf.dev
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: IfNeeded
+  paramKind:
+    apiVersion: v1
+    kind: ConfigMap
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["serviceaccounts"]
+  matchConditions:
+    - name: has-aws-role-arn-template
+      expression: >-
+        has(object.metadata.annotations) &&
+        "infra.sgf.dev/aws-role-arn" in object.metadata.annotations
+  mutations:
+    - patchType: ApplyConfiguration
+      applyConfiguration:
+        expression: >-
+          Object{
+            metadata: Object.metadata{
+              annotations: {
+                "eks.amazonaws.com/role-arn":
+                  object.metadata.annotations["infra.sgf.dev/aws-role-arn"].replace(
+                    "${SGFDEVS_AWS_ACCOUNT_ID}",
+                    params.data["SGFDEVS_AWS_ACCOUNT_ID"]
+                  ).replace(
+                    "${OPENSGF_AWS_ACCOUNT_ID}",
+                    params.data["OPENSGF_AWS_ACCOUNT_ID"]
+                  )
+              }
+            }
+          }
