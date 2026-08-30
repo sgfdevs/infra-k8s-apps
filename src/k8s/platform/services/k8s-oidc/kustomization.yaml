@@ -10,5 +10,4 @@ resources:
   - service.yaml
   - certificate.yaml
   - middleware-strip-authorization.yaml
-  - middleware-rate-limit.yaml
   - ingressroute.yaml

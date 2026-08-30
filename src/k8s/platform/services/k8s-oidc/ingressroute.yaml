@@ -14,7 +14,6 @@ spec:
         Method(`GET`)
       middlewares:
         - name: oidc-discovery-strip-authorization
-        - name: oidc-discovery-rate-limit
       services:
         - name: oidc-discovery-proxy
           port: 8001

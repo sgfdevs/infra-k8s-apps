@@ -1,9 +1,0 @@
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: oidc-discovery-rate-limit
-  namespace: k8s-oidc
-spec:
-  rateLimit:
-    average: 10
-    burst: 20
