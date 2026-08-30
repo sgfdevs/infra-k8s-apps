@@ -10,6 +10,7 @@ resources:
   - dex.yaml
   - grafana-infra.yaml
   - headlamp.yaml
+  - k8s-oidc.yaml
   - kube-prometheus-stack.yaml
   - loki.yaml
   - longhorn-ingress.yaml
