@@ -1,0 +1,56 @@
+apiVersion: psmdb.percona.com/v1
+kind: PerconaServerMongoDB
+metadata:
+  name: wekan-mongodb
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  crVersion: 1.23.0
+  image: percona/percona-server-mongodb:7.0.37-20
+  imagePullPolicy: IfNotPresent
+  updateStrategy: SmartUpdate
+  upgradeOptions:
+    apply: disabled
+    schedule: "0 2 * * *"
+    setFCV: false
+  pmm:
+    enabled: false
+    image: percona/pmm-client:3.8.1
+  replsets:
+    - name: rs0
+      size: 3
+      affinity:
+        antiAffinityTopologyKey: kubernetes.io/hostname
+      podDisruptionBudget:
+        maxUnavailable: 1
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      volumeSpec:
+        persistentVolumeClaim:
+          storageClassName: local-path
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10Gi
+  sharding:
+    enabled: false
+  users:
+    - name: wekan
+      db: wekan
+      passwordSecretRef:
+        name: wekan-mongodb-password
+        key: password
+      roles:
+        - name: readWrite
+          db: wekan
+  backup:
+    enabled: false
+    image: percona/percona-backup-mongodb:2.15.0
+  logcollector:
+    enabled: false
