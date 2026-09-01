@@ -19,6 +19,8 @@ spec:
   replsets:
     - name: rs0
       size: 3
+      nodeSelector:
+        cpu-microarchitecture: x86-64-v3
       affinity:
         antiAffinityTopologyKey: kubernetes.io/hostname
       podDisruptionBudget:
