@@ -55,7 +55,9 @@ spec:
             - -c
           args:
             - |
-              export MONGO_URL="${MONGO_URL}&tlsCertificateKeyFile=/etc/mongodb-tls/tls-combined.pem"
+              mongo_query="${MONGO_URL#*\?}"
+              mongo_base="${MONGO_URL%%\?*}"
+              export MONGO_URL="${mongo_base%/}/wekan?${mongo_query}&tlsCertificateKeyFile=/etc/mongodb-tls/tls-combined.pem"
               exec bash /build/wekan-entrypoint.sh
           securityContext:
             runAsNonRoot: true
