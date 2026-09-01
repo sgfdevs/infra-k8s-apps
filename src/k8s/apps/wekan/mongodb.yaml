@@ -22,7 +22,16 @@ spec:
       nodeSelector:
         cpu-microarchitecture: x86-64-v3
       affinity:
-        antiAffinityTopologyKey: kubernetes.io/hostname
+        advanced:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/instance: wekan-mongodb
+                      app.kubernetes.io/replset: rs0
+                  topologyKey: kubernetes.io/hostname
       podDisruptionBudget:
         maxUnavailable: 1
       resources:
