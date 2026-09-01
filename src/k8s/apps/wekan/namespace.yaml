@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wekan
+  labels:
+    app.kubernetes.io/name: wekan
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"

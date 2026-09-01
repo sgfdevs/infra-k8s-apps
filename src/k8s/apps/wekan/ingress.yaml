@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wekan
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: wekan-wekan-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - projects.sgf.dev
+      secretName: wekan-tls
+  rules:
+    - host: projects.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wekan
+                port:
+                  number: 80
