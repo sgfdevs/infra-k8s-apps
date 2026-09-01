@@ -7,8 +7,6 @@ resources:
   - secret-store.yaml
   - external-secrets.yaml
   - mongodb.yaml
-  - object-storage.yaml
-  - storage-bootstrap-configmap.yaml
   - pvc.yaml
   - deployment.yaml
   - pdb.yaml
