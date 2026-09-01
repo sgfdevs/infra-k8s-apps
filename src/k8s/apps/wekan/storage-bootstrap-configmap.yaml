@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wekan-storage-bootstrap
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  configure-storage.js: |
+    const requiredVariables = [
+      'S3_ENDPOINT',
+      'S3_REGION',
+      'S3_BUCKET',
+      'S3_ACCESS_KEY',
+      'S3_SECRET_KEY',
+    ];
+
+    for (const variable of requiredVariables) {
+      if (!process.env[variable]) {
+        throw new Error(`Missing required environment variable: ${variable}`);
+      }
+    }
+
+    const now = new Date();
+    const result = db.getSiblingDB('wekan').attachmentStorageSettings.updateOne(
+      { _id: 'wekan-storage' },
+      {
+        $set: {
+          defaultStorage: 's3',
+          'storageConfig.s3': {
+            enabled: true,
+            read: true,
+            write: true,
+            endpoint: process.env.S3_ENDPOINT,
+            region: process.env.S3_REGION,
+            bucket: process.env.S3_BUCKET,
+            accessKeyId: process.env.S3_ACCESS_KEY,
+            secretAccessKey: process.env.S3_SECRET_KEY,
+            forcePathStyle: true,
+          },
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          'storageConfig.filesystem': {
+            enabled: true,
+            read: true,
+            write: true,
+            path: '/data/files/attachments',
+          },
+          'storageConfig.gridfs': {
+            enabled: true,
+            read: true,
+            write: true,
+          },
+          'storageConfig.azure': {
+            enabled: false,
+            read: true,
+            write: true,
+            accountName: '',
+            accountKey: '',
+            connectionString: '',
+            bucket: '',
+          },
+          'storageConfig.gcs': {
+            enabled: false,
+            read: true,
+            write: true,
+            projectId: '',
+            keyFilename: '',
+            credentials: '',
+            bucket: '',
+          },
+          uploadSettings: {
+            maxFileSize: 0,
+            allowedMimeTypes: [],
+          },
+          limitSettings: {
+            attachmentsUploadMaxBytes: 0,
+            attachmentsUploadBlocked: false,
+            avatarsUploadBlocked: false,
+            attachmentsDownloadMaxBytes: 0,
+            attachmentsDownloadBlocked: false,
+            apiUploadMaxBytes: 0,
+            apiUploadBlocked: false,
+            apiDownloadMaxBytes: 0,
+            apiDownloadBlocked: false,
+          },
+          migrationSettings: {
+            autoMigrate: false,
+            batchSize: 10,
+            delayMs: 1000,
+            cpuThreshold: 70,
+          },
+          createdAt: now,
+        },
+      },
+      { upsert: true },
+    );
+
+    print(`Configured Wekan attachment storage: ${JSON.stringify(result)}`);

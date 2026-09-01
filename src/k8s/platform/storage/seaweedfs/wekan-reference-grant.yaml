@@ -1,0 +1,26 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: ResourceReferenceGrant
+metadata:
+  name: wekan
+  namespace: seaweedfs
+spec:
+  from:
+    - group: seaweed.seaweedfs.com
+      kind: Bucket
+      namespace: wekan
+    - group: seaweed.seaweedfs.com
+      kind: S3Identity
+      namespace: wekan
+    - group: seaweed.seaweedfs.com
+      kind: S3Credentials
+      namespace: wekan
+    - group: seaweed.seaweedfs.com
+      kind: S3Policy
+      namespace: wekan
+    - group: seaweed.seaweedfs.com
+      kind: S3PolicyBinding
+      namespace: wekan
+  to:
+    - group: seaweed.seaweedfs.com
+      kind: Seaweed
+      name: seaweedfs

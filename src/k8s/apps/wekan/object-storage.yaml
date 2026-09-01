@@ -1,0 +1,88 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: Bucket
+metadata:
+  name: wekan-files
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  clusterRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  placement:
+    replication: "001"
+  reclaimPolicy: Retain
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Identity
+metadata:
+  name: wekan
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: wekan
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Credentials
+metadata:
+  name: wekan
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  identityRef:
+    name: wekan
+  secretRef:
+    name: wekan-s3-credentials
+    accessKeyField: S3_ACCESS_KEY
+    secretKeyField: S3_SECRET_KEY
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Policy
+metadata:
+  name: wekan
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: wekan
+  statements:
+    - effect: Allow
+      actions:
+        - s3:GetBucketLocation
+        - s3:ListBucket
+      resources:
+        - wekan-files
+    - effect: Allow
+      actions:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      resources:
+        - wekan-files/*
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3PolicyBinding
+metadata:
+  name: wekan
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  policyRef:
+    name: wekan
+  subjects:
+    - kind: S3Identity
+      name: wekan
+  reclaimPolicy: Delete
