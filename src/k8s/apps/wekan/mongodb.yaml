@@ -43,9 +43,6 @@ spec:
   users:
     - name: wekan
       db: wekan
-      passwordSecretRef:
-        name: wekan-mongodb-password
-        key: password
       roles:
         - name: readWrite
           db: wekan

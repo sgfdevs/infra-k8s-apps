@@ -52,7 +52,7 @@ spec:
             - name: MONGO_URL
               valueFrom:
                 secretKeyRef:
-                  name: wekan-mongodb-password-conn-str
+                  name: wekan-mongodb-custom-user-secret-conn-str
                   key: wekan_rs0_connectionString
             - name: NODE_EXTRA_CA_CERTS
               value: /etc/mongodb-tls/ca.crt
