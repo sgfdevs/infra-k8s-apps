@@ -17,7 +17,6 @@ spec:
     mode: None
   auth:
     enabled: true
-    required: true
   autoFailover: true
   additionalConfig:
     min-replicas-to-write: "1"

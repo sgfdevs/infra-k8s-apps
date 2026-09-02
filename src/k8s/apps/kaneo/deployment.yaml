@@ -47,8 +47,9 @@ spec:
             - -ec
           args:
             - |
-              cp -a /usr/share/nginx/html/. /work/html/
-              cp -a /etc/nginx/conf.d/. /work/nginx-conf/
+              cp -r /usr/share/nginx/html/. /work/html/
+              cp -r /etc/nginx/conf.d/. /work/nginx-conf/
+              mkdir -p /work/nginx-lib/logs /work/nginx-lib/tmp
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -60,6 +61,8 @@ spec:
               mountPath: /work/html
             - name: nginx-config
               mountPath: /work/nginx-conf
+            - name: nginx-lib
+              mountPath: /work/nginx-lib
           resources:
             requests:
               cpu: 10m
