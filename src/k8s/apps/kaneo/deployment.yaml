@@ -36,6 +36,35 @@ spec:
                 matchLabels:
                   app.kubernetes.io/name: kaneo
               topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: prepare-web-assets
+          image: ghcr.io/usekaneo/kaneo:2.22.0@sha256:362139ce143ea5f21c170d2626f654d21991bd48f51340913a54d427b4cfda2c
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              cp -a /usr/share/nginx/html/. /work/html/
+              cp -a /etc/nginx/conf.d/. /work/nginx-conf/
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: web-assets
+              mountPath: /work/html
+            - name: nginx-config
+              mountPath: /work/nginx-conf
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
       containers:
         - name: kaneo
           image: ghcr.io/usekaneo/kaneo:2.22.0@sha256:362139ce143ea5f21c170d2626f654d21991bd48f51340913a54d427b4cfda2c
@@ -52,6 +81,22 @@ spec:
             capabilities:
               drop:
                 - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: web-assets
+              mountPath: /usr/share/nginx/html
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run/nginx
+            - name: nginx-log
+              mountPath: /var/log/nginx
+            - name: nginx-lib
+              mountPath: /var/lib/nginx
+            - name: tmp
+              mountPath: /tmp
           ports:
             - name: http
               containerPort: 5173
@@ -128,3 +173,18 @@ spec:
             limits:
               cpu: "1"
               memory: 1Gi
+      volumes:
+        - name: web-assets
+          emptyDir: {}
+        - name: nginx-config
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: nginx-log
+          emptyDir: {}
+        - name: nginx-lib
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
