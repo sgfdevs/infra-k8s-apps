@@ -8,7 +8,6 @@ resources:
   - external-secret.yaml
   - database.yaml
   - valkey.yaml
-  - object-storage.yaml
   - deployment.yaml
   - service.yaml
   - pdb.yaml
