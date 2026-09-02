@@ -1,0 +1,88 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: Bucket
+metadata:
+  name: kaneo-files
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  clusterRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  placement:
+    replication: "001"
+  reclaimPolicy: Retain
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Identity
+metadata:
+  name: kaneo
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: kaneo
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Credentials
+metadata:
+  name: kaneo
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  identityRef:
+    name: kaneo
+  secretRef:
+    name: kaneo-s3-credentials
+    accessKeyField: S3_ACCESS_KEY_ID
+    secretKeyField: S3_SECRET_ACCESS_KEY
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Policy
+metadata:
+  name: kaneo
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: kaneo
+  statements:
+    - effect: Allow
+      actions:
+        - s3:GetBucketLocation
+        - s3:ListBucket
+      resources:
+        - kaneo-files
+    - effect: Allow
+      actions:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      resources:
+        - kaneo-files/*
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3PolicyBinding
+metadata:
+  name: kaneo
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  policyRef:
+    name: kaneo
+  subjects:
+    - kind: S3Identity
+      name: kaneo
+  reclaimPolicy: Delete

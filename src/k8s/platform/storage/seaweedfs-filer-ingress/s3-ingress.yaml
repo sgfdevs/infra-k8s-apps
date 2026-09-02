@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: seaweedfs-s3
+  namespace: seaweedfs
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: seaweedfs-seaweedfs-filer-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - uploads.projects.sgf.dev
+      secretName: seaweedfs-s3-tls
+  rules:
+    - host: uploads.projects.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: seaweedfs-s3
+                port:
+                  number: 8333

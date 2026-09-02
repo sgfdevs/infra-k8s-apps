@@ -4,3 +4,5 @@ resources:
   - middleware-https-redirect.yaml
   - certificate.yaml
   - ingress.yaml
+  - s3-certificate.yaml
+  - s3-ingress.yaml
