@@ -121,6 +121,16 @@ spec:
               value: https://projects.sgf.dev
             - name: CORS_ORIGINS
               value: https://projects.sgf.dev
+            - name: SMTP_HOST
+              value: email-smtp.us-east-2.amazonaws.com
+            - name: SMTP_PORT
+              value: "587"
+            - name: SMTP_SECURE
+              value: "false"
+            - name: SMTP_REQUIRE_TLS
+              value: "true"
+            - name: SMTP_FROM
+              value: Kaneo <projects@sgf.dev>
             - name: CUSTOM_OAUTH_SCOPES
               value: openid,profile,email
             - name: CUSTOM_AUTH_PKCE
