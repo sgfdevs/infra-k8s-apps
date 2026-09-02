@@ -5,8 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  mode: Replication
-  replicas: 3
+  mode: Standalone
   version:
     image: docker.io/valkey/valkey
     version: 9.0.4
@@ -17,22 +16,6 @@ spec:
     mode: None
   auth:
     enabled: true
-  autoFailover: true
-  additionalConfig:
-    min-replicas-to-write: "1"
-    min-replicas-max-lag: "10"
-  podDisruptionBudget:
-    enabled: true
-    minAvailable: 2
-  pod:
-    affinity:
-      podAntiAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: valkey
-                app.kubernetes.io/instance: kaneo-valkey
-            topologyKey: kubernetes.io/hostname
   monitoring:
     enabled: false
   resources:
