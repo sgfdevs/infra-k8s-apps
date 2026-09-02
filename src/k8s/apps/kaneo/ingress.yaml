@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kaneo
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: kaneo-kaneo-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - projects.sgf.dev
+      secretName: kaneo-tls
+  rules:
+    - host: projects.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kaneo
+                port:
+                  name: http

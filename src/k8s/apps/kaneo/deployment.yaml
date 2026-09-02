@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kaneo
+  labels:
+    app.kubernetes.io/name: kaneo
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kaneo
+  template:
+    metadata:
+      annotations:
+        eks.amazonaws.com/skip-containers: prepare-web-assets
+      labels:
+        app.kubernetes.io/name: kaneo
+    spec:
+      serviceAccountName: kaneo-secrets
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: kaneo
+              topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: prepare-web-assets
+          image: ghcr.io/usekaneo/kaneo:2.22.0@sha256:362139ce143ea5f21c170d2626f654d21991bd48f51340913a54d427b4cfda2c
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              cp -a /usr/share/nginx/html/. /work/html/
+              cp -a /etc/nginx/conf.d/. /work/nginx-conf/
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: web-assets
+              mountPath: /work/html
+            - name: nginx-config
+              mountPath: /work/nginx-conf
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      containers:
+        - name: kaneo
+          image: ghcr.io/usekaneo/kaneo:2.22.0@sha256:362139ce143ea5f21c170d2626f654d21991bd48f51340913a54d427b4cfda2c
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              export REDIS_URL="redis://:${REDIS_PASSWORD}@kaneo-valkey:6379"
+              exec /usr/local/bin/kaneo-entrypoint.sh
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: web-assets
+              mountPath: /usr/share/nginx/html
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run/nginx
+            - name: nginx-log
+              mountPath: /var/log/nginx
+            - name: nginx-lib
+              mountPath: /var/lib/nginx
+            - name: tmp
+              mountPath: /tmp
+          ports:
+            - name: http
+              containerPort: 5173
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: kaneo
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaneo-db-app
+                  key: uri
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kaneo-valkey-auth
+                  key: password
+            - name: KANEO_CLIENT_URL
+              value: https://projects.sgf.dev
+            - name: CORS_ORIGINS
+              value: https://projects.sgf.dev
+            - name: CUSTOM_OAUTH_SCOPES
+              value: openid,profile,email
+            - name: CUSTOM_AUTH_PKCE
+              value: "true"
+            - name: CUSTOM_OAUTH_AUTO_LOGIN
+              value: "true"
+            - name: DISABLE_GUEST_ACCESS
+              value: "true"
+            - name: DISABLE_PASSWORD_REGISTRATION
+              value: "true"
+            - name: DISABLE_EMAIL_OTP_SIGN_IN
+              value: "true"
+            - name: DISABLE_LOGIN_FORM
+              value: "true"
+            - name: S3_ENDPOINT
+              value: https://s3.us-east-2.amazonaws.com
+            - name: S3_BUCKET
+              value: sgfdevs-kaneo-assets
+            - name: S3_REGION
+              value: us-east-2
+            - name: S3_FORCE_PATH_STYLE
+              value: "false"
+            - name: S3_MAX_IMAGE_UPLOAD_BYTES
+              value: "10485760"
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: web-assets
+          emptyDir: {}
+        - name: nginx-config
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: nginx-log
+          emptyDir: {}
+        - name: nginx-lib
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
