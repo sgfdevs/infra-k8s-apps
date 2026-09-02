@@ -7,6 +7,7 @@ resources:
   - secret-store.yaml
   - external-secrets.yaml
   - mongodb.yaml
+  - mongodb-client-certificate.yaml
   - pvc.yaml
   - deployment.yaml
   - pdb.yaml

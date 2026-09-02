@@ -50,6 +50,15 @@ spec:
         - name: wekan
           image: ghcr.io/wekan/wekan:v11.39
           imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+          args:
+            - |
+              mongo_query="${MONGO_URL#*\?}"
+              mongo_base="${MONGO_URL%%\?*}"
+              export MONGO_URL="${mongo_base%/}/wekan?${mongo_query}&tlsCertificateKeyFile=/etc/mongodb-tls/tls-combined.pem"
+              exec bash /build/wekan-entrypoint.sh
           securityContext:
             runAsNonRoot: true
             runAsUser: 999
@@ -163,9 +172,11 @@ spec:
             claimName: wekan-data
         - name: mongodb-tls
           secret:
-            secretName: wekan-mongodb-ssl
+            secretName: wekan-mongodb-client
             items:
               - key: ca.crt
                 path: ca.crt
+              - key: tls-combined.pem
+                path: tls-combined.pem
         - name: tmp
           emptyDir: {}
