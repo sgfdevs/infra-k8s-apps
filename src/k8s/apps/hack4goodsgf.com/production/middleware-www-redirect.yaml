@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hack4goodsgf-www-redirect
+spec:
+  redirectRegex:
+    regex: ^https?://hack4goodsgf\.com(?::[0-9]+)?(.*)$
+    replacement: https://www.hack4goodsgf.com${1}
+    permanent: true

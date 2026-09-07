@@ -1,0 +1,70 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hack4goodsgf-com-production
+resources:
+  - ../base
+  - namespace.yaml
+  - service-account.yaml
+  - secret-store.yaml
+  - external-secret.yaml
+  - wordpress-admin-external-secret.yaml
+  - wordpress-bootstrap-job.yaml
+  - db-instance.yaml
+  - apex-ingress.yaml
+  - middleware-www-redirect.yaml
+transformers:
+  - db-instance-namespace-patch.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/instance: production
+    includeSelectors: true
+images:
+  - name: ghcr.io/sgfdevs/hack4goodsgf.com
+    newTag: 1.2.1
+patches:
+  # Certificate provisioning is deferred until the DNS cutover.
+  - patch: |-
+      $patch: delete
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: hack4goodsgf-tls
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: hack4goodsgf
+      data:
+        WORDPRESS_HOME: https://www.hack4goodsgf.com
+        WORDPRESS_SITEURL: https://www.hack4goodsgf.com
+        WORDPRESS_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
+        WORDPRESS_SMTP_PORT: "587"
+        WORDPRESS_SMTP_ENCRYPTION: tls
+        WORDPRESS_SMTP_FROM_EMAIL: hack4good@sgf.dev
+        WORDPRESS_SMTP_FROM_NAME: Hack4Good SGF
+  - patch: |-
+      apiVersion: kinda.rocks/v1beta1
+      kind: Database
+      metadata:
+        name: wordpress
+      spec:
+        instance: hack4goodsgf-production-mysql
+        deletionProtected: true
+  - patch: |-
+      apiVersion: apps.kubeblocks.io/v1
+      kind: Cluster
+      metadata:
+        name: hack4goodsgf-mysql
+      spec:
+        terminationPolicy: DoNotTerminate
+  - patch: |-
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: hack4goodsgf-content
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  - path: ingress-patch.yaml
+    target:
+      kind: Ingress
+      name: hack4goodsgf
