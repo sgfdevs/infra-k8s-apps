@@ -6,6 +6,8 @@ resources:
   - external-secret.yaml
   - wordpress-admin-external-secret.yaml
   - wordpress-bootstrap-job.yaml
+  - migration-workflowtemplate.yaml
+  - migration-rbac.yaml
   - mysql-cluster.yaml
   - database.yaml
   - valkey.yaml
@@ -16,3 +18,11 @@ resources:
   - middleware-https-redirect.yaml
   - certificate.yaml
   - ingress.yaml
+configMapGenerator:
+  - name: hack4goodsgf-migration-scripts
+    options:
+      disableNameSuffixHash: true
+    files:
+      - migration.sh
+      - migration-wordpress.sh
+      - migration-mysql.sh

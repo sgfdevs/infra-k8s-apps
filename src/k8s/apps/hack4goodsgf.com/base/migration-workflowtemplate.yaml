@@ -1,0 +1,120 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: hack4goodsgf-migrate
+  annotations:
+    workflows.argoproj.io/description: >-
+      Copy the database and persistent wp-content from staging to production or
+      production to staging. Submit in the DESTINATION namespace. This overwrites
+      destination data, including WordPress users and passwords, WITHOUT a backup.
+      Both sites pause during capture. Infrastructure credentials stay local.
+      Image versions and table prefixes must match. SQL views, triggers, routines,
+      and events are rejected before copying.
+      A failed overwrite leaves the destination stopped for manual recovery.
+spec:
+  entrypoint: migrate
+  onExit: cleanup
+  serviceAccountName: hack4goodsgf-migration
+  synchronization:
+    mutexes:
+      - name: hack4goodsgf-migration
+        namespace: hack4goodsgf-com-production
+  arguments:
+    parameters:
+      - name: direction
+        enum: [staging-to-production, production-to-staging]
+        description: Submit in the destination namespace selected by this direction.
+      - name: confirmation
+        description: >-
+          Enter "OVERWRITE production FROM staging WITHOUT BACKUP" or
+          "OVERWRITE staging FROM production WITHOUT BACKUP" to match the direction.
+  activeDeadlineSeconds: 3600
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  volumes:
+    - name: scripts
+      configMap:
+        name: hack4goodsgf-migration-scripts
+        defaultMode: 0555
+    - name: work
+      emptyDir:
+        sizeLimit: 25Gi
+    - name: tmp
+      emptyDir: {}
+  templates:
+    - name: migrate
+      container:
+        image: alpine/k8s:1.36.2
+        command: [bash, /scripts/migration.sh]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_NAMESPACE
+            value: "{{workflow.namespace}}"
+          - name: WORKFLOW_UID
+            value: "{{workflow.uid}}"
+          - name: DIRECTION
+            value: "{{workflow.parameters.direction}}"
+          - name: CONFIRMATION
+            value: "{{workflow.parameters.confirmation}}"
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+            ephemeral-storage: 25Gi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: work
+            mountPath: /work
+          - name: tmp
+            mountPath: /tmp
+    - name: cleanup
+      container:
+        image: alpine/k8s:1.36.2
+        command: [bash, /scripts/migration.sh, cleanup]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_NAMESPACE
+            value: "{{workflow.namespace}}"
+          - name: WORKFLOW_UID
+            value: "{{workflow.uid}}"
+          - name: DIRECTION
+            value: "{{workflow.parameters.direction}}"
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp

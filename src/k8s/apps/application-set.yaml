@@ -9,6 +9,9 @@ spec:
       - argocd.argoproj.io/skip-reconcile
       - restore.methodconf.com/managed
       - restore.sgf.dev/managed
+      - migration.hack4goodsgf.com/workflow
+      - migration.hack4goodsgf.com/phase
+      - migration.hack4goodsgf.com/replicas
   ignoreApplicationDifferences:
     - jsonPointers:
         - /spec/syncPolicy/automated/selfHeal
