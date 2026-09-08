@@ -20,13 +20,24 @@ spec:
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 33
+        runAsGroup: 33
+        runAsNonRoot: true
+        fsGroup: 33
       containers:
         - name: wordpress
-          image: ghcr.io/sgfdevs/hack4goodsgf.com:1.2.1
+          image: ghcr.io/sgfdevs/hack4goodsgf.com:1.2.4
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
               protocol: TCP
           envFrom:
             - configMapRef:
@@ -34,6 +45,14 @@ spec:
             - secretRef:
                 name: hack4goodsgf-smtp
           env:
+            - name: APACHE_RUN_DIR
+              value: /tmp/apache2
+            - name: APACHE_PID_FILE
+              value: /tmp/apache2/apache2.pid
+            - name: APACHE_LOCK_DIR
+              value: /tmp/apache2-lock
+            - name: WP_CLI_CACHE_DIR
+              value: /tmp/wp-cli-cache
             - name: WORDPRESS_DB_HOST
               value: hack4goodsgf-mysql-mysql:3306
             - name: WORDPRESS_DB_NAME
@@ -85,9 +104,17 @@ spec:
               cpu: "1"
               memory: 1Gi
           volumeMounts:
+            - name: wordpress
+              mountPath: /var/www/html
             - name: content
               mountPath: /var/www/html/wp-content
+            - name: tmp
+              mountPath: /tmp
       volumes:
+        - name: wordpress
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
         - name: content
           persistentVolumeClaim:
             claimName: hack4goodsgf-content
