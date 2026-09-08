@@ -30,11 +30,12 @@ case "${1:-}" in
       --hex-blob --default-character-set=utf8mb4 "$WORDPRESS_DB_NAME"
     ;;
   import)
+    test -s /tmp/database.sql
     # Remove destination-only tables too, without dropping the operator-managed DB.
     # shellcheck disable=SC2016 # SQL identifier quoting, not shell substitution.
     drops=$(mysql_db -e 'SELECT CONCAT("DROP TABLE IF EXISTS `", REPLACE(table_name,"`","``"), "`;") FROM information_schema.tables WHERE table_schema=DATABASE();')
     printf 'SET FOREIGN_KEY_CHECKS=0;\n%s\n' "$drops" | mysql_db
-    mysql_db
+    mysql_db < /tmp/database.sql
     ;;
   *) echo 'Expected check, export, or import' >&2; exit 1 ;;
 esac

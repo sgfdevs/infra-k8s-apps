@@ -4,9 +4,9 @@ metadata:
   name: hack4goodsgf-migrate
   annotations:
     workflows.argoproj.io/description: >-
-      Copy the database and persistent wp-content from staging to production or
-      production to staging. Submit in the DESTINATION namespace. This overwrites
-      destination data, including WordPress users and passwords, WITHOUT a backup.
+      Copy the database and persistent wp-content between staging and production.
+      Submit in the DESTINATION namespace. This overwrites destination data,
+      including WordPress users and passwords, WITHOUT a backup.
       Both sites pause during capture. Infrastructure credentials stay local.
       Image versions and table prefixes must match. SQL views, triggers, routines,
       and events are rejected before copying.
@@ -44,77 +44,209 @@ spec:
       configMap:
         name: hack4goodsgf-migration-scripts
         defaultMode: 0555
-    - name: work
-      emptyDir:
-        sizeLimit: 25Gi
     - name: tmp
       emptyDir: {}
   templates:
     - name: migrate
-      container:
-        image: alpine/k8s:1.36.2
-        command: [bash, /scripts/migration.sh]
-        env:
-          - name: HOME
-            value: /tmp
-          - name: WORKFLOW_NAMESPACE
-            value: "{{workflow.namespace}}"
-          - name: WORKFLOW_UID
-            value: "{{workflow.uid}}"
-          - name: DIRECTION
-            value: "{{workflow.parameters.direction}}"
-          - name: CONFIRMATION
-            value: "{{workflow.parameters.confirmation}}"
-        securityContext:
-          readOnlyRootFilesystem: true
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop: [ALL]
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-            ephemeral-storage: 1Gi
-          limits:
-            cpu: "1"
-            memory: 512Mi
-            ephemeral-storage: 25Gi
-        volumeMounts:
-          - name: scripts
-            mountPath: /scripts
-            readOnly: true
-          - name: work
-            mountPath: /work
-          - name: tmp
-            mountPath: /tmp
+      steps:
+        - - name: preflight
+            template: preflight
+        - - name: pause-sites
+            template: control
+            arguments:
+              parameters:
+                - {name: operation, value: pause}
+                - {name: image, value: "{{steps.preflight.outputs.parameters.image}}"}
+        - - name: source-helper
+            template: helper
+            arguments:
+              parameters:
+                - {name: namespace, value: "{{steps.preflight.outputs.parameters.source-namespace}}"}
+                - {name: image, value: "{{steps.preflight.outputs.parameters.image}}"}
+                - {name: read-only, value: "true"}
+          - name: destination-helper
+            template: helper
+            arguments:
+              parameters:
+                - {name: namespace, value: "{{workflow.namespace}}"}
+                - {name: image, value: "{{steps.preflight.outputs.parameters.image}}"}
+                - {name: read-only, value: "false"}
+        - - name: export-data
+            template: control
+            arguments:
+              parameters: [{name: operation, value: export}]
+        - - name: resume-source
+            template: control
+            arguments:
+              parameters: [{name: operation, value: resume-source}]
+        - - name: import-data
+            template: control
+            arguments:
+              parameters: [{name: operation, value: import}]
+        - - name: normalize-urls
+            template: control
+            arguments:
+              parameters: [{name: operation, value: normalize}]
+        - - name: resume-destination
+            template: control
+            arguments:
+              parameters: [{name: operation, value: resume-destination}]
+
     - name: cleanup
-      container:
+      failFast: false
+      steps:
+        # Attempt both independently, even if one cannot safely be resumed.
+        - - name: resume-source
+            template: control
+            arguments:
+              parameters: [{name: operation, value: resume-source}]
+          - name: resume-destination
+            template: control
+            arguments:
+              parameters: [{name: operation, value: resume-destination}]
+
+    - name: control
+      inputs:
+        parameters:
+          - name: operation
+          - name: image
+            value: ""
+      container: &control-container
         image: alpine/k8s:1.36.2
-        command: [bash, /scripts/migration.sh, cleanup]
+        command: [bash, /scripts/migration-control.sh]
+        args: ["{{inputs.parameters.operation}}", "{{inputs.parameters.image}}"]
         env:
-          - name: HOME
-            value: /tmp
-          - name: WORKFLOW_NAMESPACE
-            value: "{{workflow.namespace}}"
-          - name: WORKFLOW_UID
-            value: "{{workflow.uid}}"
-          - name: DIRECTION
-            value: "{{workflow.parameters.direction}}"
+          - {name: HOME, value: /tmp}
+          - {name: WORKFLOW_NAMESPACE, value: "{{workflow.namespace}}"}
+          - {name: WORKFLOW_UID, value: "{{workflow.uid}}"}
+          - {name: DIRECTION, value: "{{workflow.parameters.direction}}"}
+          - {name: CONFIRMATION, value: "{{workflow.parameters.confirmation}}"}
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
           capabilities:
             drop: [ALL]
         resources:
-          requests:
-            cpu: 25m
-            memory: 64Mi
-          limits:
-            cpu: 250m
-            memory: 128Mi
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {cpu: "1", memory: 512Mi}
         volumeMounts:
-          - name: scripts
-            mountPath: /scripts
-            readOnly: true
-          - name: tmp
-            mountPath: /tmp
+          - {name: scripts, mountPath: /scripts, readOnly: true}
+          - {name: tmp, mountPath: /tmp}
+
+    - name: preflight
+      container:
+        <<: *control-container
+        args: [preflight]
+      outputs:
+        parameters:
+          - name: image
+            valueFrom: {path: /tmp/image}
+          - name: source-namespace
+            valueFrom: {path: /tmp/source-namespace}
+
+    - name: helper
+      inputs:
+        parameters:
+          - name: namespace
+          - name: image
+          - name: read-only
+      resource:
+        action: create
+        # The source helper is in another namespace, so Workflow owner references
+        # cannot be used. Cleanup checks the workflow UID label before deletion.
+        manifest: |
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: hack4goodsgf-migration
+            namespace: "{{inputs.parameters.namespace}}"
+            labels:
+              migration.hack4goodsgf.com/workflow: "{{workflow.uid}}"
+          spec:
+            restartPolicy: Never
+            activeDeadlineSeconds: 7200
+            terminationGracePeriodSeconds: 10
+            automountServiceAccountToken: false
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 33
+              runAsGroup: 33
+              fsGroup: 33
+            containers:
+              - name: wordpress
+                image: "{{inputs.parameters.image}}"
+                command: [bash, /scripts/migration-wordpress.sh, idle]
+                workingDir: /var/www/html
+                envFrom:
+                  - configMapRef: {name: hack4goodsgf}
+                  - secretRef: {name: hack4goodsgf-smtp}
+                env:
+                  - name: WP_CLI_CACHE_DIR
+                    value: /tmp/wp-cli-cache
+                  - name: WORDPRESS_DB_HOST
+                    value: hack4goodsgf-mysql-mysql:3306
+                  - name: WORDPRESS_DB_NAME
+                    valueFrom:
+                      secretKeyRef: {name: hack4goodsgf-wordpress-database, key: DB}
+                  - name: WORDPRESS_DB_USER
+                    valueFrom:
+                      secretKeyRef: {name: hack4goodsgf-wordpress-database, key: USER}
+                  - name: WORDPRESS_DB_PASSWORD
+                    valueFrom:
+                      secretKeyRef: {name: hack4goodsgf-wordpress-database, key: PASSWORD}
+                  - name: WORDPRESS_REDIS_PASSWORD
+                    valueFrom:
+                      secretKeyRef: {name: hack4goodsgf-valkey-auth, key: password}
+                readinessProbe:
+                  exec: {command: [test, -f, /tmp/migration-ready]}
+                  periodSeconds: 2
+                securityContext:
+                  readOnlyRootFilesystem: true
+                  allowPrivilegeEscalation: false
+                  capabilities: {drop: [ALL]}
+                resources:
+                  requests: {cpu: 100m, memory: 256Mi, ephemeral-storage: 1Gi}
+                  limits: {cpu: "1", memory: 1Gi, ephemeral-storage: 25Gi}
+                volumeMounts:
+                  - {name: wordpress, mountPath: /var/www/html}
+                  - {name: content, mountPath: /var/www/html/wp-content, readOnly: {{inputs.parameters.read-only}}}
+                  - {name: tmp, mountPath: /tmp}
+                  - {name: scripts, mountPath: /scripts, readOnly: true}
+              - name: mysql
+                image: mysql:8.4@sha256:43bd9764df60666fb2ba2cf8217dd17b3d2414c150005d2fdd07a0cd73d3b7f5
+                command: [sleep, "7200"]
+                env:
+                  - name: WORDPRESS_DB_HOST
+                    value: hack4goodsgf-mysql-mysql:3306
+                  - name: WORDPRESS_DB_NAME
+                    valueFrom:
+                      secretKeyRef: {name: hack4goodsgf-wordpress-database, key: DB}
+                  - name: WORDPRESS_DB_USER
+                    valueFrom:
+                      secretKeyRef: {name: hack4goodsgf-wordpress-database, key: USER}
+                  - name: WORDPRESS_DB_PASSWORD
+                    valueFrom:
+                      secretKeyRef: {name: hack4goodsgf-wordpress-database, key: PASSWORD}
+                securityContext:
+                  readOnlyRootFilesystem: true
+                  allowPrivilegeEscalation: false
+                  capabilities: {drop: [ALL]}
+                resources:
+                  requests: {cpu: 100m, memory: 64Mi}
+                  limits: {cpu: 500m, memory: 256Mi}
+                volumeMounts:
+                  - {name: tmp, mountPath: /tmp}
+                  - {name: scripts, mountPath: /scripts, readOnly: true}
+            volumes:
+              - name: wordpress
+                emptyDir: {}
+              - name: content
+                persistentVolumeClaim:
+                  claimName: hack4goodsgf-content
+                  readOnly: {{inputs.parameters.read-only}}
+              - name: tmp
+                emptyDir: {sizeLimit: 25Gi}
+              - name: scripts
+                configMap:
+                  name: hack4goodsgf-migration-scripts
+                  defaultMode: 0555

@@ -67,7 +67,7 @@ case "${1:-}" in
     flush_valkey
     while IFS= read -r old; do
       replace_url "$old"
-    done
+    done < /tmp/source-urls.txt
     # Jason's aliases, including HTTP www and the reverse production-to-staging case.
     for host in hack4goodsgf.com www.hack4goodsgf.com staging.hack4goodsgf.com; do
       for scheme in http https; do

@@ -23,6 +23,6 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     files:
-      - migration.sh
+      - migration-control.sh
       - migration-wordpress.sh
       - migration-mysql.sh
