@@ -5,6 +5,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  instance: hack4goodsgf-staging-mysql
+  instance: hack4goodsgf-mysql
   secretName: hack4goodsgf-wordpress-database
   deletionProtected: false
