@@ -25,6 +25,40 @@ spec:
         runAsGroup: 33
         runAsNonRoot: true
         fsGroup: 33
+      initContainers:
+        - name: wordpress-files
+          image: ghcr.io/sgfdevs/hack4goodsgf.com:1.2.4
+          command:
+            - sh
+            - -ec
+            - |
+              find /usr/src/wordpress -mindepth 1 -maxdepth 1 ! -name wp-content \
+                -exec cp -R -t /var/www/html {} +
+
+              for source in /usr/src/wordpress/wp-content/*; do
+                target="/content/${source##*/}"
+                if [ ! -e "$target" ]; then
+                  cp -R "$source" "$target"
+                fi
+              done
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: wordpress
+              mountPath: /var/www/html
+            - name: content
+              mountPath: /content
       containers:
         - name: wordpress
           image: ghcr.io/sgfdevs/hack4goodsgf.com:1.2.4
