@@ -4,11 +4,6 @@ namespace: hack4goodsgf-com-staging
 resources:
   - ../base
   - namespace.yaml
-  - service-account.yaml
-  - secret-store.yaml
-  - external-secret.yaml
-  - wordpress-admin-external-secret.yaml
-  - wordpress-bootstrap-job.yaml
   - db-instance.yaml
   - middleware-noindex.yaml
   - robots-configmap.yaml
@@ -22,6 +17,13 @@ images:
   - name: ghcr.io/sgfdevs/hack4goodsgf.com
     newTag: 1.2.4
 patches:
+  - patch: |-
+      apiVersion: kinda.rocks/v1beta1
+      kind: Database
+      metadata:
+        name: wordpress
+      spec:
+        instance: hack4goodsgf-staging-mysql
   - path: configmap-patch.yaml
     target:
       kind: ConfigMap
@@ -38,3 +40,46 @@ patches:
     target:
       kind: Deployment
       name: hack4goodsgf
+  - patch: |-
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: hack4goodsgf-wordpress-bootstrap
+      spec:
+        template:
+          spec:
+            containers:
+              - name: bootstrap
+                env:
+                  - name: WORDPRESS_TITLE
+                    value: Hack4Good SGF Staging
+  - target:
+      kind: SecretStore
+      name: openbao
+    patch: |-
+      - op: replace
+        path: /spec/provider/vault/auth/kubernetes/role
+        value: hack4goodsgf-staging
+  - target:
+      kind: ExternalSecret
+      name: hack4goodsgf-smtp
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: hack4goodsgf/staging/ses
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: hack4goodsgf/staging/ses
+  - target:
+      kind: ExternalSecret
+      name: hack4goodsgf-wordpress-admin
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: hack4goodsgf/staging/wordpress-admin
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: hack4goodsgf/staging/wordpress-admin
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: hack4goodsgf/staging/wordpress-admin

@@ -4,11 +4,6 @@ namespace: hack4goodsgf-com-production
 resources:
   - ../base
   - namespace.yaml
-  - service-account.yaml
-  - secret-store.yaml
-  - external-secret.yaml
-  - wordpress-admin-external-secret.yaml
-  - wordpress-bootstrap-job.yaml
   - db-instance.yaml
   - apex-ingress.yaml
   - middleware-www-redirect.yaml
@@ -20,7 +15,7 @@ labels:
     includeSelectors: true
 images:
   - name: ghcr.io/sgfdevs/hack4goodsgf.com
-    newTag: 1.2.1
+    newTag: 1.2.4
 patches:
   # Certificate provisioning is deferred until the DNS cutover.
   - patch: |-
@@ -37,11 +32,7 @@ patches:
       data:
         WORDPRESS_HOME: https://www.hack4goodsgf.com
         WORDPRESS_SITEURL: https://www.hack4goodsgf.com
-        WORDPRESS_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
-        WORDPRESS_SMTP_PORT: "587"
-        WORDPRESS_SMTP_ENCRYPTION: tls
         WORDPRESS_SMTP_FROM_EMAIL: hack4good@sgf.dev
-        WORDPRESS_SMTP_FROM_NAME: Hack4Good SGF
   - patch: |-
       apiVersion: kinda.rocks/v1beta1
       kind: Database
@@ -68,3 +59,33 @@ patches:
     target:
       kind: Ingress
       name: hack4goodsgf
+  - target:
+      kind: SecretStore
+      name: openbao
+    patch: |-
+      - op: replace
+        path: /spec/provider/vault/auth/kubernetes/role
+        value: hack4goodsgf-production
+  - target:
+      kind: ExternalSecret
+      name: hack4goodsgf-smtp
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: hack4goodsgf/production/ses
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: hack4goodsgf/production/ses
+  - target:
+      kind: ExternalSecret
+      name: hack4goodsgf-wordpress-admin
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: hack4goodsgf/production/wordpress-admin
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: hack4goodsgf/production/wordpress-admin
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: hack4goodsgf/production/wordpress-admin

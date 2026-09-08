@@ -6,6 +6,10 @@ data:
   WORDPRESS_HOME: https://hack4goodsgf.com.invalid
   WORDPRESS_SITEURL: https://hack4goodsgf.com.invalid
   WORDPRESS_TABLE_PREFIX: wp_
+  WORDPRESS_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
+  WORDPRESS_SMTP_PORT: "587"
+  WORDPRESS_SMTP_ENCRYPTION: tls
+  WORDPRESS_SMTP_FROM_NAME: Hack4Good SGF
   WORDPRESS_CONFIG_EXTRA: |
     if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strpos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false) {
         $_SERVER['HTTPS'] = 'on';
