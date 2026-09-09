@@ -1,0 +1,11 @@
+- op: replace
+  path: /metadata/annotations/traefik.ingress.kubernetes.io~1router.middlewares
+  value: >-
+    gooddads-enrollment-bot-staging-gooddads-enrollment-bot-https-redirect@kubernetescrd,gooddads-enrollment-bot-staging-gooddads-enrollment-bot-noindex@kubernetescrd
+- op: replace
+  path: /spec/tls/0/hosts
+  value:
+    - gooddads-enrollment-bot-staging.opensgf.org
+- op: replace
+  path: /spec/rules/0/host
+  value: gooddads-enrollment-bot-staging.opensgf.org

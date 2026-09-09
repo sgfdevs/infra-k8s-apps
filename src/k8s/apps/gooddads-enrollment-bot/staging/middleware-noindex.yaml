@@ -1,0 +1,10 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gooddads-enrollment-bot-noindex
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  headers:
+    customResponseHeaders:
+      X-Robots-Tag: noindex, nofollow, noarchive, nosnippet

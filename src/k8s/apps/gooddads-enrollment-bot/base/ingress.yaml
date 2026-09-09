@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gooddads-enrollment-bot
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+    traefik.ingress.kubernetes.io/router.middlewares: gooddads-enrollment-bot-gooddads-enrollment-bot-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - gooddads-enrollment-bot.invalid
+      secretName: gooddads-enrollment-bot-tls
+  rules:
+    - host: gooddads-enrollment-bot.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gooddads-enrollment-bot
+                port:
+                  number: 80
