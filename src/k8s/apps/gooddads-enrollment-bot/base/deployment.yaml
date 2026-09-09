@@ -77,8 +77,8 @@ spec:
             - secretRef:
                 name: gooddads-enrollment-bot-ses
           env:
-            - name: LOG_STDERR_FORMATTER
-              value: 'Monolog\Formatter\JsonFormatter'
+            - name: LOG_FORMAT
+              value: json
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
