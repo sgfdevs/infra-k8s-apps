@@ -3,7 +3,6 @@ kind: ConfigMap
 metadata:
   name: gooddads-enrollment-bot
   annotations:
-    # The Sync migration hook consumes this before the Deployment starts.
     argocd.argoproj.io/sync-wave: "-1"
 data:
   APP_NAME: Good Dads enrollment bot

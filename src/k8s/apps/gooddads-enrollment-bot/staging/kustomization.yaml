@@ -15,10 +15,8 @@ labels:
     includeSelectors: true
 images:
   - name: ghcr.io/open-sgf/gooddads-enrollment-bot
-    # PENDING PUBLICATION. This is a requested release, not an existing artifact.
-    # BEFORE MERGE: replace this placeholder tag with the verified release digest.
-    # Argo auto-discovers this overlay and auto-syncs it; see ../README.md.
-    newTag: v0.3.0
+    # v0.4.0 lacks startup migrations. Pin the entrypoint release digest before merging.
+    newTag: startup-migrations-pending
 patches:
   - patch: |-
       apiVersion: kinda.rocks/v1beta1
