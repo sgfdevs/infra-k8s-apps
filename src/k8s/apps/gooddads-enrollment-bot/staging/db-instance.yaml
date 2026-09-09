@@ -1,0 +1,14 @@
+apiVersion: kinda.rocks/v1beta1
+kind: DbInstance
+metadata:
+  name: gooddads-enrollment-bot-staging-mysql
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  engine: mysql
+  adminSecretRef:
+    Name: gooddads-enrollment-bot-mysql-mysql-account-root
+    Namespace: gooddads-enrollment-bot-staging
+  generic:
+    host: gooddads-enrollment-bot-mysql-mysql.gooddads-enrollment-bot-staging.svc.cluster.local
+    port: 3306

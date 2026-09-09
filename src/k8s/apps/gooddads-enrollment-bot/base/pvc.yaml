@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gooddads-enrollment-bot-documents
+  annotations:
+    # Same wave as its consumer, including for WaitForFirstConsumer storage classes.
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 10Gi

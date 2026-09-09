@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: gooddads-enrollment-bot-staging
+resources:
+  - ../base
+  - namespace.yaml
+  - db-instance.yaml
+  - middleware-noindex.yaml
+  - robots-configmap.yaml
+transformers:
+  - db-instance-namespace-patch.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/instance: staging
+    includeSelectors: true
+images:
+  - name: ghcr.io/open-sgf/gooddads-enrollment-bot
+    # PENDING PUBLICATION. This is a requested release, not an existing artifact.
+    # BEFORE MERGE: replace this placeholder tag with the verified release digest.
+    # Argo auto-discovers this overlay and auto-syncs it; see ../README.md.
+    newTag: v0.3.0
+patches:
+  - patch: |-
+      apiVersion: kinda.rocks/v1beta1
+      kind: Database
+      metadata:
+        name: gooddads-enrollment-bot
+      spec:
+        instance: gooddads-enrollment-bot-staging-mysql
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: gooddads-enrollment-bot
+      data:
+        APP_URL: https://gooddads-enrollment-bot-staging.opensgf.org
+        DROPBOX_REDIRECT_URI: https://gooddads-enrollment-bot-staging.opensgf.org/dropbox/callback
+  - patch: |-
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: gooddads-enrollment-bot-tls
+      spec:
+        dnsNames:
+          - gooddads-enrollment-bot-staging.opensgf.org
+  - path: ingress-patch.yaml
+    target:
+      kind: Ingress
+      name: gooddads-enrollment-bot
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: gooddads-enrollment-bot
+      spec:
+        template:
+          spec:
+            containers:
+              - name: app
+                volumeMounts:
+                  - name: robots
+                    mountPath: /var/www/html/public/robots.txt
+                    subPath: robots.txt
+                    readOnly: true
+            volumes:
+              - name: robots
+                configMap:
+                  name: gooddads-enrollment-bot-robots

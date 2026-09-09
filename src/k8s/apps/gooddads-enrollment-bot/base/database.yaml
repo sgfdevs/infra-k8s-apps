@@ -1,0 +1,10 @@
+apiVersion: kinda.rocks/v1beta1
+kind: Database
+metadata:
+  name: gooddads-enrollment-bot
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  instance: gooddads-enrollment-bot-mysql
+  secretName: gooddads-enrollment-bot-database
+  deletionProtected: false

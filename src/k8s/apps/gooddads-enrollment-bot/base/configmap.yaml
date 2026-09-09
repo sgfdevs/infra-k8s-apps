@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gooddads-enrollment-bot
+  annotations:
+    # The Sync migration hook consumes this before the Deployment starts.
+    argocd.argoproj.io/sync-wave: "-1"
+data:
+  APP_NAME: Good Dads enrollment bot
+  APP_ENV: staging
+  APP_DEBUG: "false"
+  APP_URL: https://gooddads-enrollment-bot.invalid
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: info
+  DB_CONNECTION: mysql
+  DB_HOST: gooddads-enrollment-bot-mysql-mysql
+  DB_PORT: "3306"
+  CACHE_STORE: database
+  QUEUE_CONNECTION: database
+  SESSION_DRIVER: database
+  SESSION_SECURE_COOKIE: "true"
+  SESSION_SAME_SITE: lax
+  FILESYSTEM_DISK: local
+  DROPBOX_REDIRECT_URI: https://gooddads-enrollment-bot.invalid/dropbox/callback
+  DROPBOX_UPLOAD_PATH: /staging/gooddads-enrollment-bot
+  DROPBOX_OAUTH_REQUIRE_BASIC_AUTH: "true"
+  MAIL_MAILER: smtp
+  # infra-app-config AWS provider defaults to us-east-2, matching existing SES apps.
+  MAIL_HOST: email-smtp.us-east-2.amazonaws.com
+  MAIL_PORT: "587"
+  # Symfony SMTP negotiates STARTTLS on port 587. MAIL_ENCRYPTION is not read.
+  MAIL_SCHEME: smtp
+  MAIL_FROM_ADDRESS: staging-gooddads-enrollment-bot@sgf.dev
+  MAIL_FROM_NAME: Good Dads enrollment bot staging
+  SENTRY_ENVIRONMENT: staging

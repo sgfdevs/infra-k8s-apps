@@ -1,0 +1,135 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gooddads-enrollment-bot-migrate
+  annotations:
+    # Sync, not PreSync: MySQL, Database, ConfigMap and secrets must exist first.
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 900
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 33
+        runAsGroup: 33
+        runAsNonRoot: true
+        fsGroup: 33
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: runtime-directories
+          image: ghcr.io/open-sgf/gooddads-enrollment-bot:unpublished
+          command:
+            - sh
+            - -ec
+            - |
+              mkdir -p /runtime/framework/cache/data /runtime/framework/sessions \
+                /runtime/framework/views /runtime/logs /runtime/bootstrap-cache
+              cp -R /var/www/html/bootstrap/cache/. /runtime/bootstrap-cache/
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          volumeMounts:
+            - name: runtime
+              mountPath: /runtime
+      containers:
+        - name: migrate
+          image: ghcr.io/open-sgf/gooddads-enrollment-bot:unpublished
+          imagePullPolicy: IfNotPresent
+          workingDir: /var/www/html
+          command:
+            - sh
+            - -ec
+            - |
+              # CR creation is asynchronous. Wait for the actual database login.
+              # Never print credentials or connection exception details.
+              php8.5 -r '
+                for ($attempt = 0; $attempt < 120; $attempt++) {
+                  try {
+                    $dsn = "mysql:host=".getenv("DB_HOST").";port=".getenv("DB_PORT")
+                      .";dbname=".getenv("DB_DATABASE");
+                    new PDO($dsn, getenv("DB_USERNAME"), getenv("DB_PASSWORD"),
+                      [PDO::ATTR_TIMEOUT => 5]);
+                    exit(0);
+                  } catch (PDOException $e) {
+                    sleep(5);
+                  }
+                }
+                fwrite(STDERR, "Timed out waiting for the application database\n");
+                exit(1);
+              '
+              exec php8.5 artisan migrate --force --no-interaction
+          envFrom:
+            - configMapRef:
+                name: gooddads-enrollment-bot
+            - secretRef:
+                name: gooddads-enrollment-bot-application
+            - secretRef:
+                name: gooddads-enrollment-bot-ses
+          env:
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: gooddads-enrollment-bot-database
+                  key: DB
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: gooddads-enrollment-bot-database
+                  key: USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gooddads-enrollment-bot-database
+                  key: PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: runtime
+              mountPath: /var/www/html/bootstrap/cache
+              subPath: bootstrap-cache
+            - name: runtime
+              mountPath: /var/www/html/storage/framework
+              subPath: framework
+            - name: runtime
+              mountPath: /var/www/html/storage/logs
+              subPath: logs
+            - name: documents
+              mountPath: /var/www/html/storage/app/private
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: runtime
+          emptyDir: {}
+        # Migrations do not use participant PDFs. Do not contend with the app's RWO PVC.
+        - name: documents
+          emptyDir: {}
