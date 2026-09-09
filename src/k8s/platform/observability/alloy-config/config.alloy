@@ -64,9 +64,14 @@ loki.process "parse_logs" {
 
 	stage.json {
 		expressions = {
-			level   = "level",
+			level   = "level_name || level",
 			service = "service",
 		}
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ ToLower .Value }}"
 	}
 
 	stage.labels {
