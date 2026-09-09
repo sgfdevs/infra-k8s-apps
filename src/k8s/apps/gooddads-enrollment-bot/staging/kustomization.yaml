@@ -15,8 +15,7 @@ labels:
     includeSelectors: true
 images:
   - name: ghcr.io/open-sgf/gooddads-enrollment-bot
-    # v0.4.0 lacks startup migrations. Pin the entrypoint release digest before merging.
-    newTag: startup-migrations-pending
+    newTag: v0.5.0
 patches:
   - patch: |-
       apiVersion: kinda.rocks/v1beta1
