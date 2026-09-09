@@ -29,23 +29,25 @@ source app or provide a release pipeline or source smoke-test script.
 These are future operator actions requiring separate approval. None are performed by
 the offline validation commands below.
 
-1. Apply placeholders. Review and apply the staging module in
+1. Create secrets. Review and apply the staging module in
    `sgfdevs/infra-app-config/src/tf/modules/gooddads-enrollment-bot/` through that repo's
-   normal approved workflow, before this Kubernetes overlay reaches `main`. It creates
-   all nine application properties as `CHANGEME`, manages the separate SES credentials,
-   and binds the staging OpenBao role to service account
+   normal approved workflow, before this Kubernetes overlay reaches `main`. It generates
+   `APP_KEY` once on initial secret creation, creates the remaining eight properties as
+   `CHANGEME` in five grouped documents, and manages the separate SES credentials.
+   It binds the staging OpenBao role to service account
    `gooddads-enrollment-bot-secrets` in namespace `gooddads-enrollment-bot-staging` with
-   audience `vault`. Do not overwrite an already filled application secret.
-2. Fill manually. An authorized operator edits
-   `applications/gooddads-enrollment-bot/staging/application` in OpenBao and replaces
-   every `CHANGEME`. Use only staging Neon and Dropbox accounts and an approved test
-   mail recipient. Keep `sentryDsn` present but set it to an empty string if unused.
-   Generate a valid Laravel `APP_KEY` once with trusted tooling for a new installation,
-   or reuse the existing key. Never generate one at container startup. Preserve it
-   across rollouts because it protects encrypted Dropbox tokens and sessions.
-   Do not put values in Git, terminal history, logs or rendered test fixtures. Keep the
-   module's application write-only version counter unchanged after manual fill;
-   incrementing it or recreating the resource resets the values to `CHANGEME`.
+   audience `vault`. Do not overwrite already filled secrets or an existing app key.
+2. Fill manually. An authorized operator updates each of the `neon`, `dropbox`, `oauth`,
+   `sentry` and `notifications` documents under
+   `applications/gooddads-enrollment-bot/staging/`, preserving every key listed below
+   and replacing every `CHANGEME`. Use only staging Neon and Dropbox accounts and an
+   approved test mail recipient. Keep `sentryDsn` present but set it to an empty string
+   if unused. Each document has an independent write-only version counter. Keep these
+   counters unchanged after manual fill; incrementing a counter or recreating its
+   resource resets that document's values to `CHANGEME`.
+   Do not put values in Git, terminal history, logs or rendered test fixtures.
+   Preserve the generated app key across rollouts. Never generate one at container
+   startup. Its separate rotation rules are documented below.
 3. Release and pin the image. Publish the intended version, verify GHCR pull access
    from cluster nodes and supported node architectures, and record its real digest in
    `staging/kustomization.yaml`. Run the render checks including `--require-digest`.
@@ -74,26 +76,31 @@ Paths are relative to the KV v2 mount `applications`. Properties are case-sensit
 `ExternalSecret` resources produce environment-named Kubernetes keys, and both the
 Deployment and migration Job consume the two resulting Secrets with `envFrom`.
 
-Application path: `gooddads-enrollment-bot/staging/application`
+Only remote OpenBao storage is split. The two ExternalSecrets and their environment
+Secrets remain `gooddads-enrollment-bot-application` and `gooddads-enrollment-bot-ses`;
+workload `envFrom` entries are unchanged.
 
-| OpenBao property | Environment variable | Initial value |
-| --- | --- | --- |
-| `appKey` | `APP_KEY` | `CHANGEME` |
-| `neonBaseUrl` | `NEON_BASE_URL` | `CHANGEME` |
-| `neonApiKey` | `NEON_API_KEY` | `CHANGEME` |
-| `dropboxAppKey` | `DROPBOX_APP_KEY` | `CHANGEME` |
-| `dropboxAppSecret` | `DROPBOX_APP_SECRET` | `CHANGEME` |
-| `dropboxOauthBasicUser` | `DROPBOX_OAUTH_BASIC_USER` | `CHANGEME` |
-| `dropboxOauthBasicPassword` | `DROPBOX_OAUTH_BASIC_PASSWORD` | `CHANGEME` |
-| `sentryDsn` | `SENTRY_LARAVEL_DSN` | `CHANGEME`, operator may set empty |
-| `mailIntakeFormRecipient` | `MAIL_INTAKE_FORM_RECIPIENT` | `CHANGEME` |
+| OpenBao path | OpenBao property | Environment variable | Initial value |
+| --- | --- | --- | --- |
+| `gooddads-enrollment-bot/staging/laravel` | `appKey` | `APP_KEY` | Automatically generated `base64:<base64>` |
+| `gooddads-enrollment-bot/staging/neon` | `neonBaseUrl` | `NEON_BASE_URL` | `CHANGEME` |
+| `gooddads-enrollment-bot/staging/neon` | `neonApiKey` | `NEON_API_KEY` | `CHANGEME` |
+| `gooddads-enrollment-bot/staging/dropbox` | `dropboxAppKey` | `DROPBOX_APP_KEY` | `CHANGEME` |
+| `gooddads-enrollment-bot/staging/dropbox` | `dropboxAppSecret` | `DROPBOX_APP_SECRET` | `CHANGEME` |
+| `gooddads-enrollment-bot/staging/oauth` | `dropboxOauthBasicUser` | `DROPBOX_OAUTH_BASIC_USER` | `CHANGEME` |
+| `gooddads-enrollment-bot/staging/oauth` | `dropboxOauthBasicPassword` | `DROPBOX_OAUTH_BASIC_PASSWORD` | `CHANGEME` |
+| `gooddads-enrollment-bot/staging/sentry` | `sentryDsn` | `SENTRY_LARAVEL_DSN` | `CHANGEME`, operator may set empty |
+| `gooddads-enrollment-bot/staging/notifications` | `mailIntakeFormRecipient` | `MAIL_INTAKE_FORM_RECIPIENT` | `CHANGEME` |
+| `gooddads-enrollment-bot/staging/ses` | `username` | `MAIL_USERNAME` | Managed SES credential |
+| `gooddads-enrollment-bot/staging/ses` | `password` | `MAIL_PASSWORD` | Managed SES credential |
 
-Existing SES path: `gooddads-enrollment-bot/staging/ses`
-
-| OpenBao property | Environment variable |
-| --- | --- |
-| `username` | `MAIL_USERNAME` |
-| `password` | `MAIL_PASSWORD` |
+The module generates `APP_KEY` once on initial creation of the `laravel` secret using
+an ephemeral `random_bytes` resource with `length = 32`. It stores `base64:<base64>`
+through the write-only Vault payload. Keep the Laravel secret's independent write-only
+version counter fixed. Incrementing it or recreating the secret resource rotates the
+key and can make encrypted tokens and jobs unrecoverable. This counter is independent
+of the five placeholder documents' counters. Preserve an existing installation's key
+rather than replacing it during rollout. The SES path is unchanged.
 
 SES values are managed credentials, not application placeholders. db-operator creates
 `gooddads-enrollment-bot-database`; its `DB`, `USER` and `PASSWORD` keys map to

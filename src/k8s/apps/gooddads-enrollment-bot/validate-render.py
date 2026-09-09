@@ -48,17 +48,17 @@ for key in ("QUEUE_CONNECTION", "CACHE_STORE", "SESSION_DRIVER"):
 
 mappings = {
     "application": {
-        "appKey": "APP_KEY",
-        "neonBaseUrl": "NEON_BASE_URL",
-        "neonApiKey": "NEON_API_KEY",
-        "dropboxAppKey": "DROPBOX_APP_KEY",
-        "dropboxAppSecret": "DROPBOX_APP_SECRET",
-        "dropboxOauthBasicUser": "DROPBOX_OAUTH_BASIC_USER",
-        "dropboxOauthBasicPassword": "DROPBOX_OAUTH_BASIC_PASSWORD",
-        "sentryDsn": "SENTRY_LARAVEL_DSN",
-        "mailIntakeFormRecipient": "MAIL_INTAKE_FORM_RECIPIENT",
+        "appKey": ("laravel", "APP_KEY"),
+        "neonBaseUrl": ("neon", "NEON_BASE_URL"),
+        "neonApiKey": ("neon", "NEON_API_KEY"),
+        "dropboxAppKey": ("dropbox", "DROPBOX_APP_KEY"),
+        "dropboxAppSecret": ("dropbox", "DROPBOX_APP_SECRET"),
+        "dropboxOauthBasicUser": ("oauth", "DROPBOX_OAUTH_BASIC_USER"),
+        "dropboxOauthBasicPassword": ("oauth", "DROPBOX_OAUTH_BASIC_PASSWORD"),
+        "sentryDsn": ("sentry", "SENTRY_LARAVEL_DSN"),
+        "mailIntakeFormRecipient": ("notifications", "MAIL_INTAKE_FORM_RECIPIENT"),
     },
-    "ses": {"username": "MAIL_USERNAME", "password": "MAIL_PASSWORD"},
+    "ses": {"username": ("ses", "MAIL_USERNAME"), "password": ("ses", "MAIL_PASSWORD")},
 }
 store = resource("SecretStore", "openbao")
 vault = store["spec"]["provider"]["vault"]
@@ -75,9 +75,14 @@ for suffix, expected in mappings.items():
     assert spec["secretStoreRef"] == {"kind": "SecretStore", "name": "openbao"}
     assert spec["target"]["name"] == f"{app}-{suffix}"
     assert len(spec["data"]) == len(expected)
-    assert {d["remoteRef"]["property"]: d["secretKey"] for d in spec["data"]} == expected
-    assert {d["remoteRef"]["key"] for d in spec["data"]} == {f"{app}/staging/{suffix}"}
-    assert not set(expected.values()) & config["data"].keys()
+    assert {
+        d["remoteRef"]["property"]: (d["remoteRef"]["key"], d["secretKey"])
+        for d in spec["data"]
+    } == {
+        prop: (f"{app}/staging/{path}", env)
+        for prop, (path, env) in expected.items()
+    }, f"Incorrect remote paths or environment mappings for {suffix}"
+    assert not {env for _, env in expected.values()} & config["data"].keys()
     assert wave(store) < wave(secret)
 
 database = resource("Database")
