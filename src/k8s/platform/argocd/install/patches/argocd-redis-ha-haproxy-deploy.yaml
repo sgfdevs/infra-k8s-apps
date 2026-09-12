@@ -9,3 +9,28 @@ spec:
       # Required anti-affinity leaves no surge capacity on the three-node cluster.
       maxSurge: 0
       maxUnavailable: 1
+  template:
+    spec:
+      initContainers:
+        - name: secret-init
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 128Mi
+        - name: config-init
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 128Mi
+      containers:
+        - name: haproxy
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
