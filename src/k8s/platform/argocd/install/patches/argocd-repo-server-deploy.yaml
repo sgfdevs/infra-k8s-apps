@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-repo-server
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: copyutil
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 128Mi
+      containers:
+        - name: argocd-repo-server
+          resources:
+            requests:
+              cpu: 25m
+              memory: 192Mi
+            limits:
+              memory: 768Mi

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-notifications-controller
+spec:
+  template:
+    spec:
+      containers:
+        - name: argocd-notifications-controller
+          ports:
+            - name: metrics
+              containerPort: 9001
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              memory: 128Mi
