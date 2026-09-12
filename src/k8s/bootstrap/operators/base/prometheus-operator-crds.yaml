@@ -10,7 +10,8 @@ spec:
   source:
     chart: prometheus-operator-crds
     repoURL: https://prometheus-community.github.io/helm-charts
-    targetRevision: 30.0.1
+    # Match the v0.93.1 operator bundled by kube-prometheus-stack.
+    targetRevision: 31.0.1
   destination:
     server: https://kubernetes.default.svc
     namespace: observability

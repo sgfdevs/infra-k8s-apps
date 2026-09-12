@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-redis-ha-haproxy
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Required anti-affinity leaves no surge capacity on the three-node cluster.
+      maxSurge: 0
+      maxUnavailable: 1

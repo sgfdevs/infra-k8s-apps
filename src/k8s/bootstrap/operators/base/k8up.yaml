@@ -10,7 +10,7 @@ spec:
   source:
     chart: k8up
     repoURL: https://k8up-io.github.io/k8up
-    targetRevision: 4.9.0
+    targetRevision: 4.10.0
     helm:
       values: |
         replicaCount: 2
