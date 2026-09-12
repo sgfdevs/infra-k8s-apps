@@ -10,7 +10,7 @@ spec:
   sources:
     - chart: argo-workflows
       repoURL: https://argoproj.github.io/argo-helm
-      targetRevision: 1.0.23
+      targetRevision: 2.0.6
       helm:
         values: |
           images:

@@ -10,7 +10,7 @@ spec:
   source:
     chart: opentelemetry-operator
     repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-    targetRevision: 0.119.0
+    targetRevision: 0.122.0
     helm:
       values: |
           replicaCount: 2

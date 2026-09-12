@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: argocd
 
 resources:
-  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.5/manifests/ha/install.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.2/manifests/ha/install.yaml
   - dex-argocd-client-secret.yaml
 
 patches:
@@ -11,4 +11,5 @@ patches:
   - path: patches/argocd-cmd-params-cm.yaml
   - path: patches/argocd-application-controller-sts.yaml
   - path: patches/argocd-rbac-cm.yaml
+  - path: patches/argocd-redis-ha-haproxy-deploy.yaml
   - path: patches/argocd-server-deploy.yaml

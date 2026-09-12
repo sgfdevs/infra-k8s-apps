@@ -10,10 +10,12 @@ spec:
   source:
     chart: longhorn
     repoURL: https://charts.longhorn.io
-    targetRevision: 1.12.0
+    targetRevision: 1.12.1
     helm:
       values: |
         preUpgradeChecker:
+          # Longhorn recommends disabling this Helm hook under Argo CD.
+          # Manager-side upgrade version checks remain enabled by default.
           jobEnabled: false
         persistence:
           defaultClass: false
