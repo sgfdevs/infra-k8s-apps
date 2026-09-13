@@ -8,3 +8,12 @@ spec:
       annotations:
         reloader.stakater.com/auto: "true"
         configmap.reloader.stakater.com/reload: "argocd-cm,argocd-cmd-params-cm"
+    spec:
+      containers:
+        - name: argocd-server
+          resources:
+            requests:
+              cpu: 10m
+              memory: 96Mi
+            limits:
+              memory: 256Mi
