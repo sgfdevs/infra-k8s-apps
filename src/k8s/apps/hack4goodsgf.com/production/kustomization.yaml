@@ -17,13 +17,15 @@ images:
   - name: ghcr.io/sgfdevs/hack4goodsgf.com
     newTag: 1.2.4
 patches:
-  # Certificate provisioning is deferred until the DNS cutover.
   - patch: |-
-      $patch: delete
       apiVersion: cert-manager.io/v1
       kind: Certificate
       metadata:
         name: hack4goodsgf-tls
+      spec:
+        dnsNames:
+          - hack4goodsgf.com
+          - www.hack4goodsgf.com
   - patch: |-
       apiVersion: v1
       kind: ConfigMap
