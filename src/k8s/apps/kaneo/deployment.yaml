@@ -40,7 +40,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       initContainers:
         - name: prepare-web-assets
-          image: ghcr.io/usekaneo/kaneo:2.22.0@sha256:362139ce143ea5f21c170d2626f654d21991bd48f51340913a54d427b4cfda2c
+          image: ghcr.io/usekaneo/kaneo:2.23.2@sha256:4d65f0d58b50c3406ac4ecc8e904568deeaa364045621c6d0e8c7a5b348955c7
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -72,7 +72,7 @@ spec:
               memory: 64Mi
       containers:
         - name: kaneo
-          image: ghcr.io/usekaneo/kaneo:2.22.0@sha256:362139ce143ea5f21c170d2626f654d21991bd48f51340913a54d427b4cfda2c
+          image: ghcr.io/usekaneo/kaneo:2.23.2@sha256:4d65f0d58b50c3406ac4ecc8e904568deeaa364045621c6d0e8c7a5b348955c7
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -146,8 +146,10 @@ spec:
               value: "true"
             - name: DISABLE_EMAIL_OTP_SIGN_IN
               value: "true"
+            # The Terraform provider needs /api/auth/sign-in/email.
+            # This permits password sign-in instance-wide, not just for automation.
             - name: DISABLE_LOGIN_FORM
-              value: "true"
+              value: "false"
             - name: S3_ENDPOINT
               value: https://s3.us-east-2.amazonaws.com
             - name: S3_BUCKET
