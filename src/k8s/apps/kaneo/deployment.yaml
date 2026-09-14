@@ -146,8 +146,6 @@ spec:
               value: "true"
             - name: DISABLE_EMAIL_OTP_SIGN_IN
               value: "true"
-            # The Terraform provider needs /api/auth/sign-in/email.
-            # This permits password sign-in instance-wide, not just for automation.
             - name: DISABLE_LOGIN_FORM
               value: "false"
             - name: S3_ENDPOINT
