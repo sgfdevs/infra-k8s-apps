@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: plane-redirect
+spec:
+  redirectRegex:
+    regex: '(?i)^https?://plane\.sgf\.dev(:[0-9]+)?([/?].*)?$'
+    replacement: https://projects.sgf.dev/
+    permanent: true
