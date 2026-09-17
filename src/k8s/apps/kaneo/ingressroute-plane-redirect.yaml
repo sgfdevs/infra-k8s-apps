@@ -1,0 +1,35 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: plane-redirect-https
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`plane.sgf.dev`)
+      kind: Rule
+      middlewares:
+        - name: plane-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService
+  tls:
+    secretName: plane-redirect-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: plane-redirect-http
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`plane.sgf.dev`)
+      kind: Rule
+      # Let cert-manager's HTTP-01 challenge ingress take precedence.
+      priority: 1
+      middlewares:
+        - name: plane-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService
