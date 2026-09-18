@@ -8,22 +8,11 @@ resources:
   - database.yaml
   - valkey.yaml
   - config.yaml
-  - bootstrap-job.yaml
+  - migration-job.yaml
   - deployments.yaml
   - service.yaml
   - pdb.yaml
   - ingress.yaml
-configMapGenerator:
-  - name: twenty-scripts
-    files:
-      - scripts/start.sh
-      - scripts/bootstrap.sh
-      - scripts/readiness.cjs
-generatorOptions:
-  # The completed bootstrap Job must retain an immutable Pod template.
-  disableNameSuffixHash: true
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
 labels:
   - pairs:
       app.kubernetes.io/part-of: twenty
