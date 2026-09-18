@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey-sentinel
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: valkey-sentinel
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: sentinel
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey-sentinel-headless
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: valkey-sentinel
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: sentinel
+# Configure clients with all three stable pod DNS names on port 26379:
+# valkey-sentinel-{0,1,2}.valkey-sentinel-headless.valkey-sentinel.svc.cluster.local
+# Do not treat three connections through the ClusterIP as three distinct voters.

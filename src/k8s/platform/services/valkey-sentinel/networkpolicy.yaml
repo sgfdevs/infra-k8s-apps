@@ -1,0 +1,61 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: valkey-sentinel
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: valkey-sentinel
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: valkey-sentinel
+      ports:
+        - protocol: TCP
+          port: 26379
+    # Applications opt in at namespace level and still need discovery auth.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              infra.sgf.dev/valkey-sentinel-client: "true"
+      ports:
+        - protocol: TCP
+          port: 26379
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: valkey-sentinel
+      ports:
+        - protocol: TCP
+          port: 26379
+    # Enrollment must label both the backend namespace and its data pods.
+    # Backend ingress policies must separately allow these Sentinel pods.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              infra.sgf.dev/valkey-sentinel-backend: "true"
+          podSelector:
+            matchLabels:
+              infra.sgf.dev/valkey-sentinel-backend: "true"
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 6380

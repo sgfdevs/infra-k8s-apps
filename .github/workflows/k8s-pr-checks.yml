@@ -17,3 +17,4 @@ jobs:
         src/k8s/bootstrap/projects
         src/k8s/apps
         src/k8s/platform
+        src/k8s/platform/services/valkey-sentinel
