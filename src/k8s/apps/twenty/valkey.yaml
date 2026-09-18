@@ -1,0 +1,49 @@
+apiVersion: cache.keiailab.io/v1alpha2
+kind: Valkey
+metadata:
+  name: twenty-valkey
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  mode: Replication
+  replicas: 2
+  version:
+    image: docker.io/valkey/valkey
+    version: 9.0.4
+    imagePullPolicy: IfNotPresent
+  storage:
+    ephemeral: false
+    storageClassName: longhorn
+    size: 8Gi
+  persistence:
+    mode: AOF
+    aofAppendFsync: everysec
+  auth:
+    enabled: true
+  autoFailover: true
+  additionalConfig:
+    maxmemory: "256mb"
+    maxmemory-policy: "noeviction"
+    # Keep the survivor writable; replication is asynchronous, not lossless.
+    min-replicas-to-write: "0"
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  pod:
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: valkey
+                app.kubernetes.io/instance: twenty-valkey
+            topologyKey: kubernetes.io/hostname
+  monitoring:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
