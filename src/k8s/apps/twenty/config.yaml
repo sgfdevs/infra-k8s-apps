@@ -6,7 +6,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 data:
   NODE_ENV: production
-  SERVER_URL: https://crm-preview.sgf.dev
+  SERVER_URL: https://crm.sgf.dev
   NODE_PORT: "3000"
   AUTH_PASSWORD_ENABLED: "true"
   AUTH_GOOGLE_ENABLED: "false"
@@ -26,6 +26,6 @@ data:
   EMAIL_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
   EMAIL_SMTP_PORT: "587"
   EMAIL_SMTP_NO_TLS: "false"
-  EMAIL_FROM_ADDRESS: crm-preview@sgf.dev
-  EMAIL_SYSTEM_ADDRESS: crm-preview@sgf.dev
-  EMAIL_FROM_NAME: SGF Devs CRM preview
+  EMAIL_FROM_ADDRESS: crm@sgf.dev
+  EMAIL_SYSTEM_ADDRESS: crm@sgf.dev
+  EMAIL_FROM_NAME: SGF Devs CRM
