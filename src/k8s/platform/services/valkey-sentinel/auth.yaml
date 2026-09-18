@@ -1,0 +1,57 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: valkey-sentinel-discovery
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  length: 48
+  digits: 12
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: valkey-sentinel-admin
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  length: 48
+  digits: 12
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: valkey-sentinel-auth
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  # Do not rotate peer credentials on each reconciliation or restart.
+  # Preserve this Secret when changing generators; coordinate any rotation
+  # across all voters and enrolled applications.
+  refreshPolicy: CreatedOnce
+  target:
+    name: valkey-sentinel-auth
+    creationPolicy: Owner
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: valkey-sentinel-discovery
+      rewrite:
+        - regexp:
+            source: "^password$"
+            target: discovery-password
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: valkey-sentinel-admin
+      rewrite:
+        - regexp:
+            source: "^password$"
+            target: admin-password

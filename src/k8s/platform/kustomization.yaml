@@ -24,5 +24,6 @@ resources:
   - seaweedfs.yaml
   - tempo.yaml
   - thanos.yaml
+  - valkey-sentinel.yaml
   - zitadel
   - zitadel-restore-workflow-argocd-rbac.yaml
