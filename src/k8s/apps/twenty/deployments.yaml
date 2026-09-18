@@ -1,0 +1,197 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twenty-server
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 2
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: twenty-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: twenty-server
+    spec:
+      serviceAccountName: twenty-secrets
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 90
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: twenty-server
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: server
+          image: twentycrm/twenty:v2.41.0@sha256:47bcefe4e497ceef232f149153a4a61379830f5c898b7da71a5b0e21fd5ea916
+          command: ["/bin/sh", "/opt/twenty/start.sh"]
+          args: ["node", "dist/main"]
+          envFrom:
+            - configMapRef:
+                name: twenty-config
+            - secretRef:
+                name: twenty
+          env:
+            - name: PG_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: twenty-db-app
+                  key: uri
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: twenty-valkey-auth
+                  key: password
+            - name: READINESS_HTTP
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 3000
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 15"]
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 90
+          readinessProbe:
+            exec:
+              command: ["node", "/opt/twenty/readiness.cjs"]
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 5
+          volumeMounts:
+            - name: scripts
+              mountPath: /opt/twenty
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-scripts
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twenty-worker
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 2
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: twenty-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: twenty-worker
+    spec:
+      serviceAccountName: twenty-secrets
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 180
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: twenty-worker
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: worker
+          image: twentycrm/twenty:v2.41.0@sha256:47bcefe4e497ceef232f149153a4a61379830f5c898b7da71a5b0e21fd5ea916
+          command: ["/bin/sh", "/opt/twenty/start.sh"]
+          args: ["node", "dist/queue-worker/queue-worker"]
+          envFrom:
+            - configMapRef:
+                name: twenty-config
+            - secretRef:
+                name: twenty
+          env:
+            - name: PG_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: twenty-db-app
+                  key: uri
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: twenty-valkey-auth
+                  key: password
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          readinessProbe:
+            exec:
+              command: ["node", "/opt/twenty/readiness.cjs"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: scripts
+              mountPath: /opt/twenty
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-scripts
