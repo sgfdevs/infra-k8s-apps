@@ -9,4 +9,5 @@ resources:
   - longhorn.yaml
   - percona-mongodb-crds.yaml
   - prometheus-operator-crds.yaml
+  - redis-operator.yaml
   - seaweedfs-operator.yaml
