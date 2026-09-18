@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: twenty-server
   annotations:
+    ignore-check.kube-linter.io/no-read-only-root-fs: "Keep the upstream image's writable filesystem; read-only mounts are not configured."
     argocd.argoproj.io/sync-wave: "2"
     reloader.stakater.com/auto: "true"
 spec:
@@ -41,7 +42,6 @@ spec:
       containers:
         - name: server
           image: twentycrm/twenty:v2.41.0@sha256:47bcefe4e497ceef232f149153a4a61379830f5c898b7da71a5b0e21fd5ea916
-          command: ["/bin/sh", "/opt/twenty/start.sh"]
           args: ["node", "dist/main"]
           envFrom:
             - configMapRef:
@@ -59,8 +59,11 @@ spec:
                 secretKeyRef:
                   name: twenty-valkey-auth
                   key: password
-            - name: READINESS_HTTP
-              value: "true"
+            # The Valkey operator generates a URL-safe hex password.
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@twenty-valkey-primary:6379"
+            - name: REDIS_QUEUE_URL
+              value: "$(REDIS_URL)"
           ports:
             - name: http
               containerPort: 3000
@@ -80,8 +83,9 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 90
           readinessProbe:
-            exec:
-              command: ["node", "/opt/twenty/readiness.cjs"]
+            httpGet:
+              path: /healthz
+              port: http
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 3
@@ -92,10 +96,6 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 3
             failureThreshold: 5
-          volumeMounts:
-            - name: scripts
-              mountPath: /opt/twenty
-              readOnly: true
           resources:
             requests:
               cpu: 250m
@@ -103,16 +103,13 @@ spec:
             limits:
               cpu: "2"
               memory: 2Gi
-      volumes:
-        - name: scripts
-          configMap:
-            name: twenty-scripts
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: twenty-worker
   annotations:
+    ignore-check.kube-linter.io/no-read-only-root-fs: "Keep the upstream image's writable filesystem; read-only mounts are not configured."
     argocd.argoproj.io/sync-wave: "2"
     reloader.stakater.com/auto: "true"
 spec:
@@ -151,7 +148,6 @@ spec:
       containers:
         - name: worker
           image: twentycrm/twenty:v2.41.0@sha256:47bcefe4e497ceef232f149153a4a61379830f5c898b7da71a5b0e21fd5ea916
-          command: ["/bin/sh", "/opt/twenty/start.sh"]
           args: ["node", "dist/queue-worker/queue-worker"]
           envFrom:
             - configMapRef:
@@ -169,21 +165,15 @@ spec:
                 secretKeyRef:
                   name: twenty-valkey-auth
                   key: password
+            # The Valkey operator generates a URL-safe hex password.
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@twenty-valkey-primary:6379"
+            - name: REDIS_QUEUE_URL
+              value: "$(REDIS_URL)"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop: [ALL]
-          readinessProbe:
-            exec:
-              command: ["node", "/opt/twenty/readiness.cjs"]
-            initialDelaySeconds: 30
-            periodSeconds: 15
-            timeoutSeconds: 5
-            failureThreshold: 3
-          volumeMounts:
-            - name: scripts
-              mountPath: /opt/twenty
-              readOnly: true
           resources:
             requests:
               cpu: 250m
@@ -191,7 +181,3 @@ spec:
             limits:
               cpu: "2"
               memory: 2Gi
-      volumes:
-        - name: scripts
-          configMap:
-            name: twenty-scripts

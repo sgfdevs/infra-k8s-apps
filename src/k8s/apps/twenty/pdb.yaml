@@ -4,6 +4,7 @@ metadata:
   name: twenty-server
 spec:
   minAvailable: 1
+  unhealthyPodEvictionPolicy: IfHealthyBudget
   selector:
     matchLabels:
       app.kubernetes.io/name: twenty-server
@@ -14,6 +15,7 @@ metadata:
   name: twenty-worker
 spec:
   minAvailable: 1
+  unhealthyPodEvictionPolicy: IfHealthyBudget
   selector:
     matchLabels:
       app.kubernetes.io/name: twenty-worker
