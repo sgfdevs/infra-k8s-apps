@@ -6,4 +6,3 @@ resources:
   - otel-operator.yaml
   - percona-mongodb.yaml
   - reloader.yaml
-  - valkey-operator.yaml
