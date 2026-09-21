@@ -110,20 +110,20 @@ spec:
                   key: uri
             - name: REDIS_SENTINELS
               value: >-
-                kaneo-redis-redis-sentinel-0.kaneo-redis-redis-sentinel-headless.kaneo.svc.cluster.local:26379,
-                kaneo-redis-redis-sentinel-1.kaneo-redis-redis-sentinel-headless.kaneo.svc.cluster.local:26379,
-                kaneo-redis-redis-sentinel-2.kaneo-redis-redis-sentinel-headless.kaneo.svc.cluster.local:26379
+                kaneo-redis-sentinel-0.kaneo-redis-sentinel-headless.kaneo.svc.cluster.local:26379,
+                kaneo-redis-sentinel-1.kaneo-redis-sentinel-headless.kaneo.svc.cluster.local:26379,
+                kaneo-redis-sentinel-2.kaneo-redis-sentinel-headless.kaneo.svc.cluster.local:26379
             - name: REDIS_SENTINEL_MASTER_NAME
-              value: kaneo-redis-redis
+              value: kaneo-redis
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kaneo-redis-redis-account-default
+                  name: kaneo-redis-account-default
                   key: password
             - name: REDIS_SENTINEL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kaneo-redis-redis-sentinel-account-default
+                  name: kaneo-redis-sentinel-account-default
                   key: password
             - name: KANEO_CLIENT_URL
               value: https://projects.sgf.dev
