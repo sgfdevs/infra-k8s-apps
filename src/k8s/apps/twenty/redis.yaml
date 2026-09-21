@@ -1,0 +1,78 @@
+apiVersion: parameters.kubeblocks.io/v1alpha1
+kind: Parameter
+metadata:
+  name: twenty-redis
+  labels:
+    app.kubernetes.io/instance: twenty-redis
+    config.kubeblocks.io/init-parameters: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  clusterName: twenty-redis
+  componentParameters:
+    - componentName: redis
+      parameters:
+        appendonly: "yes"
+        appendfsync: everysec
+        maxmemory: "268435456"
+        maxmemory-policy: noeviction
+        # Keep the survivor writable; replication is asynchronous, not lossless.
+        min-replicas-to-write: "0"
+---
+apiVersion: apps.kubeblocks.io/v1
+kind: Cluster
+metadata:
+  name: twenty-redis
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  clusterDef: redis
+  topology: replication
+  terminationPolicy: Delete
+  componentSpecs:
+    - name: redis
+      serviceVersion: 8.2.3
+      replicas: 2
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: longhorn
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 8Gi
+      schedulingPolicy:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: twenty-redis
+                    apps.kubeblocks.io/component-name: redis
+                topologyKey: kubernetes.io/hostname
+    - name: redis-sentinel
+      serviceVersion: 8.2.3
+      replicas: 3
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+      schedulingPolicy:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: twenty-redis
+                    apps.kubeblocks.io/component-name: redis-sentinel
+                topologyKey: kubernetes.io/hostname

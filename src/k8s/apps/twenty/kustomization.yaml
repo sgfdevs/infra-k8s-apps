@@ -6,7 +6,7 @@ resources:
   - service-account.yaml
   - secrets.yaml
   - database.yaml
-  - valkey.yaml
+  - redis.yaml
   - config.yaml
   - migration-job.yaml
   - deployments.yaml

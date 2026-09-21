@@ -19,3 +19,27 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: twenty-worker
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: twenty-redis
+spec:
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: twenty-redis
+      apps.kubeblocks.io/component-name: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: twenty-redis-sentinel
+spec:
+  minAvailable: 2
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: twenty-redis
+      apps.kubeblocks.io/component-name: redis-sentinel

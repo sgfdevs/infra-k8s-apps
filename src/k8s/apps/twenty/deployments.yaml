@@ -57,11 +57,10 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: twenty-valkey-auth
+                  name: twenty-redis-redis-account-default
                   key: password
-            # The Valkey operator generates a URL-safe hex password.
             - name: REDIS_URL
-              value: "redis://:$(REDIS_PASSWORD)@twenty-valkey-primary:6379"
+              value: "redis://:$(REDIS_PASSWORD)@twenty-redis-redis-redis:6379"
             - name: REDIS_QUEUE_URL
               value: "$(REDIS_URL)"
           ports:
@@ -163,11 +162,10 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: twenty-valkey-auth
+                  name: twenty-redis-redis-account-default
                   key: password
-            # The Valkey operator generates a URL-safe hex password.
             - name: REDIS_URL
-              value: "redis://:$(REDIS_PASSWORD)@twenty-valkey-primary:6379"
+              value: "redis://:$(REDIS_PASSWORD)@twenty-redis-redis-redis:6379"
             - name: REDIS_QUEUE_URL
               value: "$(REDIS_URL)"
           securityContext:
