@@ -7,7 +7,7 @@ spec:
   unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
-      app.kubernetes.io/instance: kaneo-redis
+      app.kubernetes.io/instance: kaneo
       apps.kubeblocks.io/component-name: redis
 ---
 apiVersion: policy/v1
@@ -19,5 +19,5 @@ spec:
   unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
-      app.kubernetes.io/instance: kaneo-redis
+      app.kubernetes.io/instance: kaneo
       apps.kubeblocks.io/component-name: redis-sentinel
