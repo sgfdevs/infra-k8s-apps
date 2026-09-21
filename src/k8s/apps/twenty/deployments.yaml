@@ -57,10 +57,10 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: twenty-redis-redis-account-default
+                  name: twenty-redis-account-default
                   key: password
             - name: REDIS_URL
-              value: "redis://:$(REDIS_PASSWORD)@twenty-redis-redis-redis:6379"
+              value: "redis://:$(REDIS_PASSWORD)@twenty-redis-redis:6379"
             - name: REDIS_QUEUE_URL
               value: "$(REDIS_URL)"
           ports:
@@ -162,10 +162,10 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: twenty-redis-redis-account-default
+                  name: twenty-redis-account-default
                   key: password
             - name: REDIS_URL
-              value: "redis://:$(REDIS_PASSWORD)@twenty-redis-redis-redis:6379"
+              value: "redis://:$(REDIS_PASSWORD)@twenty-redis-redis:6379"
             - name: REDIS_QUEUE_URL
               value: "$(REDIS_URL)"
           securityContext:

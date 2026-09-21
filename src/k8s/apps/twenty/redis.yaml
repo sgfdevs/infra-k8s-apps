@@ -3,12 +3,12 @@ kind: Parameter
 metadata:
   name: twenty-redis
   labels:
-    app.kubernetes.io/instance: twenty-redis
+    app.kubernetes.io/instance: twenty
     config.kubeblocks.io/init-parameters: "true"
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
-  clusterName: twenty-redis
+  clusterName: twenty
   componentParameters:
     - componentName: redis
       parameters:
@@ -22,7 +22,7 @@ spec:
 apiVersion: apps.kubeblocks.io/v1
 kind: Cluster
 metadata:
-  name: twenty-redis
+  name: twenty
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
@@ -31,8 +31,16 @@ spec:
   terminationPolicy: Delete
   componentSpecs:
     - name: redis
+      componentDef: redis-8-1.0.2
       serviceVersion: 8.2.3
       replicas: 2
+      systemAccounts:
+        - name: default
+          passwordConfig:
+            length: 32
+            numDigits: 8
+            numSymbols: 0
+            letterCase: MixedCases
       resources:
         requests:
           cpu: 50m
@@ -54,12 +62,20 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
                   matchLabels:
-                    app.kubernetes.io/instance: twenty-redis
+                    app.kubernetes.io/instance: twenty
                     apps.kubeblocks.io/component-name: redis
                 topologyKey: kubernetes.io/hostname
     - name: redis-sentinel
+      componentDef: redis-sentinel-8-1.0.2
       serviceVersion: 8.2.3
       replicas: 3
+      systemAccounts:
+        - name: default
+          passwordConfig:
+            length: 32
+            numDigits: 8
+            numSymbols: 0
+            letterCase: MixedCases
       resources:
         requests:
           cpu: 25m
@@ -67,12 +83,20 @@ spec:
         limits:
           cpu: 100m
           memory: 128Mi
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: local-path
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 1Gi
       schedulingPolicy:
         affinity:
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
                   matchLabels:
-                    app.kubernetes.io/instance: twenty-redis
+                    app.kubernetes.io/instance: twenty
                     apps.kubeblocks.io/component-name: redis-sentinel
                 topologyKey: kubernetes.io/hostname
