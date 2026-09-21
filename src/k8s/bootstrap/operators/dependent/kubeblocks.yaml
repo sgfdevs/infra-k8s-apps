@@ -15,6 +15,7 @@ spec:
       values: |
         autoInstalledAddons:
           - mysql
+          - redis
         dataProtection:
           enabled: false
         storageClass:
