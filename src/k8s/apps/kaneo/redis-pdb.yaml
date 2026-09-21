@@ -4,6 +4,7 @@ metadata:
   name: kaneo-redis
 spec:
   minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/instance: kaneo-redis
@@ -15,6 +16,7 @@ metadata:
   name: kaneo-redis-sentinel
 spec:
   minAvailable: 2
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/instance: kaneo-redis
