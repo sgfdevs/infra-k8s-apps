@@ -6,6 +6,7 @@ data:
   WORDPRESS_HOME: https://hack4goodsgf.com.invalid
   WORDPRESS_SITEURL: https://hack4goodsgf.com.invalid
   WORDPRESS_TABLE_PREFIX: wp_
+  WORDPRESS_REDIS_HOST: hack4goodsgf-valkey
   WORDPRESS_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
   WORDPRESS_SMTP_PORT: "587"
   WORDPRESS_SMTP_ENCRYPTION: tls
@@ -16,7 +17,7 @@ data:
     }
     define('WP_HOME', getenv('WORDPRESS_HOME'));
     define('WP_SITEURL', getenv('WORDPRESS_SITEURL'));
-    define('WP_REDIS_HOST', 'hack4goodsgf-valkey');
+    define('WP_REDIS_HOST', getenv('WORDPRESS_REDIS_HOST'));
     define('WP_REDIS_PORT', 6379);
     define('WP_REDIS_PASSWORD', getenv('WORDPRESS_REDIS_PASSWORD'));
     define('WP_CACHE', true);

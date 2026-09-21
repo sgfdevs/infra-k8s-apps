@@ -64,6 +64,7 @@ spec:
                 - {name: namespace, value: "{{steps.preflight.outputs.parameters.source-namespace}}"}
                 - {name: image, value: "{{steps.preflight.outputs.parameters.image}}"}
                 - {name: read-only, value: "true"}
+                - {name: redis-auth-secret, value: "{{steps.preflight.outputs.parameters.source-redis-auth-secret}}"}
           - name: destination-helper
             template: helper
             arguments:
@@ -71,6 +72,7 @@ spec:
                 - {name: namespace, value: "{{workflow.namespace}}"}
                 - {name: image, value: "{{steps.preflight.outputs.parameters.image}}"}
                 - {name: read-only, value: "false"}
+                - {name: redis-auth-secret, value: "{{steps.preflight.outputs.parameters.destination-redis-auth-secret}}"}
         - - name: export-data
             template: control
             arguments:
@@ -143,6 +145,10 @@ spec:
             valueFrom: {path: /tmp/image}
           - name: source-namespace
             valueFrom: {path: /tmp/source-namespace}
+          - name: source-redis-auth-secret
+            valueFrom: {path: /tmp/source-redis-auth-secret}
+          - name: destination-redis-auth-secret
+            valueFrom: {path: /tmp/destination-redis-auth-secret}
 
     - name: helper
       inputs:
@@ -150,6 +156,7 @@ spec:
           - name: namespace
           - name: image
           - name: read-only
+          - name: redis-auth-secret
       resource:
         action: create
         # The source helper is in another namespace, so Workflow owner references
@@ -196,7 +203,7 @@ spec:
                       secretKeyRef: {name: hack4goodsgf-wordpress-database, key: PASSWORD}
                   - name: WORDPRESS_REDIS_PASSWORD
                     valueFrom:
-                      secretKeyRef: {name: hack4goodsgf-valkey-auth, key: password}
+                      secretKeyRef: {name: "{{inputs.parameters.redis-auth-secret}}", key: password}
                 readinessProbe:
                   exec: {command: [test, -f, /tmp/migration-ready]}
                   periodSeconds: 2
