@@ -7,6 +7,8 @@ resources:
   - db-instance.yaml
   - middleware-noindex.yaml
   - robots-configmap.yaml
+  - redis.yaml
+  - redis-pdb.yaml
 transformers:
   - db-instance-namespace-patch.yaml
 labels:
@@ -16,7 +18,26 @@ labels:
 images:
   - name: ghcr.io/sgfdevs/hack4goodsgf.com
     newTag: 1.2.4
+# PDB selectors must use the operator's cluster label, not the environment label.
+replacements:
+  - source:
+      group: apps.kubeblocks.io
+      kind: Cluster
+      name: hack4goodsgf
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: PodDisruptionBudget
+          name: hack4goodsgf-redis.*
+        fieldPaths:
+          - spec.selector.matchLabels.[app.kubernetes.io/instance]
 patches:
+  - patch: |-
+      $patch: delete
+      apiVersion: cache.keiailab.io/v1alpha1
+      kind: Valkey
+      metadata:
+        name: hack4goodsgf-valkey
   - patch: |-
       apiVersion: kinda.rocks/v1beta1
       kind: Database

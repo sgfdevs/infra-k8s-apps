@@ -14,12 +14,12 @@ replace_url() {
   wp_safe search-replace "${old//\//\\/}" "${WORDPRESS_HOME//\//\\/}" \
     --all-tables --precise --skip-columns=guid --report-changed-only
 }
-flush_valkey() {
+flush_redis() {
   php -r '
     $redis = new Redis();
-    $redis->connect("hack4goodsgf-valkey", 6379);
+    $redis->connect(getenv("WORDPRESS_REDIS_HOST"), 6379);
     $redis->auth(getenv("WORDPRESS_REDIS_PASSWORD"));
-    if (!$redis->flushDB()) { throw new RuntimeException("Valkey flush failed"); }
+    if (!$redis->flushDB()) { throw new RuntimeException("Redis cache flush failed"); }
   '
 }
 
@@ -64,7 +64,7 @@ case "${1:-}" in
     ;;
   normalize)
     # An imported options table must not be shadowed by the destination's old cache.
-    flush_valkey
+    flush_redis
     while IFS= read -r old; do
       replace_url "$old"
     done < /tmp/source-urls.txt
@@ -80,7 +80,7 @@ case "${1:-}" in
     if [[ -d wp-content/cache && ! -L wp-content/cache ]]; then
       find wp-content/cache -mindepth 1 -maxdepth 1 ! -name .htaccess ! -name index.php -exec rm -rf -- {} +
     fi
-    flush_valkey
+    flush_redis
     wp_safe core is-installed
     wp_safe eval 'global $wpdb; foreach (["home" => "WORDPRESS_HOME", "siteurl" => "WORDPRESS_SITEURL"] as $name => $env) {
       $stored = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM $wpdb->options WHERE option_name = %s", $name));

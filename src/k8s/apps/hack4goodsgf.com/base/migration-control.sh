@@ -84,10 +84,16 @@ case "${1:-}" in
         .status.updatedReplicas == 1 and .status.readyReplicas == 1 and .status.availableReplicas == 1' \
         "/tmp/$ns.json" >/dev/null || fail "$ns must have one fully rolled-out WordPress replica."
       jq -r '.spec.template.spec.containers[] | select(.name=="wordpress") | .image' "/tmp/$ns.json" > "/tmp/$ns-image"
+      jq -er '.spec.template.spec.containers[] | select(.name=="wordpress") | .env[] |
+        select(.name=="WORDPRESS_REDIS_PASSWORD") | .valueFrom.secretKeyRef |
+        select(.key=="password") | .name | select(type=="string" and length > 0)' \
+        "/tmp/$ns.json" > "/tmp/$ns-redis-auth-secret" || fail "$ns must reference a Redis password Secret."
     done
     cmp "/tmp/$source_ns-image" "/tmp/$target_ns-image" || fail 'Align the WordPress image versions before migration.'
     cp "/tmp/$source_ns-image" /tmp/image
     printf '%s' "$source_ns" > /tmp/source-namespace
+    cp "/tmp/$source_ns-redis-auth-secret" /tmp/source-redis-auth-secret
+    cp "/tmp/$target_ns-redis-auth-secret" /tmp/destination-redis-auth-secret
     ;;
   pause)
     for ns in "$source_ns" "$target_ns"; do

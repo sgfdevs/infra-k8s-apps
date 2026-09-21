@@ -4,5 +4,6 @@ metadata:
   name: hack4goodsgf
 data:
   WORDPRESS_HOME: https://staging.hack4goodsgf.com
+  WORDPRESS_REDIS_HOST: hack4goodsgf-redis-redis
   WORDPRESS_SITEURL: https://staging.hack4goodsgf.com
   WORDPRESS_SMTP_FROM_EMAIL: hack4good-staging@sgf.dev

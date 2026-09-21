@@ -7,6 +7,12 @@ spec:
     spec:
       containers:
         - name: wordpress
+          env:
+            - name: WORDPRESS_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hack4goodsgf-redis-account-default
+                  key: password
           volumeMounts:
             - name: robots
               mountPath: /var/www/html/robots.txt
