@@ -10,7 +10,8 @@ resources:
   - migration-rbac.yaml
   - mysql-cluster.yaml
   - database.yaml
-  - valkey.yaml
+  - redis.yaml
+  - redis-pdb.yaml
   - configmap.yaml
   - pvc.yaml
   - deployment.yaml
