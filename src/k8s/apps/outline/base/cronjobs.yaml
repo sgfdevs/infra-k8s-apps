@@ -1,0 +1,127 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: outline-hourly
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  schedule: "17 * * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 900
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: outline-cron
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: cron
+              image: docker.getoutline.com/outlinewiki/outline
+              command: [node, -e]
+              args:
+                - |
+                  (async () => {
+                    const response = await fetch('http://outline:3000/api/cron.hourly', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ token: process.env.UTILS_SECRET }),
+                      signal: AbortSignal.timeout(240000),
+                    });
+                    if (!response.ok || !(await response.json()).success) {
+                      throw new Error(`Outline hourly cron failed: ${response.status}`);
+                    }
+                  })().catch(error => { console.error(error.message); process.exit(1); });
+              env:
+                - name: UTILS_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: outline
+                      key: UTILS_SECRET
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: outline-daily
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  schedule: "37 2 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: outline-cron
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: cron
+              image: docker.getoutline.com/outlinewiki/outline
+              command: [node, -e]
+              args:
+                - |
+                  (async () => {
+                    const response = await fetch('http://outline:3000/api/cron.daily', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ token: process.env.UTILS_SECRET }),
+                      signal: AbortSignal.timeout(240000),
+                    });
+                    if (!response.ok || !(await response.json()).success) {
+                      throw new Error(`Outline daily cron failed: ${response.status}`);
+                    }
+                  })().catch(error => { console.error(error.message); process.exit(1); });
+              env:
+                - name: UTILS_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: outline
+                      key: UTILS_SECRET
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi

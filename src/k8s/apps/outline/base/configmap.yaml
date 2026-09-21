@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: outline
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  NODE_ENV: production
+  PORT: "3000"
+  WEB_CONCURRENCY: "1"
+  SERVICES: web,websockets,collaboration,worker
+  DEFAULT_LANGUAGE: en_US
+  ENABLE_UPDATES: "true"
+  FORCE_HTTPS: "false"
+  FILE_STORAGE: s3
+  FILE_STORAGE_UPLOAD_MAX_SIZE: "262144000"
+  AWS_REGION: us-east-2
+  AWS_S3_UPLOAD_BUCKET_URL: https://s3.us-east-2.amazonaws.com
+  AWS_S3_FORCE_PATH_STYLE: "false"
+  # Empty disables Outline's default private ACL for BucketOwnerEnforced buckets.
+  AWS_S3_ACL: ""
+  SMTP_HOST: email-smtp.us-east-2.amazonaws.com
+  SMTP_PORT: "465"
+  SMTP_SECURE: "true"
+  DATABASE_HOST: outline-db-rw
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: outline
+  DATABASE_USER: outline
+  PGSSLMODE: require

@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: outline
+spec:
+  selector:
+    app.kubernetes.io/name: outline
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: outline-https-redirect
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: outline-canonical
+spec:
+  redirectRegex:
+    regex: '^https?://outline[.]example[.]invalid/(.*)'
+    replacement: 'https://docs.example.invalid/${1}'
+    permanent: true
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: outline-tls
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  secretName: outline-tls
+  duration: 8760h
+  renewBefore: 720h
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - docs.example.invalid
+    - outline.example.invalid
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: outline
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - docs.example.invalid
+        - outline.example.invalid
+      secretName: outline-tls
+  rules:
+    - host: docs.example.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: outline
+                port:
+                  name: http
+    - host: outline.example.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: outline
+                port:
+                  name: http
