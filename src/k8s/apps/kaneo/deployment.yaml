@@ -6,11 +6,9 @@ metadata:
     app.kubernetes.io/name: kaneo
 spec:
   replicas: 2
+  # Avoid running replicas against different Pub/Sub backends during cutover.
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: kaneo
@@ -74,13 +72,6 @@ spec:
         - name: kaneo
           image: ghcr.io/usekaneo/kaneo:2.23.2@sha256:4d65f0d58b50c3406ac4ecc8e904568deeaa364045621c6d0e8c7a5b348955c7
           imagePullPolicy: IfNotPresent
-          command:
-            - /bin/sh
-            - -ec
-          args:
-            - |
-              export REDIS_URL="redis://:${REDIS_PASSWORD}@kaneo-valkey:6379"
-              exec /usr/local/bin/kaneo-entrypoint.sh
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -115,10 +106,22 @@ spec:
                 secretKeyRef:
                   name: kaneo-db-app
                   key: uri
+            - name: REDIS_SENTINELS
+              value: >-
+                kaneo-redis-redis-sentinel-0.kaneo-redis-redis-sentinel-headless.kaneo.svc.cluster.local:26379,
+                kaneo-redis-redis-sentinel-1.kaneo-redis-redis-sentinel-headless.kaneo.svc.cluster.local:26379,
+                kaneo-redis-redis-sentinel-2.kaneo-redis-redis-sentinel-headless.kaneo.svc.cluster.local:26379
+            - name: REDIS_SENTINEL_MASTER_NAME
+              value: kaneo-redis-redis
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kaneo-valkey-auth
+                  name: kaneo-redis-redis-account-default
+                  key: password
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kaneo-redis-redis-sentinel-account-default
                   key: password
             - name: KANEO_CLIENT_URL
               value: https://projects.sgf.dev

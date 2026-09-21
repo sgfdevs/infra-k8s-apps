@@ -1,0 +1,83 @@
+apiVersion: apps.kubeblocks.io/v1
+kind: Cluster
+metadata:
+  name: kaneo-redis
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  clusterDef: redis
+  topology: replication
+  terminationPolicy: Delete
+  componentSpecs:
+    - name: redis
+      componentDef: redis-8-1.0.2
+      serviceVersion: 8.4.0
+      replicas: 2
+      systemAccounts:
+        - name: default
+          passwordConfig:
+            length: 32
+            numDigits: 8
+            numSymbols: 0
+            letterCase: MixedCases
+      schedulingPolicy:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: kaneo-redis
+                    apps.kubeblocks.io/component-name: redis
+                topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: local-path
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+    - name: redis-sentinel
+      componentDef: redis-sentinel-8-1.0.2
+      serviceVersion: 8.4.0
+      replicas: 3
+      systemAccounts:
+        - name: default
+          passwordConfig:
+            length: 32
+            numDigits: 8
+            numSymbols: 0
+            letterCase: MixedCases
+      schedulingPolicy:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: kaneo-redis
+                    apps.kubeblocks.io/component-name: redis-sentinel
+                topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: local-path
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi

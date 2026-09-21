@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kaneo-redis
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kaneo-redis
+      apps.kubeblocks.io/component-name: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kaneo-redis-sentinel
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kaneo-redis
+      apps.kubeblocks.io/component-name: redis-sentinel
