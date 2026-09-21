@@ -6,7 +6,7 @@ data:
   WORDPRESS_HOME: https://hack4goodsgf.com.invalid
   WORDPRESS_SITEURL: https://hack4goodsgf.com.invalid
   WORDPRESS_TABLE_PREFIX: wp_
-  WORDPRESS_REDIS_HOST: hack4goodsgf-valkey
+  WORDPRESS_REDIS_HOST: hack4goodsgf-redis-redis
   WORDPRESS_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
   WORDPRESS_SMTP_PORT: "587"
   WORDPRESS_SMTP_ENCRYPTION: tls

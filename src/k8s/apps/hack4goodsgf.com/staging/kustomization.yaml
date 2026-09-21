@@ -7,8 +7,6 @@ resources:
   - db-instance.yaml
   - middleware-noindex.yaml
   - robots-configmap.yaml
-  - redis.yaml
-  - redis-pdb.yaml
 transformers:
   - db-instance-namespace-patch.yaml
 labels:
@@ -32,12 +30,6 @@ replacements:
         fieldPaths:
           - spec.selector.matchLabels.[app.kubernetes.io/instance]
 patches:
-  - patch: |-
-      $patch: delete
-      apiVersion: cache.keiailab.io/v1alpha1
-      kind: Valkey
-      metadata:
-        name: hack4goodsgf-valkey
   - patch: |-
       apiVersion: kinda.rocks/v1beta1
       kind: Database

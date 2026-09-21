@@ -107,7 +107,7 @@ spec:
             - name: WORDPRESS_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: hack4goodsgf-valkey-auth
+                  name: hack4goodsgf-redis-account-default
                   key: password
           startupProbe:
             httpGet:
