@@ -36,7 +36,6 @@ spec:
     - https://github.com/apecloud/kubeblocks.git
     - https://grafana-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts
-    - https://keiailab.github.io/valkey-operator
     - https://kubernetes-sigs.github.io/headlamp/
     - https://k8up-io.github.io/k8up
     - https://oauth2-proxy.github.io/manifests
