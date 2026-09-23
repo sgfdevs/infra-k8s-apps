@@ -11,6 +11,14 @@ data:
   APP_URL: https://gooddads-enrollment-bot.invalid
   LOG_CHANNEL: stderr
   LOG_LEVEL: info
+  OTEL_PHP_AUTOLOAD_ENABLED: "true"
+  OTEL_SDK_DISABLED: "false"
+  OTEL_SERVICE_NAME: gooddads-enrollment-bot-staging
+  OTEL_TRACES_EXPORTER: otlp
+  OTEL_LOGS_EXPORTER: none
+  OTEL_METRICS_EXPORTER: none
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcol-collector.observability.svc.cluster.local:4318
   DB_CONNECTION: mysql
   DB_HOST: gooddads-enrollment-bot-mysql-mysql
   DB_PORT: "3306"
