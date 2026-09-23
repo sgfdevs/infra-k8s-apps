@@ -12,6 +12,7 @@ data:
   LOG_CHANNEL: stderr
   LOG_LEVEL: info
   OTEL_PHP_AUTOLOAD_ENABLED: "true"
+  OTEL_PHP_EXCLUDED_URLS: '^/up([?].*)?$'
   OTEL_SDK_DISABLED: "false"
   OTEL_SERVICE_NAME: gooddads-enrollment-bot-staging
   OTEL_TRACES_EXPORTER: otlp
