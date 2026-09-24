@@ -8,6 +8,8 @@ spec:
       containers:
         - name: wordpress
           env:
+            - name: APACHE_MAX_REQUEST_WORKERS
+              value: "3"
             - name: WORDPRESS_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
