@@ -38,10 +38,10 @@ patches:
     patch: |-
       - op: replace
         path: /spec/data/0/remoteRef/key
-        value: outline/sgfdevs/app
+        value: outline/sgfdevs/secret-key
       - op: replace
         path: /spec/data/1/remoteRef/key
-        value: outline/sgfdevs/app
+        value: outline/sgfdevs/utils-secret
       - op: replace
         path: /spec/data/2/remoteRef/key
         value: outline/sgfdevs/ses

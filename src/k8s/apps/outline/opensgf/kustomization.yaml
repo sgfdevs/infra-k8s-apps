@@ -38,10 +38,10 @@ patches:
     patch: |-
       - op: replace
         path: /spec/data/0/remoteRef/key
-        value: outline/opensgf/app
+        value: outline/opensgf/secret-key
       - op: replace
         path: /spec/data/1/remoteRef/key
-        value: outline/opensgf/app
+        value: outline/opensgf/utils-secret
       - op: replace
         path: /spec/data/2/remoteRef/key
         value: outline/opensgf/ses
