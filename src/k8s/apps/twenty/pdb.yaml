@@ -1,28 +1,6 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: twenty-server
-spec:
-  minAvailable: 0
-  unhealthyPodEvictionPolicy: IfHealthyBudget
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: twenty-server
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: twenty-worker
-spec:
-  minAvailable: 0
-  unhealthyPodEvictionPolicy: IfHealthyBudget
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: twenty-worker
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
   name: twenty-redis
 spec:
   minAvailable: 1
