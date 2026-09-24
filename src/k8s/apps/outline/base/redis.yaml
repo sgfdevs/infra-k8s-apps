@@ -1,0 +1,102 @@
+apiVersion: parameters.kubeblocks.io/v1alpha1
+kind: Parameter
+metadata:
+  name: outline-redis
+  labels:
+    app.kubernetes.io/instance: outline
+    config.kubeblocks.io/init-parameters: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  clusterName: outline
+  componentParameters:
+    - componentName: redis
+      parameters:
+        appendonly: "yes"
+        appendfsync: everysec
+        maxmemory: "268435456"
+        # Outline stores Bull queues here, not just disposable cache entries.
+        maxmemory-policy: noeviction
+---
+apiVersion: apps.kubeblocks.io/v1
+kind: Cluster
+metadata:
+  name: outline
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  clusterDef: redis
+  topology: replication
+  terminationPolicy: DoNotTerminate
+  componentSpecs:
+    - name: redis
+      componentDef: redis-8-1.0.2
+      serviceVersion: 8.4.0
+      replicas: 2
+      systemAccounts:
+        - name: default
+          passwordConfig:
+            length: 32
+            numDigits: 8
+            numSymbols: 0
+            letterCase: MixedCases
+      schedulingPolicy:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: outline
+                    apps.kubeblocks.io/component-name: redis
+                topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: local-path
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 4Gi
+    - name: redis-sentinel
+      componentDef: redis-sentinel-8-1.0.2
+      serviceVersion: 8.4.0
+      replicas: 3
+      systemAccounts:
+        - name: default
+          passwordConfig:
+            length: 32
+            numDigits: 8
+            numSymbols: 0
+            letterCase: MixedCases
+      schedulingPolicy:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: outline
+                    apps.kubeblocks.io/component-name: redis-sentinel
+                topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: local-path
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 1Gi

@@ -1,0 +1,34 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: outline
+spec:
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: outline
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: outline-redis
+spec:
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: outline
+      apps.kubeblocks.io/component-name: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: outline-redis-sentinel
+spec:
+  minAvailable: 2
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: outline
+      apps.kubeblocks.io/component-name: redis-sentinel

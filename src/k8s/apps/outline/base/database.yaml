@@ -1,0 +1,29 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: outline-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  instances: 2
+  # Stay on the source database's major version for the initial migration.
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.14-system-trixie
+  bootstrap:
+    initdb:
+      database: outline
+      owner: outline
+  storage:
+    storageClass: local-path
+    size: 10Gi
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
