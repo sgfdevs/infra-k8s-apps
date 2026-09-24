@@ -15,7 +15,7 @@ labels:
     includeSelectors: true
 images:
   - name: ghcr.io/sgfdevs/hack4goodsgf.com
-    newTag: 1.2.4
+    newTag: 1.2.5
 # PDB selectors must use the operator's cluster label, not the environment label.
 replacements:
   - source:
