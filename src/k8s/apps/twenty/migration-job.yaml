@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: twenty-migrate
+  annotations:
+    ignore-check.kube-linter.io/job-ttl-seconds-after-finished: "Argo deletes successful hooks and retains failed hooks until the next sync."
+    ignore-check.kube-linter.io/no-read-only-root-fs: "Keep the upstream image's writable filesystem; read-only mounts are not configured."
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: twenty-migrate
+    spec:
+      restartPolicy: Never
+      serviceAccountName: twenty-secrets
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: twentycrm/twenty:v2.41.0@sha256:47bcefe4e497ceef232f149153a4a61379830f5c898b7da71a5b0e21fd5ea916
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              # The image entrypoint suppresses upgrade failures; call the CLI directly.
+              has_schema="$(psql "$PG_DATABASE_URL" -v ON_ERROR_STOP=1 -tAc "SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'core')")"
+              if [ "$has_schema" = "f" ]; then
+                yarn database:init:prod
+              fi
+              yarn command:prod cache:flush
+              yarn command:prod upgrade
+              yarn command:prod cache:flush
+              yarn command:prod cron:register:all
+          envFrom:
+            - configMapRef:
+                name: twenty-config
+            - secretRef:
+                name: twenty
+          env:
+            - name: PG_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: twenty-db-app
+                  key: uri
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: twenty-redis-account-default
+                  key: password
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@twenty-redis-redis:6379"
+            - name: REDIS_QUEUE_URL
+              value: "$(REDIS_URL)"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              cpu: "2"
+              memory: 3Gi

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: twenty-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  NODE_ENV: production
+  SERVER_URL: https://crm.sgf.dev
+  NODE_PORT: "3000"
+  AUTH_PASSWORD_ENABLED: "true"
+  AUTH_GOOGLE_ENABLED: "false"
+  AUTH_MICROSOFT_ENABLED: "false"
+  IS_MULTIWORKSPACE_ENABLED: "false"
+  IS_EMAIL_VERIFICATION_REQUIRED: "true"
+  DISABLE_DB_MIGRATIONS: "true"
+  DISABLE_CRON_JOBS_REGISTRATION: "true"
+  STORAGE_TYPE: S_3
+  STORAGE_S3_REGION: us-east-2
+  STORAGE_S3_NAME: sgfdevs-twenty-assets
+  STORAGE_S3_PRESIGNED_URL_ENABLED: "false"
+  AWS_REGION: us-east-2
+  AWS_STS_REGIONAL_ENDPOINTS: regional
+  AWS_EC2_METADATA_DISABLED: "true"
+  EMAIL_DRIVER: SMTP
+  EMAIL_SMTP_HOST: email-smtp.us-east-2.amazonaws.com
+  EMAIL_SMTP_PORT: "587"
+  EMAIL_SMTP_NO_TLS: "false"
+  EMAIL_FROM_ADDRESS: crm@sgf.dev
+  EMAIL_SYSTEM_ADDRESS: crm@sgf.dev
+  EMAIL_FROM_NAME: SGF Devs CRM
