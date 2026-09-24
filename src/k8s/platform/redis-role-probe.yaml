@@ -16,7 +16,8 @@ spec:
     namespace: kb-system
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - ServerSideApply=true
+      - Validate=false

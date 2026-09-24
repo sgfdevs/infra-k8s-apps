@@ -10,7 +10,7 @@ spec:
   terminationPolicy: Delete
   componentSpecs:
     - name: redis
-      componentDef: redis-8-1.0.2-probe5
+      componentDef: redis-8-1.0.2
       serviceVersion: 8.4.0
       replicas: 2
       systemAccounts:
