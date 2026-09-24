@@ -31,6 +31,33 @@ replacements:
           - spec.selector.matchLabels.[app.kubernetes.io/instance]
 patches:
   - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: hack4goodsgf
+      spec:
+        template:
+          spec:
+            containers:
+              - name: wordpress
+                resources:
+                  requests:
+                    memory: 1Gi
+                  limits:
+                    memory: 2Gi
+  - target:
+      group: apps.kubeblocks.io
+      version: v1
+      kind: Cluster
+      name: hack4goodsgf-mysql
+    patch: |-
+      - op: replace
+        path: /spec/componentSpecs/0/resources/requests/memory
+        value: 1Gi
+      - op: replace
+        path: /spec/componentSpecs/0/resources/limits/memory
+        value: 2Gi
+  - patch: |-
       apiVersion: cert-manager.io/v1
       kind: Certificate
       metadata:
