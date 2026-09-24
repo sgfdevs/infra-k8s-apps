@@ -1,0 +1,12 @@
+# The Redis 1.0.2 add-on owns the rest of this ComponentDefinition.
+# Server-side apply owns only the role-probe period; do not prune the Helm-owned resource.
+apiVersion: apps.kubeblocks.io/v1
+kind: ComponentDefinition
+metadata:
+  name: redis-8-1.0.2
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  lifecycleActions:
+    roleProbe:
+      periodSeconds: 5

@@ -19,6 +19,7 @@ resources:
   - openbao
   - otel-collector.yaml
   - prometheus-pushgateway.yaml
+  - redis-role-probe.yaml
   - seaweedfs-filer-ingress.yaml
   - seaweedfs-metadata.yaml
   - seaweedfs.yaml
