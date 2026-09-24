@@ -7,8 +7,7 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   instances: 2
-  # Stay on the source database's major version for the initial migration.
-  imageName: ghcr.io/cloudnative-pg/postgresql:16.14-system-trixie
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
   bootstrap:
     initdb:
       database: outline
