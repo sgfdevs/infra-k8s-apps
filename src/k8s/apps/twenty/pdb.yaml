@@ -3,7 +3,7 @@ kind: PodDisruptionBudget
 metadata:
   name: twenty-server
 spec:
-  minAvailable: 1
+  minAvailable: 0
   unhealthyPodEvictionPolicy: IfHealthyBudget
   selector:
     matchLabels:
@@ -14,7 +14,7 @@ kind: PodDisruptionBudget
 metadata:
   name: twenty-worker
 spec:
-  minAvailable: 1
+  minAvailable: 0
   unhealthyPodEvictionPolicy: IfHealthyBudget
   selector:
     matchLabels:
