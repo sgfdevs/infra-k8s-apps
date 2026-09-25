@@ -48,37 +48,13 @@ patches:
       - op: replace
         path: /spec/data/3/remoteRef/key
         value: outline/opensgf/ses
-  - patch: |-
-      apiVersion: cert-manager.io/v1
-      kind: Certificate
-      metadata:
-        name: outline-tls
-      spec:
-        dnsNames:
-          - docs.opensgf.org
-          - outline.opensgf.org
   - target:
       kind: Ingress
       name: outline
     patch: |-
-      - op: add
-        path: /metadata/annotations/traefik.ingress.kubernetes.io~1router.middlewares
-        value: outline-opensgf-outline-https-redirect@kubernetescrd,outline-opensgf-outline-canonical@kubernetescrd
-      - op: replace
-        path: /spec/tls/0/hosts
-        value: [docs.opensgf.org, outline.opensgf.org]
       - op: replace
         path: /spec/rules/0/host
         value: docs.opensgf.org
       - op: replace
         path: /spec/rules/1/host
         value: outline.opensgf.org
-  - patch: |-
-      apiVersion: traefik.io/v1alpha1
-      kind: Middleware
-      metadata:
-        name: outline-canonical
-      spec:
-        redirectRegex:
-          regex: '^https?://outline[.]opensgf[.]org/(.*)'
-          replacement: 'https://docs.opensgf.org/${1}'
