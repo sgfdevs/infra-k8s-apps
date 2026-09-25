@@ -2,4 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - traefik-helmchartconfig.yaml
+  - cloudflared-sgfdevs-token.yaml
+  - cloudflared-opensgf-token.yaml
+  - traefik-ingress-policy.yaml
   - traefik-dashboard-ingress
