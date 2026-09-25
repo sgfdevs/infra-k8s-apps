@@ -40,7 +40,7 @@ rules:
   - apiGroups: ["apps"]
     resources: ["deployments", "deployments/scale"]
     resourceNames: ["twenty-server", "twenty-worker"]
-    verbs: ["get", "patch"]
+    verbs: ["get", "list", "watch", "patch"]
   - apiGroups: ["k8up.io"]
     resources: ["backups"]
     verbs: ["get", "list"]
