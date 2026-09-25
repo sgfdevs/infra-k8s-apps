@@ -86,12 +86,12 @@ data:
       exit 1
     fi
 
-    snapshot_path="/$TARGET_NAMESPACE-backup.tar.gz"
+    snapshot_path="/$TARGET_NAMESPACE-backup.tar"
     if [ "$SNAPSHOT_ID" = latest ]; then
       SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | jq -er 'if length == 1 then .[0].id else error("No matching snapshot found") end')
     fi
 
-    archive=$(mktemp /tmp/methodconf-backup.XXXXXX.tar.gz)
+    archive=$(mktemp /tmp/methodconf-backup.XXXXXX.tar)
     listing=$(mktemp)
     restore_root=$(mktemp -d /data/.methodconf-restore.XXXXXX)
     rollback_root=""
@@ -118,7 +118,7 @@ data:
 
     restic dump "$SNAPSHOT_ID" "$snapshot_path" > "$archive"
     test -s "$archive"
-    tar -tzf "$archive" > "$listing"
+    tar -tf "$archive" > "$listing"
     grep -qx 'database/Umbraco.sqlite.db' "$listing"
     grep -qx 'media/' "$listing"
     grep -qx 'data-protection-keys/' "$listing"
@@ -132,7 +132,7 @@ data:
       exit 1
     fi
 
-    tar -xzf "$archive" -C "$restore_root"
+    tar -xf "$archive" -C "$restore_root"
     restored_database="$restore_root/database/Umbraco.sqlite.db"
     test -s "$restored_database"
     test "$(sqlite3 "$restored_database" 'PRAGMA integrity_check;')" = ok

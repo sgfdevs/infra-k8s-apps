@@ -6,7 +6,7 @@
   value: methodconf
 - op: replace
   path: /spec/fileExtension
-  value: .tar.gz
+  value: .tar
 - op: replace
   path: /spec/backupCommand
   value: >-
@@ -22,7 +22,7 @@
       test -d /data/data-protection-keys;
       sqlite3 "$database" ".timeout 60000" ".backup $snapshot";
       test "$(sqlite3 "$snapshot" "PRAGMA integrity_check;")" = ok;
-      tar -czf - -C "$staging" database -C /data media data-protection-keys
+      tar -cf - -C "$staging" database -C /data media data-protection-keys
     '
 - op: replace
   path: /spec/pod/spec/serviceAccountName
