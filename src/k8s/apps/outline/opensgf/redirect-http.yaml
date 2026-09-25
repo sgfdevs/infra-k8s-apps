@@ -1,0 +1,30 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: outline-http-forwarded-proto
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: http
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: outline-http-redirect
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    # The tunnel reaches Traefik over TLS even for visitor HTTP requests.
+    # Match the visitor scheme, then let redirectScheme issue the redirect.
+    - match: Host(`docs.opensgf.org`) && HeaderRegexp(`Cf-Visitor`, `http"`) && !PathPrefix(`/.well-known/acme-challenge/`)
+      kind: Rule
+      priority: 100
+      middlewares:
+        - name: outline-http-forwarded-proto
+        - name: outline-https-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService
+  tls:
+    secretName: outline-tls

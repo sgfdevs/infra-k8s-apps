@@ -4,6 +4,7 @@ namespace: outline-opensgf
 resources:
   - ../base
   - namespace.yaml
+  - redirect-http.yaml
 patches:
   - patch: |-
       apiVersion: v1
