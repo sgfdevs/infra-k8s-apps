@@ -147,13 +147,19 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
-    topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: DoNotSchedule
-        labelSelector:
-          matchLabels:
-            app.kubernetes.io/name: traefik
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 0
+        maxUnavailable: 1
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: traefik-kube-system
+                app.kubernetes.io/name: traefik
+            topologyKey: kubernetes.io/hostname
     ports:
       websecure:
         # Both tunnels use https://127.0.0.1:8443 with SNI traefik.sgf.dev.
