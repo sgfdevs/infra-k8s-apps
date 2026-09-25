@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - traefik-helmchartconfig.yaml
   - traefik-dashboard-ingress
+  - visitor-http-redirect.yaml
