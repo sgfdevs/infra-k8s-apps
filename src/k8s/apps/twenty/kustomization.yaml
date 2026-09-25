@@ -12,6 +12,7 @@ resources:
   - deployments.yaml
   - service.yaml
   - pdb.yaml
+  - certificate.yaml
   - ingress.yaml
 labels:
   - pairs:
