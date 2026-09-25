@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: twenty-restore-resume
+spec:
+  entrypoint: resume
+  serviceAccountName: twenty-restore-workflow
+  synchronization:
+    mutexes:
+      - name: twenty-maintenance
+  arguments:
+    parameters:
+      - name: confirmation
+        description: Enter "RESUME twenty" after inspecting a failed restore.
+  activeDeadlineSeconds: 600
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  templates:
+    - name: resume
+      container:
+        image: alpine/k8s:1.36.2
+        command: [sh, -ec]
+        args:
+          - |
+            if [ "{{workflow.parameters.confirmation}}" != "RESUME twenty" ]; then
+              echo "Confirmation must exactly match: RESUME twenty" >&2
+              exit 1
+            fi
+            /scripts/cleanup-restore.sh
+        env:
+          - name: WORKFLOW_STATUS
+            value: Succeeded
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-workflow-scripts
+            defaultMode: 0555

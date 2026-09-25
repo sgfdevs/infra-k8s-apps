@@ -5,6 +5,7 @@ namespace: argocd
 resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.2/manifests/ha/install.yaml
   - dex-argocd-client-secret.yaml
+  - twenty-restore-rbac.yaml
 
 patches:
   - path: patches/argocd-cm.yaml

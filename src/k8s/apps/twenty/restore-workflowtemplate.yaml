@@ -1,0 +1,204 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: twenty-restore
+spec:
+  entrypoint: restore
+  onExit: cleanup
+  serviceAccountName: twenty-restore-workflow
+  synchronization:
+    mutexes:
+      - name: twenty-maintenance
+  arguments:
+    parameters:
+      - name: snapshot-id
+        value: latest
+      - name: confirmation
+        description: Enter "RESTORE twenty" to authorize replacing the database.
+  activeDeadlineSeconds: 3600
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  volumeClaimTemplates:
+    - metadata:
+        name: restore-data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 20Gi
+  templates:
+    - name: restore
+      steps:
+        - - name: validate
+            template: validate
+        - - name: download
+            template: download
+        - - name: pause
+            template: pause
+        - - name: verify-paused
+            template: verify-paused
+        - - name: restore-database
+            template: restore-database
+    - name: validate
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/validate-restore.sh]
+        env:
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: CONFIRMATION
+            value: "{{workflow.parameters.confirmation}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-workflow-scripts
+            defaultMode: 0555
+    - name: download
+      container:
+        image: restic/restic:0.18.1
+        command: [/scripts/download-restore.sh]
+        env:
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: RESTIC_REPOSITORY
+            value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/twenty
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: twenty-k8up-repo-password
+                key: password
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-key
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+          - name: restore-data
+            mountPath: /restore
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-workflow-scripts
+            defaultMode: 0555
+    - name: pause
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/pause-restore.sh]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-workflow-scripts
+            defaultMode: 0555
+    - name: verify-paused
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/verify-paused.sh]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-workflow-scripts
+            defaultMode: 0555
+    - name: restore-database
+      container:
+        image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+        command: [/scripts/restore-database.sh]
+        env:
+          - name: PGHOST
+            value: twenty-db-rw
+          - name: PGDATABASE
+            value: twenty
+          - name: PGUSER
+            value: twenty
+          - name: PGSSLMODE
+            value: require
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: twenty-db-app
+                key: password
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+          - name: restore-data
+            mountPath: /restore
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-workflow-scripts
+            defaultMode: 0555
+    - name: cleanup
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/cleanup-restore.sh]
+        env:
+          - name: WORKFLOW_STATUS
+            value: "{{workflow.status}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: twenty-workflow-scripts
+            defaultMode: 0555

@@ -2,9 +2,12 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: twenty
 resources:
+  - ../../platform/services/backup-base
   - namespace.yaml
   - service-account.yaml
   - secrets.yaml
+  - externalsecret-backup-credentials.yaml
+  - backup-serviceaccount.yaml
   - database.yaml
   - redis.yaml
   - config.yaml
@@ -14,6 +17,24 @@ resources:
   - pdb.yaml
   - certificate.yaml
   - ingress.yaml
+  - backup-workflowtemplate.yaml
+  - restore-workflowtemplate.yaml
+  - restore-resume-workflowtemplate.yaml
+  - workflow-scripts.yaml
+  - workflow-rbac.yaml
+patches:
+  - path: backup-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: PreBackupPod
+      name: app-backup
+  - path: schedule-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: Schedule
+      name: app-backup
 labels:
   - pairs:
       app.kubernetes.io/part-of: twenty

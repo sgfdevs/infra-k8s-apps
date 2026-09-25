@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: twenty-workflow-scripts
+data:
+  validate-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or lowercase hexadecimal." >&2; exit 1 ;;
+      esac
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
+      fi
+    fi
+    if [ "$CONFIRMATION" != "RESTORE twenty" ]; then
+      echo "Confirmation must exactly match: RESTORE twenty" >&2
+      exit 1
+    fi
+
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+
+    application=$(kubectl -n argocd get application twenty -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $application
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application twenty is not ready for restore." >&2
+      exit 1
+    fi
+    for deployment in twenty-server twenty-worker; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+      if [ -n "$original" ]; then
+        echo "$deployment has stale restore state." >&2
+        exit 1
+      fi
+    done
+
+  download-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    snapshot_path=/twenty-backup.dump
+    if [ "$SNAPSHOT_ID" = latest ]; then
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
+      if [ -z "$SNAPSHOT_ID" ]; then
+        echo "No Twenty database snapshot was found." >&2
+        exit 1
+      fi
+      echo "Resolved latest snapshot to $SNAPSHOT_ID."
+    fi
+    restic dump "$SNAPSHOT_ID" "$snapshot_path" > /restore/twenty.dump
+    test -s /restore/twenty.dump
+
+  pause-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    # Recheck before any disruption; backup creation is independent of Argo Workflows.
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+    application=$(kubectl -n argocd get application twenty -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $application
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application twenty is not ready for restore." >&2
+      exit 1
+    fi
+    for deployment in twenty-server twenty-worker; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+      if [ -n "$original" ]; then
+        echo "$deployment has stale restore state." >&2
+        exit 1
+      fi
+    done
+    for deployment in twenty-server twenty-worker; do
+      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
+      kubectl annotate deployment "$deployment" restore.sgf.dev/original-replicas="$replicas" --overwrite
+    done
+    kubectl -n argocd patch application twenty --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+    kubectl scale deployment twenty-server twenty-worker --replicas=0
+    pods=$(kubectl get pods -l 'app.kubernetes.io/name in (twenty-server,twenty-worker)' -o name)
+    if [ -n "$pods" ]; then
+      kubectl wait --for=delete pod -l 'app.kubernetes.io/name in (twenty-server,twenty-worker)' --timeout=240s
+    fi
+
+  verify-paused.sh: |
+    #!/bin/sh
+    set -eu
+
+    managed=$(kubectl -n argocd get application twenty -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    skipped=$(kubectl -n argocd get application twenty -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}')
+    if [ "$managed" != true ] || [ "$skipped" != true ]; then
+      echo "Argo CD did not remain paused." >&2
+      exit 1
+    fi
+    for deployment in twenty-server twenty-worker; do
+      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
+      if [ "$replicas" != 0 ]; then
+        echo "$deployment is not scaled to zero." >&2
+        exit 1
+      fi
+    done
+    pods=$(kubectl get pods -l 'app.kubernetes.io/name in (twenty-server,twenty-worker)' -o name)
+    if [ -n "$pods" ]; then
+      echo "Twenty application pods are still running." >&2
+      exit 1
+    fi
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+
+  restore-database.sh: |
+    #!/bin/sh
+    set -eu
+
+    test -s /restore/twenty.dump
+    pg_restore --list /restore/twenty.dump >/dev/null
+    psql --set=ON_ERROR_STOP=1 <<'SQL'
+    SELECT pg_terminate_backend(pid)
+    FROM pg_stat_activity
+    WHERE datname = current_database()
+      AND usename = current_user
+      AND pid <> pg_backend_pid();
+    SQL
+    pg_restore --clean --if-exists --single-transaction --exit-on-error --no-owner --no-privileges --dbname=twenty /restore/twenty.dump
+    table_count=$(psql --tuples-only --no-align --command="SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname = 'core';")
+    if [ "$table_count" -eq 0 ]; then
+      echo "Restored database contains no core tables." >&2
+      exit 1
+    fi
+    psql --set=ON_ERROR_STOP=1 --command='ANALYZE' >/dev/null
+    echo "Twenty database restored with $table_count core tables."
+
+  cleanup-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    if [ "$WORKFLOW_STATUS" != Succeeded ]; then
+      echo "Restore did not succeed. Twenty remains paused if restoration started; inspect it before running twenty-restore-resume." >&2
+      exit 0
+    fi
+    managed=$(kubectl -n argocd get application twenty -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    if [ "$managed" != true ]; then
+      echo "Twenty is not marked as managed by a restore." >&2
+      exit 1
+    fi
+    for deployment in twenty-server twenty-worker; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+      case "$original" in
+        ""|*[!0-9]*) echo "Missing or invalid saved replica count for $deployment." >&2; exit 1 ;;
+      esac
+      kubectl scale deployment "$deployment" --replicas="$original"
+    done
+    for deployment in twenty-server twenty-worker; do
+      kubectl rollout status deployment "$deployment" --timeout=300s
+    done
+    kubectl -n argocd patch application twenty --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.sgf.dev/managed":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}'
+    for deployment in twenty-server twenty-worker; do
+      kubectl annotate deployment "$deployment" restore.sgf.dev/original-replicas-
+    done
