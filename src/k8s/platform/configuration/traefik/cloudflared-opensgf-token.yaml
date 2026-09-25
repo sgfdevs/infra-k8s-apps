@@ -2,6 +2,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: cloudflared-opensgf-token
+  namespace: kube-system
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
 spec:

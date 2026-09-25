@@ -7,6 +7,146 @@ spec:
   valuesContent: |-
     deployment:
       replicas: 3
+      podAnnotations:
+        secret.reloader.stakater.com/reload: cloudflared-sgfdevs-token,cloudflared-opensgf-token
+      additionalVolumes:
+        - name: cloudflared-no-api-token
+          emptyDir:
+            medium: Memory
+      additionalContainers:
+        - name: cloudflared-sgfdevs
+          image: cloudflare/cloudflared:2026.8.2
+          imagePullPolicy: IfNotPresent
+          command:
+            - cloudflared
+            - tunnel
+            - --no-autoupdate
+            - --protocol
+            - http2
+            - --loglevel
+            - info
+            - --metrics
+            - 0.0.0.0:2000
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-sgfdevs-token
+                  key: token
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
+          # Traefik needs its service account token; the connectors do not.
+          volumeMounts:
+            - name: cloudflared-no-api-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+          ports:
+            - name: sgf-metrics
+              containerPort: 2000
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: sgf-metrics
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: sgf-metrics
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: sgf-metrics
+            periodSeconds: 30
+            timeoutSeconds: 2
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+        - name: cloudflared-opensgf
+          image: cloudflare/cloudflared:2026.8.2
+          imagePullPolicy: IfNotPresent
+          command:
+            - cloudflared
+            - tunnel
+            - --no-autoupdate
+            - --protocol
+            - http2
+            - --loglevel
+            - info
+            - --metrics
+            - 0.0.0.0:2001
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-opensgf-token
+                  key: token
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: cloudflared-no-api-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+          ports:
+            - name: osgf-metrics
+              containerPort: 2001
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: osgf-metrics
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: osgf-metrics
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: osgf-metrics
+            periodSeconds: 30
+            timeoutSeconds: 2
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
@@ -16,6 +156,10 @@ spec:
             app.kubernetes.io/name: traefik
     ports:
       websecure:
+        # Both tunnels use https://127.0.0.1:8443 with SNI traefik.sgf.dev.
+        forwardedHeaders:
+          trustedIPs:
+            - 127.0.0.1/32
         transport:
           respondingTimeouts:
             readTimeout: 600s

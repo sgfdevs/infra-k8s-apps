@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: traefik-ingress
+  namespace: kube-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: traefik
+  policyTypes:
+    - Ingress
+  ingress:
+    # Leave Traefik's existing listeners reachable, not the connectors' metrics ports.
+    - ports:
+        - port: 8000
+          protocol: TCP
+        - port: 8443
+          protocol: TCP
+        - port: 8080
+          protocol: TCP
+        - port: 9100
+          protocol: TCP
