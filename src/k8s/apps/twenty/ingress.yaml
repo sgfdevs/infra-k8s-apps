@@ -16,7 +16,6 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: twenty-twenty-https-redirect@kubernetescrd
 spec:
   ingressClassName: traefik
-  # Certificate issuance is deferred until DNS cutover.
   tls:
     - hosts:
         - crm.sgf.dev
