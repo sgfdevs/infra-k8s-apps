@@ -1,0 +1,45 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: outline-sgfdevs-restore-workflow
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    resourceNames: ["outline-sgfdevs"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: outline-sgfdevs-restore-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: outline-sgfdevs-restore-workflow
+subjects:
+  - kind: ServiceAccount
+    name: outline-restore-workflow
+    namespace: outline-sgfdevs
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: outline-opensgf-restore-workflow
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    resourceNames: ["outline-opensgf"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: outline-opensgf-restore-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: outline-opensgf-restore-workflow
+subjects:
+  - kind: ServiceAccount
+    name: outline-restore-workflow
+    namespace: outline-opensgf
