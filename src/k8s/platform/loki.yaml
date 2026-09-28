@@ -59,7 +59,10 @@ spec:
               enabled: false
           chunksCache:
             allocatedMemory: 512
+            allocatedCPU: 50m
             defaultValidity: 168h
+          resultsCache:
+            allocatedCPU: 50m
           singleBinary:
             replicas: 3
             persistence:
