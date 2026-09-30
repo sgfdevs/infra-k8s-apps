@@ -6,6 +6,7 @@ metadata:
 spec:
   entryPoints:
     - websecure
+    - cloudflared
   routes:
     - match: Host(`traefik.sgf.dev`)
       kind: Rule
