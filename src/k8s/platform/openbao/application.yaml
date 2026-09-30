@@ -10,7 +10,7 @@ spec:
   sources:
     - chart: openbao
       repoURL: https://openbao.github.io/openbao-helm
-      targetRevision: 0.28.4
+      targetRevision: 0.30.0
       helm:
         valueFiles:
           - $values/src/k8s/platform/openbao/values.yaml
