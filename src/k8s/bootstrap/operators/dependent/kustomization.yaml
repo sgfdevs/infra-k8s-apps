@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - db-operator.yaml
   - kubeblocks.yaml
+  - kubeblocks-cpu-request.yaml
   - otel-operator.yaml
   - percona-mongodb.yaml
   - reloader.yaml

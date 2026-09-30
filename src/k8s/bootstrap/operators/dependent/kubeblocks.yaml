@@ -13,6 +13,9 @@ spec:
     targetRevision: 1.0.2
     helm:
       values: |
+        # The admission policy lowers requests without changing the chart's CPU limit.
+        podAnnotations:
+          infra.sgf.dev/manager-cpu-request: 50m
         autoInstalledAddons:
           - mysql
           - redis
