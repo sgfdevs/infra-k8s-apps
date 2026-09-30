@@ -99,7 +99,7 @@ server:
           cpu: 250m
           memory: 256Mi
     - name: recover-raft-or-join
-      image: quay.io/openbao/openbao:2.5.5
+      image: quay.io/openbao/openbao:2.7.0
       command: ["/bin/sh", "/recovery-config/recover.sh"]
       env:
         - name: HOSTNAME

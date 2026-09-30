@@ -26,4 +26,4 @@
   value: openbao-backup
 - op: replace
   path: /spec/pod/spec/containers/0/image
-  value: quay.io/openbao/openbao:2.5.5
+  value: quay.io/openbao/openbao:2.7.0
