@@ -41,6 +41,10 @@ spec:
           image: quay.io/thanos/thanos:v0.41.0
           args:
             - query
+            - --enable-auto-gomemlimit
+            - --auto-gomemlimit.ratio=0.8
+            - --query.max-concurrent=4
+            - --query.max-concurrent-select=2
             - --query.replica-label=prometheus_replica
             - --query.replica-label=cluster
             - --grpc-address=0.0.0.0:10901
@@ -68,10 +72,10 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 128Mi
+              memory: 256Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 2Gi
           volumeMounts:
             - name: endpoint-sd
               mountPath: /etc/thanos
