@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: listmonk
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: listmonk-listmonk-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - newsletter.sgf.dev
+      secretName: listmonk-tls
+  rules:
+    - host: newsletter.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: listmonk
+                port:
+                  name: http
