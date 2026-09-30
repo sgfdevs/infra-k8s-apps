@@ -7,6 +7,7 @@ resources:
   - db-instance.yaml
   - apex-ingress.yaml
   - middleware-www-redirect.yaml
+  - ingress-xmlrpc-deny.yaml
 transformers:
   - db-instance-namespace-patch.yaml
 labels:

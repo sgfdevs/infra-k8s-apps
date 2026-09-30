@@ -1,0 +1,10 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hack4goodsgf-xmlrpc-deny
+spec:
+  ipAllowList:
+    # An empty sourceRange is invalid. Allow only the unspecified address,
+    # which cannot be a TCP peer, to reject all real IPv4 and IPv6 clients.
+    sourceRange:
+      - 0.0.0.0/32
