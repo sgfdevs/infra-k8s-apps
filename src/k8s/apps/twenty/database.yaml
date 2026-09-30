@@ -12,7 +12,7 @@ spec:
       database: twenty
       owner: twenty
   storage:
-    storageClass: longhorn
+    storageClass: local-path
     size: 20Gi
   affinity:
     enablePodAntiAffinity: true
