@@ -19,7 +19,7 @@ spec:
           replicaCount: 2
 
           image:
-            tag: v7.15.2
+            tag: v7.15.4
 
           podDisruptionBudget:
             enabled: true
