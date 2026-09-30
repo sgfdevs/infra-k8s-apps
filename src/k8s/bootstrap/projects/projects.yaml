@@ -33,6 +33,7 @@ spec:
     - https://charts.jetstack.io
     - https://charts.longhorn.io
     - https://cloudnative-pg.github.io/charts
+    - https://crowdsecurity.github.io/helm-charts
     - https://github.com/apecloud/kubeblocks.git
     - https://grafana-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts

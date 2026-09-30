@@ -1,0 +1,79 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crowdsec
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    infra.sgf.dev/health-gate: "true"
+spec:
+  project: platform
+  sources:
+    - chart: crowdsec
+      repoURL: https://crowdsecurity.github.io/helm-charts
+      targetRevision: 0.24.2
+      helm:
+        values: |
+          container_runtime: containerd
+          config:
+            simulation.yaml: |
+              simulation: true
+          lapi:
+            envFrom:
+              - secretRef:
+                  name: crowdsec-bouncer-key
+          agent:
+            additionalAcquisition:
+              - source: file
+                filenames:
+                  - /var/log/containers/traefik-*_kube-system_traefik-*.log
+                force_inotify: true
+                labels:
+                  type: containerd
+                  program: traefik
+            env:
+              - name: PARSERS
+                value: crowdsecurity/cri-logs
+              - name: COLLECTIONS
+                value: crowdsecurity/traefik
+          appsec:
+            enabled: true
+            replicas: 2
+            acquisitions:
+              - source: appsec
+                listen_addr: "0.0.0.0:7422"
+                path: /
+                appsec_config: crowdsecurity/appsec-default
+                labels:
+                  type: appsec
+            env:
+              - name: COLLECTIONS
+                value: "crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules"
+    - repoURL: ssh://git@github.com/sgfdevs/infra-k8s-apps.git
+      path: src/k8s/platform/services/crowdsec
+      targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crowdsec
+  # Helm generates these credentials on first sync; preserve them on later renders.
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: crowdsec-lapi-secrets
+      namespace: crowdsec
+      jsonPointers:
+        - /data/csLapiSecret
+        - /data/registrationToken
+    - group: apps
+      kind: Deployment
+      name: crowdsec-lapi
+      namespace: crowdsec
+      jsonPointers:
+        - /spec/template/metadata/annotations/checksum~1lapi-secret
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
