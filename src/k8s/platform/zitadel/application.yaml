@@ -10,7 +10,7 @@ spec:
   sources:
     - chart: zitadel
       repoURL: https://charts.zitadel.com
-      targetRevision: 10.0.4
+      targetRevision: 10.1.0
       helm:
         valueFiles:
           - $values/src/k8s/platform/zitadel/values.yaml

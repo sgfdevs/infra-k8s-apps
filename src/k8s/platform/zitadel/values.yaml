@@ -1,5 +1,8 @@
 replicaCount: 2
 
+image:
+  tag: v4.19.3
+
 annotations:
   argocd.argoproj.io/sync-wave: "3"
 
@@ -121,6 +124,8 @@ metrics:
       release: kube-prometheus-stack
 
 login:
+  image:
+    tag: v4.19.3
   loginServiceKeySecretName: zitadel-login-service-key
   replicaCount: 2
   annotations:
