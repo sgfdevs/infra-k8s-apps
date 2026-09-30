@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: listmonk
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    infra.sgf.dev/aws-role-arn: "arn:aws:iam::${SGFDEVS_AWS_ACCOUNT_ID}:role/sgfdevs-k3s/sgfdevs-k3s-listmonk"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: listmonk-secrets
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: listmonk-backup
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+automountServiceAccountToken: false
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: openbao
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  provider:
+    vault:
+      server: http://openbao-active.openbao.svc.cluster.local:8200
+      path: applications
+      version: v2
+      auth:
+        kubernetes:
+          mountPath: kubernetes
+          role: listmonk-secrets
+          serviceAccountRef:
+            name: listmonk-secrets
+            audiences:
+              - vault
