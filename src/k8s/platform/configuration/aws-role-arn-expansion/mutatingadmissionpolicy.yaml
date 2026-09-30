@@ -33,6 +33,9 @@ spec:
                   ).replace(
                     "${OPENSGF_AWS_ACCOUNT_ID}",
                     params.data["OPENSGF_AWS_ACCOUNT_ID"]
+                  ).replace(
+                    "${LZ_AWS_ACCOUNT_ID}",
+                    params.data["LZ_AWS_ACCOUNT_ID"]
                   )
               }
             }
