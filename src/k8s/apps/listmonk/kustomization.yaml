@@ -14,7 +14,6 @@ resources:
 configMapGenerator:
   - name: listmonk-settings
     files:
-      - settings.json
       - settings.sql
     options:
       annotations:

@@ -91,7 +91,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              if ! psql -X -q -f /settings/settings.sql >/dev/null 2>&1; then
+              if ! psql -X -q -f /scripts/settings.sql >/dev/null 2>&1; then
                 echo "Failed to apply Listmonk settings" >&2
                 exit 1
               fi
@@ -120,41 +120,6 @@ spec:
               value: require
             - name: PGCONNECT_TIMEOUT
               value: "10"
-            - name: LISTMONK_SETTINGS
-              valueFrom:
-                configMapKeyRef:
-                  name: listmonk-settings
-                  key: settings.json
-            - name: SMTP_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: listmonk-smtp
-                  key: username
-            - name: SMTP_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: listmonk-smtp
-                  key: password
-            - name: SMTP_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: listmonk-smtp
-                  key: host
-            - name: SMTP_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: listmonk-smtp
-                  key: port
-            - name: SMTP_FROM_ADDRESS
-              valueFrom:
-                secretKeyRef:
-                  name: listmonk-smtp
-                  key: fromAddress
-            - name: SMTP_CONFIGURATION_SET
-              valueFrom:
-                secretKeyRef:
-                  name: listmonk-smtp
-                  key: configurationSet
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -169,6 +134,9 @@ spec:
               memory: 128Mi
           volumeMounts:
             - name: settings
+              mountPath: /scripts
+              readOnly: true
+            - name: desired-settings
               mountPath: /settings
               readOnly: true
       containers:
@@ -227,6 +195,12 @@ spec:
         - name: settings
           configMap:
             name: listmonk-settings
+        - name: desired-settings
+          secret:
+            secretName: listmonk-smtp
+            items:
+              - key: settings.json
+                path: settings.json
         - name: uploads
           emptyDir:
             sizeLimit: 100Mi
