@@ -16,6 +16,10 @@ spec:
       kind: ApplicationSet
     - group: argoproj.io
       kind: AppProject
+    - group: admissionregistration.k8s.io
+      kind: MutatingAdmissionPolicy
+    - group: admissionregistration.k8s.io
+      kind: MutatingAdmissionPolicyBinding
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
