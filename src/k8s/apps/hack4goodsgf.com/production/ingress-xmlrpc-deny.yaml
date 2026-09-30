@@ -9,20 +9,9 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - hack4goodsgf.com
         - www.hack4goodsgf.com
       secretName: hack4goodsgf-tls
   rules:
-    - host: hack4goodsgf.com
-      http:
-        paths:
-          - path: /xmlrpc.php
-            pathType: Prefix
-            backend:
-              service:
-                name: hack4goodsgf
-                port:
-                  number: 80
     - host: www.hack4goodsgf.com
       http:
         paths:

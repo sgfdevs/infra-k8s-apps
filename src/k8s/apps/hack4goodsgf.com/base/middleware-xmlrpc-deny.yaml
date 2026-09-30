@@ -4,6 +4,7 @@ metadata:
   name: hack4goodsgf-xmlrpc-deny
 spec:
   ipAllowList:
-    # An unspecified address cannot be a TCP peer. Deny all IPv4 and IPv6 clients.
+    # An empty sourceRange is invalid. Allow only the unspecified address,
+    # which cannot be a TCP peer, to reject all real IPv4 and IPv6 clients.
     sourceRange:
       - 0.0.0.0/32
