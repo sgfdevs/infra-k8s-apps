@@ -33,6 +33,9 @@ spec:
           image: quay.io/thanos/thanos:v0.41.0
           args:
             - store
+            - --enable-auto-gomemlimit
+            - --auto-gomemlimit.ratio=0.8
+            - --chunk-pool-size=256MB
             - --data-dir=/var/thanos/store
             - --objstore.config-file=/etc/thanos/objstore.yaml
             - --grpc-address=0.0.0.0:10901
@@ -60,10 +63,10 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 128Mi
+              memory: 512Mi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 1Gi
           volumeMounts:
             - name: data
               mountPath: /var/thanos/store
