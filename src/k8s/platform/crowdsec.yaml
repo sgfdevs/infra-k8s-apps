@@ -19,10 +19,16 @@ spec:
             simulation.yaml: |
               simulation: false
           lapi:
+            resources:
+              requests:
+                cpu: 50m
             envFrom:
               - secretRef:
                   name: crowdsec-bouncer-key
           agent:
+            resources:
+              requests:
+                cpu: 50m
             additionalAcquisition:
               - source: file
                 filenames:
@@ -37,6 +43,9 @@ spec:
               - name: COLLECTIONS
                 value: crowdsecurity/traefik
           appsec:
+            resources:
+              requests:
+                cpu: 50m
             enabled: true
             replicas: 2
             acquisitions:

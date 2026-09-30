@@ -22,6 +22,7 @@ spec:
           defaultClassReplicaCount: 3
         defaultSettings:
           defaultDataPath: /mnt/k8s-data/longhorn
+          guaranteedInstanceManagerCPU: '{"v1":"5","v2":"12"}'
         csi:
           snapshotterReplicaCount: "0"
   destination:
