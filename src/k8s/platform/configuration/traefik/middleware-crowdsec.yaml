@@ -1,0 +1,27 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: crowdsec-appsec
+  namespace: kube-system
+spec:
+  plugin:
+    bouncer:
+      enabled: true
+      # AppSec inspects requests without enforcing LAPI IP decisions.
+      crowdsecMode: appsec
+      # Traefik validates forwarding peers before the shared header sanitizer.
+      # The bouncer scans XFF from the right, matching the Traefik log parser.
+      forwardedHeadersCustomName: X-Forwarded-For
+      forwardedHeadersTrustedIPs:
+        - 100.64.0.10/32
+        - 127.0.0.1/32
+      crowdsecLapiHost: crowdsec-service.crowdsec.svc.cluster.local:8080
+      crowdsecLapiKeyFile: /etc/traefik/crowdsec/BOUNCER_KEY_traefik
+      crowdsecAppsecKeyFile: /etc/traefik/crowdsec/BOUNCER_KEY_traefik
+      crowdsecAppsecEnabled: true
+      crowdsecAppsecHost: crowdsec-appsec-service.crowdsec.svc.cluster.local:7422
+      crowdsecAppsecFailureBlock: true
+      # Inspect headers and URI when HTTP/2+ bodies cannot be buffered.
+      crowdsecAppsecUnreadableBodyBlock: false
+      # Keep apps reachable during AppSec outages.
+      crowdsecAppsecUnreachableBlock: false

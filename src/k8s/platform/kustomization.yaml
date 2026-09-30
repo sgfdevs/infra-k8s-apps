@@ -7,6 +7,7 @@ resources:
   - argocd-install.yaml
   - aws-pod-identity-webhook.yaml
   - bootstrap-config.yaml
+  - crowdsec.yaml
   - dex.yaml
   - grafana-infra.yaml
   - headlamp.yaml

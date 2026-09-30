@@ -3,6 +3,8 @@ kind: Kustomization
 resources:
   - traefik-helmchartconfig.yaml
   - middleware-client-headers.yaml
+  - middleware-crowdsec.yaml
+  - externalsecret-crowdsec.yaml
   - cloudflared-sgfdevs-token.yaml
   - cloudflared-opensgf-token.yaml
   - lz-headscale-store.yaml
