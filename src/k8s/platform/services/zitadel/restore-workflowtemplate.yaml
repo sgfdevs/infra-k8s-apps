@@ -126,7 +126,7 @@ spec:
             defaultMode: 0555
     - name: restore-database
       container:
-        image: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+        image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
         command: [/scripts/restore-database.sh]
         env:
           - name: PGHOST
