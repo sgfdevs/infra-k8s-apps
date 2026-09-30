@@ -24,5 +24,3 @@ spec:
         jwt:
           serviceAccountRef:
             name: sgfdevs-tailnet-secrets
-            audiences:
-              - sts.amazonaws.com
