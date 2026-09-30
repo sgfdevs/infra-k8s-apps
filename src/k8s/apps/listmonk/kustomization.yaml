@@ -11,3 +11,11 @@ resources:
   - deployment.yaml
   - service.yaml
   - backup.yaml
+configMapGenerator:
+  - name: listmonk-settings
+    files:
+      - settings.json
+      - settings.sql
+    options:
+      annotations:
+        argocd.argoproj.io/sync-wave: "-1"
