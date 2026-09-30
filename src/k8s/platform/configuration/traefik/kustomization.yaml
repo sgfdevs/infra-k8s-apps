@@ -4,5 +4,7 @@ resources:
   - traefik-helmchartconfig.yaml
   - cloudflared-sgfdevs-token.yaml
   - cloudflared-opensgf-token.yaml
+  - lz-headscale-store.yaml
+  - traefik-tailnet-auth.yaml
   - traefik-ingress-policy.yaml
   - traefik-dashboard-ingress
