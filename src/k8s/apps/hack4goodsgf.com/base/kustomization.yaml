@@ -17,6 +17,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - middleware-https-redirect.yaml
+  - middleware-xmlrpc-deny.yaml
   - certificate.yaml
   - ingress.yaml
 configMapGenerator:

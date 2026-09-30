@@ -6,6 +6,7 @@ resources:
   - namespace.yaml
   - db-instance.yaml
   - middleware-noindex.yaml
+  - ingress-xmlrpc-deny.yaml
   - robots-configmap.yaml
 transformers:
   - db-instance-namespace-patch.yaml
