@@ -20,3 +20,6 @@ spec:
           protocol: TCP
         - port: 9100
           protocol: TCP
+        # Headscale ACLs restrict which peers may reach the TCP listeners.
+        - port: 41641
+          protocol: UDP

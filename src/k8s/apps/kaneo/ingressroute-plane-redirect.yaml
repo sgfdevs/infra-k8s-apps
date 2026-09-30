@@ -5,6 +5,7 @@ metadata:
 spec:
   entryPoints:
     - websecure
+    - cloudflared
   routes:
     - match: Host(`plane.sgf.dev`)
       kind: Rule
