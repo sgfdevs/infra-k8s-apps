@@ -280,10 +280,10 @@ spec:
             idleTimeout: 0
       websecure:
         asDefault: true
-        # Legacy tunnel origin remains supported alongside the isolated listener.
-        forwardedHeaders:
-          trustedIPs:
-            - 127.0.0.1/32
+        http:
+          middlewares:
+            - kube-system-client-headers@kubernetescrd
+        # Only the public edge may supply a PROXY-protocol visitor address.
         proxyProtocol:
           trustedIPs:
             - 100.64.0.10/32
