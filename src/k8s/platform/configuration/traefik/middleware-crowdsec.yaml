@@ -7,8 +7,10 @@ spec:
   plugin:
     bouncer:
       enabled: true
-      # AppSec inspects requests without enforcing LAPI IP decisions.
-      crowdsecMode: appsec
+      # Enforce cached LAPI IP bans alongside AppSec inspection.
+      crowdsecMode: stream
+      # Keep serving unbanned clients if LAPI decision updates fail.
+      updateMaxFailure: -1
       # Traefik validates forwarding peers before the shared header sanitizer.
       # The bouncer scans XFF from the right, matching the Traefik log parser.
       forwardedHeadersCustomName: X-Forwarded-For

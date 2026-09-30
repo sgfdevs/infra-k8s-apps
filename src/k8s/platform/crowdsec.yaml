@@ -17,7 +17,7 @@ spec:
           container_runtime: containerd
           config:
             simulation.yaml: |
-              simulation: true
+              simulation: false
           lapi:
             envFrom:
               - secretRef:
