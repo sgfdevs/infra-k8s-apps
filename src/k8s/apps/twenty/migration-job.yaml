@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          image: twentycrm/twenty:v2.43.0@sha256:b2b662b1bef1ea9439edcbcb4f9fe648eeff1cd3fa385ac63e8a8dbd26eb46b2
+          image: twentycrm/twenty:v2.44.0@sha256:01fb6d2c00397976fd7613dbeb9703b514b52fb6270339b7a326a2a975d15b26
           command: ["/bin/sh", "-ec"]
           args:
             - |
