@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: plausible
+resources:
+  - ../../platform/services/backup-base
+  - namespace.yaml
+  - identity.yaml
+  - secrets.yaml
+  - configmap.yaml
+  - database.yaml
+  - clickhouse.yaml
+  - pvc.yaml
+  - install-job.yaml
+  - deployment.yaml
+  - service.yaml
+  - backup-keys.yaml
+  - monitoring.yaml
+patches:
+  - path: backup-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: PreBackupPod
+      name: app-backup
+  - path: schedule-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: Schedule
+      name: app-backup
+configMapGenerator:
+  - name: plausible-clickhouse-config
+    files:
+      - server.xml=clickhouse/server.xml
+  - name: plausible-clickhouse-scripts
+    files:
+      - backup.sh=clickhouse/backup.sh
+  - name: plausible-postgres-backup-scripts
+    files:
+      - backup.sh=backup/postgres.sh
+    # Kustomize does not rewrite volume references inside a PreBackupPod.
+    options:
+      disableNameSuffixHash: true

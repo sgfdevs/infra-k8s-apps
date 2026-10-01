@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: plausible-secrets
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: plausible-backup
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+automountServiceAccountToken: false
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: openbao
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  provider:
+    vault:
+      server: http://openbao-active.openbao.svc.cluster.local:8200
+      path: applications
+      version: v2
+      auth:
+        kubernetes:
+          mountPath: kubernetes
+          role: plausible-secrets
+          serviceAccountRef:
+            name: plausible-secrets
+            audiences:
+              - vault

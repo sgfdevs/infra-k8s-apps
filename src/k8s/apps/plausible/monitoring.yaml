@@ -1,0 +1,69 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: plausible-db
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      cnpg.io/cluster: plausible-db
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: plausible-clickhouse
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: plausible-clickhouse
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: plausible
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: plausible
+      rules:
+        - alert: PlausibleUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="plausible", deployment="plausible"} < 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Plausible has no ready application replica
+            description: Check application health and both database dependencies.
+        - alert: PlausibleClickHouseUnavailable
+          expr: kube_statefulset_status_replicas_ready{namespace="plausible", statefulset="plausible-clickhouse"} < 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Plausible ClickHouse is unavailable
+        - alert: PlausibleVolumeAlmostFull
+          expr: kubelet_volume_stats_available_bytes{namespace="plausible"} / kubelet_volume_stats_capacity_bytes{namespace="plausible"} < 0.15
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Plausible volume has less than 15 percent free space
+            description: Longhorn volumes can be expanded. PostgreSQL local-path volumes need a separately planned storage change.
+        - alert: PlausibleJobFailed
+          expr: kube_job_status_failed{namespace="plausible"} > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Plausible initialization or maintenance job failed
+            description: Inspect job logs and verify the scheduled backup captured PostgreSQL, ClickHouse, and application keys.
