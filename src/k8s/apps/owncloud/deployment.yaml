@@ -1,0 +1,167 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: owncloud
+  annotations:
+    secret.reloader.stakater.com/reload: owncloud,owncloud-s3-credentials
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: owncloud
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: owncloud
+    spec:
+      serviceAccountName: owncloud
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: initialize
+          image: owncloud/ocis:8.2.0
+          command: [/bin/sh, /bootstrap/initialize.sh]
+          envFrom:
+            - configMapRef:
+                name: owncloud-config
+            - secretRef:
+                name: owncloud
+            - secretRef:
+                name: owncloud-s3-credentials
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: state
+              mountPath: /var/lib/ocis
+            - name: bootstrap
+              mountPath: /bootstrap
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      containers:
+        - name: owncloud
+          image: owncloud/ocis:8.2.0
+          args: [server]
+          ports:
+            - name: http
+              containerPort: 9200
+            - name: debug
+              containerPort: 9205
+          envFrom:
+            - configMapRef:
+                name: owncloud-config
+            - secretRef:
+                name: owncloud
+            - secretRef:
+                name: owncloud-s3-credentials
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: debug
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /status.php
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: debug
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: state
+              mountPath: /var/lib/ocis
+            - name: tmp
+              mountPath: /tmp
+        - name: collaboration
+          image: owncloud/ocis:8.2.0
+          args: [collaboration, server]
+          ports:
+            - name: wopi
+              containerPort: 9300
+            - name: collab-debug
+              containerPort: 9304
+          envFrom:
+            - configMapRef:
+                name: owncloud-config
+            - secretRef:
+                name: owncloud
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: collab-debug
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: collab-debug
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: collab-debug
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: state
+              mountPath: /var/lib/ocis
+            - name: collaboration-tmp
+              mountPath: /tmp
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: owncloud-state
+        - name: bootstrap
+          configMap:
+            name: owncloud-bootstrap
+        - name: tmp
+          emptyDir: {}
+        - name: collaboration-tmp
+          emptyDir: {}

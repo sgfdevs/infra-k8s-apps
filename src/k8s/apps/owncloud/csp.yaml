@@ -1,0 +1,37 @@
+directives:
+  default-src:
+    - "'none'"
+  child-src:
+    - "'self'"
+  connect-src:
+    - "'self'"
+    - "blob:"
+    - "https://id.sgf.dev"
+  font-src:
+    - "'self'"
+    - "data:"
+  frame-ancestors:
+    - "'self'"
+  frame-src:
+    - "'self'"
+    - "blob:"
+    - "http://localhost:9980"
+    - "https://id.sgf.dev"
+  img-src:
+    - "'self'"
+    - "data:"
+    - "blob:"
+    - "http://localhost:9980"
+  manifest-src:
+    - "'self'"
+  media-src:
+    - "'self'"
+  object-src:
+    - "'self'"
+    - "blob:"
+  script-src:
+    - "'self'"
+    - "'unsafe-inline'"
+  style-src:
+    - "'self'"
+    - "'unsafe-inline'"

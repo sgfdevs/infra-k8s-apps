@@ -4,3 +4,4 @@ resources:
   - cluster.yaml
   - observability-reference-grant.yaml
   - glitchtip-reference-grant.yaml
+  - owncloud-reference-grant.yaml

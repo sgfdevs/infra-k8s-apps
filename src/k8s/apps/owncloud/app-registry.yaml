@@ -1,0 +1,37 @@
+app_registry:
+  mimetypes:
+    - mime_type: application/vnd.oasis.opendocument.text
+      extension: odt
+      name: OpenDocument
+      default_app: CollaboraOnline
+      allow_creation: true
+    - mime_type: application/vnd.oasis.opendocument.spreadsheet
+      extension: ods
+      name: OpenSpreadsheet
+      default_app: CollaboraOnline
+      allow_creation: true
+    - mime_type: application/vnd.oasis.opendocument.presentation
+      extension: odp
+      name: OpenPresentation
+      default_app: CollaboraOnline
+      allow_creation: true
+    - mime_type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      extension: docx
+      name: Microsoft Word
+      default_app: CollaboraOnline
+      allow_creation: true
+    - mime_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      extension: xlsx
+      name: Microsoft Excel
+      default_app: CollaboraOnline
+      allow_creation: true
+    - mime_type: application/vnd.openxmlformats-officedocument.presentationml.presentation
+      extension: pptx
+      name: Microsoft PowerPoint
+      default_app: CollaboraOnline
+      allow_creation: true
+    - mime_type: application/pdf
+      extension: pdf
+      name: PDF
+      default_app: CollaboraOnline
+      allow_creation: false

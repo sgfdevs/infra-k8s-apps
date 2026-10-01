@@ -1,0 +1,9 @@
+role_assignment:
+  driver: oidc
+  oidc_role_mapper:
+    role_claim: owncloud_roles
+    role_mapping:
+      - role_name: admin
+        claim_value: admin
+      - role_name: user
+        claim_value: user

@@ -1,0 +1,91 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: Bucket
+metadata:
+  name: owncloud-files
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  clusterRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  placement:
+    replication: "001"
+  reclaimPolicy: Retain
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Identity
+metadata:
+  name: owncloud
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: owncloud-files
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Credentials
+metadata:
+  name: owncloud
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  identityRef:
+    name: owncloud
+  secretRef:
+    name: owncloud-s3-credentials
+    accessKeyField: STORAGE_USERS_S3NG_ACCESS_KEY
+    secretKeyField: STORAGE_USERS_S3NG_SECRET_KEY
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Policy
+metadata:
+  name: owncloud
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: owncloud-files
+  statements:
+    - effect: Allow
+      actions:
+        - s3:GetBucketLocation
+        - s3:ListBucket
+        - s3:ListBucketMultipartUploads
+      resources:
+        - owncloud-files
+    - effect: Allow
+      actions:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+        - s3:AbortMultipartUpload
+        - s3:ListMultipartUploadParts
+      resources:
+        - owncloud-files/*
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3PolicyBinding
+metadata:
+  name: owncloud
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  policyRef:
+    name: owncloud
+  subjects:
+    - kind: S3Identity
+      name: owncloud
+  reclaimPolicy: Delete
