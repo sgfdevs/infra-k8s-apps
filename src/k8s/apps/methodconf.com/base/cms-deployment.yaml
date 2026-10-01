@@ -24,6 +24,7 @@ spec:
         app.kubernetes.io/component: cms
         app.kubernetes.io/part-of: methodconf
     spec:
+      serviceAccountName: methodconf-secrets
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
       securityContext:
