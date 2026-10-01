@@ -4,6 +4,8 @@ metadata:
   name: collabora
   annotations:
     secret.reloader.stakater.com/reload: collabora
+    ignore-check.kube-linter.io/no-read-only-root-fs: "Collabora builds document-worker jails and caches in the upstream image's writable filesystem."
+    ignore-check.kube-linter.io/privilege-escalation-container: "coolforkit-caps requires file capabilities for its chroot jail; only CHOWN, FOWNER, and SYS_CHROOT are granted."
 spec:
   replicas: 1
   strategy:
