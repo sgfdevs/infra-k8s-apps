@@ -20,6 +20,13 @@ images:
 - name: ghcr.io/sgfdevs/methodconf.com
   newTag: 1.3.6
 patches:
+- patch: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: methodconf-secrets
+      annotations:
+        infra.sgf.dev/aws-role-arn: "arn:aws:iam::${SGFDEVS_AWS_ACCOUNT_ID}:role/sgfdevs-k3s/sgfdevs-k3s-methodconf-staging"
 - path: configmaps-patch.yaml
 - path: environment-patch.yaml
   target:

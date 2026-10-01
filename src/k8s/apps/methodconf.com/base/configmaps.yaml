@@ -4,6 +4,7 @@ metadata:
   name: methodconf-cms
 data:
   ASPNETCORE_ENVIRONMENT: Production
+  AWS__Region: us-east-2
   ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
   ConnectionStrings__umbracoDbDSN: Data Source=/var/lib/methodconf/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True;Default Timeout=60
   Umbraco__CMS__Hosting__MachineIdentifier: methodconf-cms
