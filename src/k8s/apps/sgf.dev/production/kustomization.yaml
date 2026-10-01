@@ -17,7 +17,7 @@ labels:
     app.kubernetes.io/instance: production
 images:
 - name: ghcr.io/sgfdevs/sgf.dev
-  newTag: 1.10.9
+  newTag: 1.11.0
 patches:
 - patch: |-
     apiVersion: v1
