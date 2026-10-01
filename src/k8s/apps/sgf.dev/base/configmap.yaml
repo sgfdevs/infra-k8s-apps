@@ -4,6 +4,7 @@ metadata:
   name: sgf-dev
 data:
   ASPNETCORE_ENVIRONMENT: Production
+  AWS__Region: us-east-2
   ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
   ConnectionStrings__umbracoDbDSN: Data Source=/var/lib/sgf-dev/Umbraco.sqlite.db;Foreign Keys=True;Pooling=True;Default Timeout=60
   SGFDevs__NewsletterEndpoint: https://newsletter.sgf.dev/api/public/subscription

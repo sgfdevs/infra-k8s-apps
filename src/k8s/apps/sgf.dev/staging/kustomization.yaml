@@ -17,6 +17,13 @@ images:
 - name: ghcr.io/sgfdevs/sgf.dev
   newTag: 1.10.9
 patches:
+- patch: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: sgf-dev-secrets
+      annotations:
+        infra.sgf.dev/aws-role-arn: "arn:aws:iam::${SGFDEVS_AWS_ACCOUNT_ID}:role/sgfdevs-k3s/sgfdevs-k3s-sgf-dev-staging"
 - path: configmap-patch.yaml
 - path: backup-patch.yaml
   target:
