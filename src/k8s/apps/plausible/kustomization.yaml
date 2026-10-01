@@ -14,6 +14,11 @@ resources:
   - deployment.yaml
   - service.yaml
   - backup-keys.yaml
+  - backup-workflowtemplate.yaml
+  - restore-workflowtemplate.yaml
+  - restore-resume-workflowtemplate.yaml
+  - workflow-scripts.yaml
+  - workflow-rbac.yaml
   - monitoring.yaml
 patches:
   - path: backup-patch.yaml
@@ -35,9 +40,4 @@ configMapGenerator:
   - name: plausible-clickhouse-scripts
     files:
       - backup.sh=clickhouse/backup.sh
-  - name: plausible-postgres-backup-scripts
-    files:
-      - backup.sh=backup/postgres.sh
-    # Kustomize does not rewrite volume references inside a PreBackupPod.
-    options:
-      disableNameSuffixHash: true
+      - restore.sh=clickhouse/restore.sh

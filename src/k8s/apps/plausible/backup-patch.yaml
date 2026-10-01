@@ -1,10 +1,6 @@
 - op: replace
   path: /metadata/name
-  value: plausible-postgres
-- op: add
-  path: /metadata/annotations
-  value:
-    argocd.argoproj.io/sync-wave: "3"
+  value: plausible-backup
 - op: replace
   path: /metadata/labels/backup.k8up.io~1app
   value: plausible
@@ -13,7 +9,14 @@
   value: .dump
 - op: replace
   path: /spec/backupCommand
-  value: sh /scripts/backup.sh
+  value: >-
+    sh -ec 'pg_dump
+    --host=plausible-db-rw
+    --username=plausible
+    --dbname=plausible
+    --format=custom
+    --no-owner
+    --no-privileges'
 - op: replace
   path: /spec/pod/spec/serviceAccountName
   value: plausible-backup
@@ -36,15 +39,3 @@
           key: password
     - name: PGSSLMODE
       value: require
-- op: add
-  path: /spec/pod/spec/containers/0/volumeMounts
-  value:
-    - name: scripts
-      mountPath: /scripts
-      readOnly: true
-- op: add
-  path: /spec/pod/spec/volumes
-  value:
-    - name: scripts
-      configMap:
-        name: plausible-postgres-backup-scripts
