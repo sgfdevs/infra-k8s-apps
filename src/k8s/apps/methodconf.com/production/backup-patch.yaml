@@ -18,11 +18,10 @@
       mkdir -p "$staging/database";
       snapshot="$staging/database/Umbraco.sqlite.db";
       test -s "$database";
-      test -d /data/media;
       test -d /data/data-protection-keys;
       sqlite3 "$database" ".timeout 60000" ".backup $snapshot";
       test "$(sqlite3 "$snapshot" "PRAGMA integrity_check;")" = ok;
-      tar -cf - -C "$staging" database -C /data media data-protection-keys
+      tar -cf - -C "$staging" database -C /data data-protection-keys
     '
 - op: replace
   path: /spec/pod/spec/serviceAccountName

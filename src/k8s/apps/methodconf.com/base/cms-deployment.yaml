@@ -37,7 +37,7 @@ spec:
           image: busybox:1.37.0
           command: [sh, -ec]
           args:
-            - mkdir -p /data/database /data/media /data/data-protection-keys
+            - mkdir -p /data/database /data/data-protection-keys
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -106,9 +106,6 @@ spec:
             - name: data
               mountPath: /var/lib/methodconf
               subPath: database
-            - name: data
-              mountPath: /app/wwwroot/media
-              subPath: media
             - name: data
               mountPath: /home/app/.aspnet/DataProtection-Keys
               subPath: data-protection-keys
