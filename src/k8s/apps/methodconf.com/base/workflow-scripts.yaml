@@ -100,7 +100,7 @@ data:
       trap - EXIT INT TERM
       rm -f "$archive" "$listing"
       if [ "$status" -ne 0 ] && [ -n "$rollback_root" ] && [ -d "$rollback_root" ]; then
-        for name in database media data-protection-keys; do
+        for name in database data-protection-keys; do
           rm -rf "/data/$name"
           if [ -e "$rollback_root/$name" ]; then
             mv "$rollback_root/$name" "/data/$name"
@@ -120,7 +120,6 @@ data:
     test -s "$archive"
     tar -tf "$archive" > "$listing"
     grep -qx 'database/Umbraco.sqlite.db' "$listing"
-    grep -qx 'media/' "$listing"
     grep -qx 'data-protection-keys/' "$listing"
     if grep -Eq '(^/|(^|/)\.\.(/|$))' "$listing"; then
       echo "Backup archive contains an unsafe path." >&2
@@ -132,23 +131,24 @@ data:
       exit 1
     fi
 
-    tar -xf "$archive" -C "$restore_root"
+    # Ignore media in pre-S3 archives.
+    tar -xf "$archive" -C "$restore_root" database data-protection-keys
     restored_database="$restore_root/database/Umbraco.sqlite.db"
     test -s "$restored_database"
     test "$(sqlite3 "$restored_database" 'PRAGMA integrity_check;')" = ok
     chown -R 1654:1654 "$restore_root"
-    chmod 2775 "$restore_root/database" "$restore_root/media" "$restore_root/data-protection-keys"
+    chmod 2775 "$restore_root/database" "$restore_root/data-protection-keys"
     chmod 0644 "$restored_database"
     sync "$restore_root"
 
-    for name in database media data-protection-keys; do
+    for name in database data-protection-keys; do
       test -d "/data/$name"
     done
     rollback_root=$(mktemp -d /data/.methodconf-rollback.XXXXXX)
-    for name in database media data-protection-keys; do
+    for name in database data-protection-keys; do
       mv "/data/$name" "$rollback_root/$name"
     done
-    for name in database media data-protection-keys; do
+    for name in database data-protection-keys; do
       mv "$restore_root/$name" "/data/$name"
     done
     sync /data
