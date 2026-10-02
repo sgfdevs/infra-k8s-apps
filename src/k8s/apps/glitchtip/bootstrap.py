@@ -1,4 +1,4 @@
-"""Configure Zitadel without a local password account or open registration."""
+"""Configure Dex without a local password account or open registration."""
 
 import os
 
@@ -19,9 +19,9 @@ with transaction.atomic():
     )
     app, _ = SocialApp.objects.update_or_create(
         provider="openid_connect",
-        provider_id="zitadel",
+        provider_id="dex",
         defaults={
-            "name": "Zitadel",
+            "name": "Dex",
             "client_id": os.environ["OIDC_CLIENT_ID"],
             "secret": "",
             "settings": {
@@ -35,4 +35,4 @@ with transaction.atomic():
         social_app=app, defaults={"organization": organization, "is_public": True}
     )
 
-print("Zitadel configured. The first authorized SSO user owns the SGF Devs organization.")
+print("Dex configured. The first authorized SSO user owns the SGF Devs organization.")

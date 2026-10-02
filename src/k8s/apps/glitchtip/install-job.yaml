@@ -41,8 +41,6 @@ spec:
                 name: glitchtip-config
             - secretRef:
                 name: glitchtip-app
-            - secretRef:
-                name: glitchtip-oidc
           env:
             - name: DATABASE_PASSWORD
               valueFrom:

@@ -73,6 +73,11 @@ spec:
                         - infra-maintainers
 
             staticClients:
+              - id: glitchtip
+                name: GlitchTip
+                public: true
+                redirectURIs:
+                  - http://localhost:8000/accounts/oidc/dex/login/callback/
               - id: argocd
                 name: ArgoCD
                 secretEnv: argocdClientSecret

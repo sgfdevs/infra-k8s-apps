@@ -12,23 +12,26 @@ The ApplicationSet discovers this directory as the `glitchtip` application.
 kubectl -n glitchtip port-forward service/glitchtip 8000:8000
 ```
 
-Open http://localhost:8000. Use exactly this hostname and port for Zitadel's
-callback. The application URL and callback are configured together in
-`infra-app-config/src/tf/modules/glitchtip/`.
+Open http://localhost:8000. Use exactly this hostname and port for Dex's
+callback. Keep `config.env` synchronized with the GlitchTip static client in
+`src/k8s/platform/dex.yaml`. The discovery endpoint is
+https://dex.sgf.dev/.well-known/openid-configuration and the callback is
+http://localhost:8000/accounts/oidc/dex/login/callback/.
 
-Grant the intended first administrator the GlitchTip project's `access` role
-in Zitadel before first login. The first authorized SSO login owns the SGF Devs
-organization. Further authorized users join as members. Open password signup
-and arbitrary organization creation are disabled. No default password account
-is created. The OIDC client uses authorization code flow with S256 PKCE.
+Dex's GitHub connector restricts login to `sgfdevs` members in
+`infra-platform-admins` or `infra-maintainers`. The first authorized SSO login
+owns the SGF Devs organization. Further authorized users join as members. Open
+password signup and arbitrary organization creation are disabled. No default
+password account is created. The public OIDC client uses authorization code
+flow with S256 PKCE and no client secret.
 
 Create projects and upload sourcemaps using the GlitchTip CLI. Localhost DSNs
 are only useful through the port-forward. Remote applications cannot use this
 instance until a reachable ingestion URL is configured. There is deliberately
 no ingress, certificate, DNS change, or change to existing Sentry instances.
-When publishing it, update both application URLs and the Zitadel callback,
-disable Zitadel development mode, and keep ingestion outside interactive
-ForwardAuth. Set tracing and log capture off in SDKs unless intentionally needed.
+When publishing it, update the application URL and Dex callback registration,
+and use a confidential client with a managed secret for the public web instance.
+Keep ingestion outside interactive ForwardAuth. Set tracing and log capture off in SDKs unless intentionally needed.
 
 ## Availability and resources
 
@@ -43,7 +46,7 @@ ForwardAuth. Set tracing and log capture off in SDKs unless intentionally needed
   two control-plane VMs loses cluster quorum. This deployment does not change it.
 
 The sync hook runs upstream migrations, creates the PostgreSQL cache table and
-partitions, and idempotently configures the organization's Zitadel provider.
+partitions, and idempotently configures the organization's Dex provider.
 Application pods skip startup migrations. Uploaded files are read server-side
 through the internal S3 endpoint; the bucket is not public.
 
