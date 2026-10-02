@@ -1,0 +1,398 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: owncloud-restore
+  annotations:
+    ignore-check.kube-linter.io/run-as-non-root: "Restore must retain the PVCs' numeric ownership and private key permissions."
+spec:
+  entrypoint: restore
+  onExit: cleanup
+  serviceAccountName: owncloud-restore-workflow
+  synchronization:
+    mutexes:
+      - name: owncloud-maintenance
+  activeDeadlineSeconds: 7200
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  volumes:
+    - name: scripts
+      configMap:
+        name: owncloud-workflow-scripts
+        defaultMode: 0555
+    - name: tmp
+      emptyDir: {}
+  arguments:
+    parameters:
+      - name: snapshot-id
+        value: latest
+        description: "Snapshot ID or latest. S3 object versions must correspond to the restored metadata; application S3 blobs are not restored by this workflow."
+      - name: confirmation
+        description: 'Enter "RESTORE owncloud" to replace both local-state PVCs.'
+  volumeClaimTemplates:
+    - metadata:
+        name: restore-data
+        annotations:
+          k8up.io/backup: "false"
+      spec:
+        storageClassName: longhorn
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 25Gi
+  templates:
+    - name: restore
+      steps:
+        - - name: validate
+            template: validate
+        - - name: list-snapshots
+            template: list-snapshots
+        - - name: resolve-snapshot
+            template: resolve-snapshot
+        - - name: download
+            template: download
+        - - name: validate-stage
+            template: validate-stage
+        - - name: pause
+            template: pause
+        - - name: verify-paused
+            template: verify-paused
+        - - name: restore-state
+            template: restore-state
+    - name: validate
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/validate-restore.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: CONFIRMATION
+            value: "{{workflow.parameters.confirmation}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: list-snapshots
+      container:
+        image: restic/restic:0.18.1
+        command: [/scripts/list-snapshots.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            drop: [ALL]
+            add: [CHOWN, FOWNER, DAC_OVERRIDE]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+          - name: RESTIC_REPOSITORY
+            value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/owncloud
+          - name: RESTIC_CACHE_DIR
+            value: /tmp/restic
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: owncloud-k8up-repo-password
+                key: password
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-key
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+          - name: restore-data
+            mountPath: /restore
+    - name: resolve-snapshot
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/resolve-snapshot.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+          - name: restore-data
+            mountPath: /restore
+    - name: download
+      container:
+        image: restic/restic:0.18.1
+        command: [/scripts/download-restore.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            drop: [ALL]
+            add: [CHOWN, FOWNER, DAC_OVERRIDE]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+          - name: RESTIC_REPOSITORY
+            value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/owncloud
+          - name: RESTIC_CACHE_DIR
+            value: /tmp/restic
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: owncloud-k8up-repo-password
+                key: password
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-key
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+          - name: restore-data
+            mountPath: /restore
+    - name: validate-stage
+      container:
+        image: alpine/openssl:3.5.8
+        command: [/scripts/validate-stage.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            drop: [ALL]
+            add: [CHOWN, FOWNER, DAC_OVERRIDE]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+          - name: restore-data
+            mountPath: /restore
+    - name: pause
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/pause.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: verify-paused
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/verify-paused.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: restore-state
+      container:
+        image: alpine:3.23@sha256:85fe1e81d6758c208f3e1eed4338a1997e19d4be002d4dd32d3100c9a8c010a0
+        command: [/scripts/restore-state.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            drop: [ALL]
+            add: [CHOWN, FOWNER, DAC_OVERRIDE]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+          - name: restore-data
+            mountPath: /restore
+          - name: state
+            mountPath: /target/state
+          - name: proof
+            mountPath: /target/proof
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: owncloud-state
+        - name: proof
+          persistentVolumeClaim:
+            claimName: collabora-proof-key
+    - name: cleanup
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/cleanup-restore.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_STATUS
+            value: "{{workflow.status}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp

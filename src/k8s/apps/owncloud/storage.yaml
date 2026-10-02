@@ -2,11 +2,13 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: owncloud-state
+  labels:
+    backup.k8up.io/app: owncloud
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
-    # Independent PVC backups are not consistent with the S3 file contents.
-    k8up.io/backup: "false"
+    # Back up only while cold, via owncloud-backup. S3 blobs are not included.
+    k8up.io/backup: "true"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -19,10 +21,12 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: collabora-proof-key
+  labels:
+    backup.k8up.io/app: owncloud
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
-    k8up.io/backup: "false"
+    k8up.io/backup: "true"
 spec:
   accessModes:
     - ReadWriteOnce

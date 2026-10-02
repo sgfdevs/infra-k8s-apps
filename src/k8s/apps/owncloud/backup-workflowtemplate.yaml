@@ -1,0 +1,213 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: owncloud-backup
+spec:
+  entrypoint: backup
+  onExit: cleanup
+  serviceAccountName: owncloud-backup-workflow
+  synchronization:
+    mutexes:
+      - name: owncloud-maintenance
+  activeDeadlineSeconds: 7200
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  volumes:
+    - name: scripts
+      configMap:
+        name: owncloud-workflow-scripts
+        defaultMode: 0555
+    - name: tmp
+      emptyDir: {}
+  templates:
+    - name: backup
+      steps:
+        - - name: pause
+            template: pause
+        - - name: verify-paused
+            template: verify-paused
+        - - name: create
+            template: create
+        - - name: wait
+            template: wait
+        - - name: resume
+            template: resume
+    - name: pause
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/pause.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: verify-paused
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/verify-paused.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: create
+      resource:
+        action: create
+        manifest: |
+          apiVersion: k8up.io/v1
+          kind: Backup
+          metadata:
+            name: {{workflow.name}}
+          spec:
+            activeDeadlineSeconds: 1800
+            failedJobsHistoryLimit: 2
+            successfulJobsHistoryLimit: 2
+            clusterName: sgfdevs
+            promURL: http://prometheus-pushgateway.observability.svc.cluster.local:9091
+            tags:
+              - owncloud
+              - "owncloud-run-{{workflow.uid}}"
+            labelSelectors:
+              - matchLabels:
+                  backup.k8up.io/app: owncloud
+            backend:
+              repoPasswordSecretRef:
+                name: owncloud-k8up-repo-password
+                key: password
+              s3:
+                endpoint: https://s3.us-east-005.backblazeb2.com
+                bucket: sgfdevs-on-prem-k3s-backups/owncloud
+                accessKeyIDSecretRef:
+                  name: k8up-b2-credentials
+                  key: account-id
+                secretAccessKeySecretRef:
+                  name: k8up-b2-credentials
+                  key: account-key
+    - name: wait
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/wait-backup.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+          - name: BACKUP_NAME
+            value: "{{workflow.name}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: resume
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/resume.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: cleanup
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/cleanup-backup.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp

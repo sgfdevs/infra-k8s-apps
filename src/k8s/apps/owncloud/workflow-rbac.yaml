@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: owncloud-backup-workflow
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: owncloud-restore-workflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: owncloud-maintenance-workflow
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    resourceNames: ["owncloud", "collabora"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["k8up.io"]
+    resources: ["backups"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtaskresults"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: owncloud-maintenance-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: owncloud-maintenance-workflow
+subjects:
+  - kind: ServiceAccount
+    name: owncloud-backup-workflow
+  - kind: ServiceAccount
+    name: owncloud-restore-workflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: owncloud-backup-workflow
+rules:
+  - apiGroups: ["k8up.io"]
+    resources: ["backups"]
+    verbs: ["create", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: owncloud-backup-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: owncloud-backup-workflow
+subjects:
+  - kind: ServiceAccount
+    name: owncloud-backup-workflow

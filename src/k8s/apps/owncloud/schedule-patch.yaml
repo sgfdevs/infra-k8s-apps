@@ -1,0 +1,12 @@
+- op: replace
+  path: /metadata/name
+  value: owncloud-backup
+- op: replace
+  path: /spec/backend/repoPasswordSecretRef/name
+  value: owncloud-k8up-repo-password
+- op: replace
+  path: /spec/backend/s3/bucket
+  value: sgfdevs-on-prem-k3s-backups/owncloud
+# Only Argo may create backups, after stopping both applications.
+- op: remove
+  path: /spec/backup
