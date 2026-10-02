@@ -4,7 +4,7 @@ metadata:
   name: plausible
   annotations:
     argocd.argoproj.io/sync-wave: "2"
-    secret.reloader.stakater.com/reload: plausible-app,plausible-smtp
+    secret.reloader.stakater.com/reload: plausible-secret-key-base,plausible-totp-vault-key,plausible-clickhouse,plausible-smtp
     configmap.reloader.stakater.com/reload: plausible
 spec:
   # CE analytics sessions use process-local caches. Do not scale out blindly.
@@ -43,7 +43,11 @@ spec:
             - configMapRef:
                 name: plausible
             - secretRef:
-                name: plausible-app
+                name: plausible-secret-key-base
+            - secretRef:
+                name: plausible-totp-vault-key
+            - secretRef:
+                name: plausible-clickhouse
             - secretRef:
                 name: plausible-smtp
           env:
