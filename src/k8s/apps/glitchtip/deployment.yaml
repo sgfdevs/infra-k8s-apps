@@ -168,8 +168,8 @@ spec:
           secret:
             secretName: glitchtip-oidc
             items:
-              - key: OIDC_CLIENT_SECRET
-                path: client-secret
+              - key: settings.json
+                path: settings.json
         - name: tmp
           emptyDir:
             sizeLimit: 256Mi
