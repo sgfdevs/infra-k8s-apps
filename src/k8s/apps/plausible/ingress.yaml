@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plausible
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    traefik.ingress.kubernetes.io/router.middlewares: plausible-plausible-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - plausible.sgf.dev
+      secretName: plausible-tls
+  rules:
+    - host: plausible.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: plausible
+                port:
+                  name: http
