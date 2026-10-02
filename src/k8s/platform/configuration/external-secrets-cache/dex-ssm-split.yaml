@@ -77,6 +77,24 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  name: glitchtip-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: cache-k8s
+  target:
+    name: glitchtip-secrets
+  data:
+    - secretKey: glitchtipClientSecret
+      remoteRef:
+        key: ssm-cache
+        property: glitchtipClientSecret
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
   name: dex-secrets
   namespace: external-secrets
 spec:

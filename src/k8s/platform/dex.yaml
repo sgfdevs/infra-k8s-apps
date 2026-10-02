@@ -43,8 +43,6 @@ spec:
           envFrom:
             - secretRef:
                 name: dex-secrets
-            - secretRef:
-                name: dex-glitchtip-client-secret
 
           config:
             issuer: https://dex.sgf.dev

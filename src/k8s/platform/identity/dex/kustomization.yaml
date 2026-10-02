@@ -7,4 +7,3 @@ resources:
   - certificate.yaml
   - ingress.yaml
   - externalsecret.yaml
-  - glitchtip-client-secret.yaml
