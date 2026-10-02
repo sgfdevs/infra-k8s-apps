@@ -216,7 +216,7 @@ spec:
         image: glitchtip/glitchtip:6.2.3@sha256:95e0e2d6b1bc18446902ae0cb47910cc55d7c0d6756ee901b0cd8dce9f8ef5a9
         command: [sh, -ec]
         args:
-          - ./bin/run-migrate.sh && python /scripts/bootstrap.py
+          - ./bin/run-migrate.sh
         securityContext:
           runAsNonRoot: true
           runAsUser: 5000
@@ -230,8 +230,6 @@ spec:
               name: glitchtip-config
           - secretRef:
               name: glitchtip-app
-          - secretRef:
-              name: glitchtip-oidc
         env:
           - name: DATABASE_PASSWORD
             valueFrom:
@@ -246,14 +244,9 @@ spec:
             cpu: "1"
             memory: 1Gi
         volumeMounts:
-          - name: bootstrap
-            mountPath: /scripts
           - name: tmp
             mountPath: /tmp
       volumes:
-        - name: bootstrap
-          configMap:
-            name: glitchtip-scripts
         - name: tmp
           emptyDir: {}
     - name: cleanup

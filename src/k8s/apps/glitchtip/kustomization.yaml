@@ -39,9 +39,9 @@ configMapGenerator:
   - name: glitchtip-config
     envs:
       - config.env
-  - name: glitchtip-scripts
+  - name: glitchtip-settings
     files:
-      - bootstrap.py
+      - settings.sql
 generatorOptions:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
