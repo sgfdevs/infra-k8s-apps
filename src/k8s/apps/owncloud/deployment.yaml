@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: owncloud
   annotations:
-    secret.reloader.stakater.com/reload: owncloud,owncloud-s3-credentials
+    secret.reloader.stakater.com/reload: owncloud
 spec:
   replicas: 1
   strategy:
@@ -15,6 +15,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: owncloud
+      annotations:
+        eks.amazonaws.com/skip-containers: initialize,owncloud,collaboration
     spec:
       serviceAccountName: owncloud
       automountServiceAccountToken: false
@@ -28,6 +30,39 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
+        # Native sidecar starts before initialization and stops after oCIS.
+        # Only this container receives the projected AWS web-identity token.
+        - name: s3-signing-proxy
+          image: public.ecr.aws/aws-observability/aws-sigv4-proxy:1.13@sha256:d16d88cf00c59d14e47c5d837537349bfa96d9b750e1d7b7218156071eea9766
+          restartPolicy: Always
+          args:
+            - --port=127.0.0.1:8080
+            - --name=s3
+            - --region=us-east-2
+            - --host=s3.us-east-2.amazonaws.com
+            - --strip=Authorization
+            - --strip=X-Amz-Date
+            - --strip=X-Amz-Security-Token
+            - --strip=X-Amz-Content-Sha256
+          env:
+            - name: AWS_REGION
+              value: us-east-2
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: regional
+            - name: AWS_EC2_METADATA_DISABLED
+              value: "true"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
         - name: initialize
           image: owncloud/ocis:8.2.0
           command: [/bin/sh, /bootstrap/initialize.sh]
@@ -36,8 +71,6 @@ spec:
                 name: owncloud-config
             - secretRef:
                 name: owncloud
-            - secretRef:
-                name: owncloud-s3-credentials
           resources:
             requests:
               cpu: 50m
@@ -72,8 +105,6 @@ spec:
                 name: owncloud-config
             - secretRef:
                 name: owncloud
-            - secretRef:
-                name: owncloud-s3-credentials
           startupProbe:
             httpGet:
               path: /healthz

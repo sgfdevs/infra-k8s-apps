@@ -12,6 +12,7 @@ metadata:
   name: owncloud
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
+    infra.sgf.dev/aws-role-arn: "arn:aws:iam::${SGFDEVS_AWS_ACCOUNT_ID}:role/sgfdevs-k3s/sgfdevs-k3s-owncloud"
 automountServiceAccountToken: false
 ---
 apiVersion: external-secrets.io/v1
