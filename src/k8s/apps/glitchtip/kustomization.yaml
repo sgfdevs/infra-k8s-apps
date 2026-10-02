@@ -18,7 +18,10 @@ resources:
   - middleware-https-redirect.yaml
   - monitoring.yaml
   - backup-workflowtemplate.yaml
-  - backup-rbac.yaml
+  - restore-workflowtemplate.yaml
+  - restore-resume-workflowtemplate.yaml
+  - workflow-scripts.yaml
+  - workflow-rbac.yaml
 patches:
   - path: backup-patch.yaml
     target:
@@ -39,8 +42,6 @@ configMapGenerator:
   - name: glitchtip-scripts
     files:
       - bootstrap.py
-      - backup.py
-      - restore.py
 generatorOptions:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"

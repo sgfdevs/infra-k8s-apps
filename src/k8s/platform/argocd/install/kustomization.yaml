@@ -9,6 +9,7 @@ resources:
   - outline-restore-rbac.yaml
   - listmonk-restore-rbac.yaml
   - plausible-restore-rbac.yaml
+  - glitchtip-restore-rbac.yaml
 
 patches:
   - path: patches/argocd-cm.yaml

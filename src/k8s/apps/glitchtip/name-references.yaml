@@ -4,5 +4,7 @@ nameReference:
     fieldSpecs:
       - kind: PreBackupPod
         path: spec/pod/spec/containers/envFrom/configMapRef/name
-      - kind: PreBackupPod
-        path: spec/pod/spec/volumes/configMap/name
+      - kind: WorkflowTemplate
+        path: spec/templates/container/envFrom/configMapRef/name
+      - kind: WorkflowTemplate
+        path: spec/templates/volumes/configMap/name
