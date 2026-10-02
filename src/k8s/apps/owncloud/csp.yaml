@@ -15,13 +15,13 @@ directives:
   frame-src:
     - "'self'"
     - "blob:"
-    - "http://localhost:9980"
+    - "https://office.sgf.dev"
     - "https://id.sgf.dev"
   img-src:
     - "'self'"
     - "data:"
     - "blob:"
-    - "http://localhost:9980"
+    - "https://office.sgf.dev"
   manifest-src:
     - "'self'"
   media-src:

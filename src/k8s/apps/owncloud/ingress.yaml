@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: owncloud
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: owncloud-owncloud-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - cloud.sgf.dev
+        - office.sgf.dev
+      secretName: owncloud-tls
+  rules:
+    - host: cloud.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: owncloud
+                port:
+                  name: http
+    - host: office.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: collabora
+                port:
+                  name: http

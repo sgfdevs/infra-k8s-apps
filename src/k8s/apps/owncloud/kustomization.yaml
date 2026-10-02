@@ -7,6 +7,9 @@ resources:
   - secrets.yaml
   - storage.yaml
   - service.yaml
+  - certificate.yaml
+  - middleware-https-redirect.yaml
+  - ingress.yaml
   - deployment.yaml
   - collabora.yaml
 configMapGenerator:

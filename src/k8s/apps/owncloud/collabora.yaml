@@ -18,7 +18,7 @@ spec:
       labels:
         app.kubernetes.io/name: collabora
     spec:
-      serviceAccountName: owncloud
+      serviceAccountName: collabora
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60
       securityContext:
@@ -64,7 +64,7 @@ spec:
               containerPort: 9980
           env:
             - name: server_name
-              value: localhost:9980
+              value: office.sgf.dev
             - name: aliasgroup1
               value: http://owncloud.owncloud.svc.cluster.local:9300
             - name: username
@@ -77,9 +77,9 @@ spec:
             - name: extra_params
               value: >-
                 --o:ssl.enable=false
-                --o:ssl.termination=false
+                --o:ssl.termination=true
                 --o:welcome.enable=false
-                --o:net.frame_ancestors=http://localhost:9200
+                --o:net.frame_ancestors=https://cloud.sgf.dev
                 --o:logging.level=warning
                 --o:logging.anonymize.anonymize_user_data=true
                 --o:mount_jail_tree=false
