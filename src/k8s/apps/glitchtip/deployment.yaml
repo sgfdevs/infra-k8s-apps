@@ -4,7 +4,7 @@ metadata:
   name: glitchtip
   annotations:
     argocd.argoproj.io/sync-wave: "2"
-    secret.reloader.stakater.com/reload: glitchtip-app,glitchtip-smtp,glitchtip-db-app,glitchtip-s3-credentials
+    secret.reloader.stakater.com/reload: glitchtip-app,glitchtip-smtp,glitchtip-db-app,glitchtip-s3-credentials,glitchtip-oidc
 spec:
   replicas: 2
   revisionHistoryLimit: 3
@@ -40,6 +40,63 @@ spec:
                 matchLabels:
                   app.kubernetes.io/name: glitchtip
               topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: configure
+          image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              if ! psql -X -q -f /scripts/settings.sql >/dev/null 2>&1; then
+                echo "Failed to apply GlitchTip settings" >&2
+                exit 1
+              fi
+          envFrom:
+            - configMapRef:
+                name: glitchtip-config
+          env:
+            - name: PGHOST
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-db-app
+                  key: host
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-db-app
+                  key: dbname
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-db-app
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-db-app
+                  key: password
+            - name: PGSSLMODE
+              value: require
+            - name: PGCONNECT_TIMEOUT
+              value: "10"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          volumeMounts:
+            - name: settings
+              mountPath: /scripts
+              readOnly: true
+            - name: desired-settings
+              mountPath: /settings
+              readOnly: true
       containers:
         - name: glitchtip
           image: glitchtip/glitchtip:6.2.3@sha256:95e0e2d6b1bc18446902ae0cb47910cc55d7c0d6756ee901b0cd8dce9f8ef5a9
@@ -104,6 +161,15 @@ spec:
             - name: tmp
               mountPath: /tmp
       volumes:
+        - name: settings
+          configMap:
+            name: glitchtip-settings
+        - name: desired-settings
+          secret:
+            secretName: glitchtip-oidc
+            items:
+              - key: OIDC_CLIENT_SECRET
+                path: client-secret
         - name: tmp
           emptyDir:
             sizeLimit: 256Mi
