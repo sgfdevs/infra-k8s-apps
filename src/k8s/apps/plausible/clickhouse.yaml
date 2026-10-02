@@ -35,11 +35,6 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: plausible-clickhouse
-        backup.k8up.io/app: plausible
-      annotations:
-        k8up.io/backupcommand: sh /scripts/backup.sh
-        k8up.io/backupcommand-container: clickhouse
-        k8up.io/file-extension: .zip
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 60

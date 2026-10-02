@@ -13,10 +13,7 @@ spec:
     parameters:
       - name: snapshot-id
         value: latest
-        description: PostgreSQL snapshot from the selected K8up backup run.
-      - name: clickhouse-snapshot-id
-        value: latest
-        description: ClickHouse snapshot from the same K8up backup run.
+        description: Snapshot containing the bundled PostgreSQL and ClickHouse backup.
       - name: confirmation
         description: Enter "RESTORE plausible" to confirm replacement of both databases.
   activeDeadlineSeconds: 3600
@@ -55,8 +52,6 @@ spec:
         env:
           - name: SNAPSHOT_ID
             value: "{{workflow.parameters.snapshot-id}}"
-          - name: CLICKHOUSE_SNAPSHOT_ID
-            value: "{{workflow.parameters.clickhouse-snapshot-id}}"
           - name: CONFIRMATION
             value: "{{workflow.parameters.confirmation}}"
         resources:
@@ -81,8 +76,6 @@ spec:
         env:
           - name: SNAPSHOT_ID
             value: "{{workflow.parameters.snapshot-id}}"
-          - name: CLICKHOUSE_SNAPSHOT_ID
-            value: "{{workflow.parameters.clickhouse-snapshot-id}}"
           - name: RESTIC_REPOSITORY
             value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/plausible
           - name: RESTIC_PASSWORD

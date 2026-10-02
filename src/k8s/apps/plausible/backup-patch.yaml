@@ -6,26 +6,36 @@
   value: plausible
 - op: replace
   path: /spec/fileExtension
-  value: .dump
+  value: .tar
 - op: replace
   path: /spec/backupCommand
   value: >-
-    sh -ec 'pg_dump
-    --host=plausible-db-rw
-    --username=plausible
-    --dbname=plausible
-    --format=custom
-    --no-owner
-    --no-privileges'
+    sh -ec '
+      apk add --no-cache postgresql18-client tar >/dev/null;
+      staging=$(mktemp -d);
+      trap "rm -rf $staging" EXIT;
+      pg_dump \
+        --host=plausible-db-rw \
+        --username=plausible \
+        --dbname=plausible \
+        --format=custom \
+        --no-owner \
+        --no-privileges \
+        --file="$staging/plausible.dump";
+      kubectl exec plausible-clickhouse-0 -c clickhouse -- sh /scripts/backup.sh > "$staging/clickhouse.zip";
+      test -s "$staging/plausible.dump";
+      test -s "$staging/clickhouse.zip";
+      tar -cf - -C "$staging" plausible.dump clickhouse.zip
+    '
 - op: replace
   path: /spec/pod/spec/serviceAccountName
   value: plausible-backup
 - op: add
   path: /spec/pod/spec/automountServiceAccountToken
-  value: false
+  value: true
 - op: replace
   path: /spec/pod/spec/containers/0/image
-  value: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+  value: alpine/k8s:1.36.2
 - op: replace
   path: /spec/pod/spec/containers/0/resources/requests/memory
   value: 64Mi

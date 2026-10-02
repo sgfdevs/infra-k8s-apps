@@ -1,3 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: plausible-backup
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    resourceNames: ["plausible-clickhouse-0"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    resourceNames: ["plausible-clickhouse-0"]
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: plausible-backup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: plausible-backup
+subjects:
+  - kind: ServiceAccount
+    name: plausible-backup
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:

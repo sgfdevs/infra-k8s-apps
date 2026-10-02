@@ -8,17 +8,15 @@ data:
     set -eu
 
     application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
-    for snapshot in "$SNAPSHOT_ID" "$CLICKHOUSE_SNAPSHOT_ID"; do
-      if [ "$snapshot" != latest ]; then
-        case "$snapshot" in
-          ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or lowercase hexadecimal." >&2; exit 1 ;;
-        esac
-        if [ "${#snapshot}" -lt 8 ] || [ "${#snapshot}" -gt 64 ]; then
-          echo "Snapshot ID must be between 8 and 64 characters." >&2
-          exit 1
-        fi
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or lowercase hexadecimal." >&2; exit 1 ;;
+      esac
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
       fi
-    done
+    fi
     if [ "$CONFIRMATION" != "RESTORE $application" ]; then
       echo "Confirmation must exactly match: RESTORE $application" >&2
       exit 1
@@ -49,24 +47,31 @@ data:
     #!/bin/sh
     set -eu
 
-    download() {
-      snapshot=$1
-      snapshot_path=$2
-      destination=$3
-      if [ "$snapshot" = latest ]; then
-        snapshot=$(restic snapshots --json --latest 1 --path "$snapshot_path" | sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
-        if [ -z "$snapshot" ]; then
-          echo "No snapshot was found for $snapshot_path." >&2
-          exit 1
-        fi
-        echo "Resolved $snapshot_path to $snapshot."
+    snapshot_path=/plausible-backup.tar
+    if [ "$SNAPSHOT_ID" = latest ]; then
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
+      if [ -z "$SNAPSHOT_ID" ]; then
+        echo "No Plausible backup snapshot was found." >&2
+        exit 1
       fi
-      restic dump "$snapshot" "$snapshot_path" > "$destination"
-      test -s "$destination"
-    }
-    # K8up stores each application-aware stream in a separate snapshot.
-    download "$SNAPSHOT_ID" /plausible-backup.dump /restore/plausible.dump
-    download "$CLICKHOUSE_SNAPSHOT_ID" /plausible-clickhouse-0.zip /restore/clickhouse.zip
+      echo "Resolved latest snapshot to $SNAPSHOT_ID."
+    fi
+    archive=$(mktemp /restore/plausible-backup.XXXXXX.tar)
+    trap 'rm -f "$archive"' EXIT HUP INT TERM
+    restic dump "$SNAPSHOT_ID" "$snapshot_path" > "$archive"
+    test -s "$archive"
+    listing=$(tar -tf "$archive")
+    expected=$(printf 'plausible.dump\nclickhouse.zip\n')
+    if [ "$listing" != "$expected" ]; then
+      echo "Backup must contain exactly plausible.dump and clickhouse.zip." >&2
+      exit 1
+    fi
+    tar -xf "$archive" -C /restore plausible.dump clickhouse.zip
+    test -s /restore/plausible.dump
+    test -s /restore/clickhouse.zip
+    test ! -L /restore/plausible.dump
+    test ! -L /restore/clickhouse.zip
+    chmod 0644 /restore/plausible.dump /restore/clickhouse.zip
     unzip -p /restore/clickhouse.zip >/dev/null
 
   pause-restore.sh: |

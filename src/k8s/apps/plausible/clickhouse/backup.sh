@@ -1,5 +1,5 @@
 #!/bin/sh
-# K8up captures stdout. Never print credentials or status text to that stream.
+# The backup pod captures stdout for the bundle. Send status text to stderr.
 set -eu
 
 name="k8up-$(date +%s)-$$.zip"
