@@ -1,0 +1,250 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: owncloud-workflow-scripts
+data:
+  common.sh: |
+    #!/bin/sh
+    set -eu
+
+    app_state() {
+      kubectl -n argocd get application owncloud -o json
+    }
+    ensure_idle() {
+      kubectl get backups.k8up.io -o json | jq -e 'all(.items[]; any(.status.conditions[]?; .type == "Completed" and .status == "True"))' >/dev/null || {
+        echo 'A K8up Backup is still active. Leave ownCloud paused until it finishes.' >&2
+        return 1
+      }
+      # Completed conditions can precede pod termination. Check mounts as well.
+      kubectl get pods -o json | jq -e '
+        all(.items[];
+          (.metadata.labels["app.kubernetes.io/name"] == "owncloud") or
+          (.metadata.labels["app.kubernetes.io/name"] == "collabora") or
+          ((.status.phase == "Succeeded" or .status.phase == "Failed") and .metadata.deletionTimestamp == null) or
+          all(.spec.volumes[]?; .persistentVolumeClaim.claimName != "owncloud-state" and
+            .persistentVolumeClaim.claimName != "collabora-proof-key" and
+            .persistentVolumeClaim.claimName != "owncloud-backup-staging"))' >/dev/null || {
+        echo 'A backup or restore pod still mounts a production PVC. Do not resume.' >&2
+        return 1
+      }
+    }
+    ensure_ready() {
+      ensure_idle
+      app_state | jq -e '
+        (.metadata.annotations["restore.sgf.dev/managed"] == null) and
+        (.metadata.annotations["restore.sgf.dev/owner"] == null) and
+        (.metadata.annotations["argocd.argoproj.io/skip-reconcile"] == null) and
+        (.spec.syncPolicy.automated.selfHeal == true) and
+        (.status.operationState.phase != "Running") and (.operation == null)' >/dev/null
+      for deployment in owncloud collabora; do
+        kubectl get deployment "$deployment" -o json | jq -e '
+          .metadata.annotations["restore.sgf.dev/original-replicas"] == null and
+          .metadata.annotations["restore.sgf.dev/owner"] == null' >/dev/null
+      done
+    }
+    ensure_owned() {
+      app_state | jq -e --arg owner "$WORKFLOW_OWNER" '
+        .metadata.annotations["restore.sgf.dev/managed"] == "true" and
+        .metadata.annotations["restore.sgf.dev/owner"] == $owner and
+        .metadata.annotations["argocd.argoproj.io/skip-reconcile"] == "true" and
+        .spec.syncPolicy.automated.selfHeal == false and
+        .status.operationState.phase != "Running" and .operation == null' >/dev/null
+    }
+
+  validate-restore.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/common.sh
+    test "$CONFIRMATION" = 'RESTORE owncloud' || {
+      echo 'Confirmation must exactly match: RESTORE owncloud' >&2
+      exit 1
+    }
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo 'Snapshot ID must be latest or lowercase hexadecimal.' >&2; exit 1 ;;
+      esac
+      test "${#SNAPSHOT_ID}" -ge 8 && test "${#SNAPSHOT_ID}" -le 64
+    fi
+    ensure_ready
+
+  list-snapshots.sh: |
+    #!/bin/sh
+    set -eu
+    restic snapshots --json > /restore/snapshots.json
+
+  resolve-snapshot.sh: |
+    #!/bin/sh
+    set -eu
+    # The staging PVC contains both local-state copies from one cold interval.
+    jq -er --arg requested "$SNAPSHOT_ID" '
+      [.[] | select((.paths // [] | index("/data/owncloud-backup-staging")) != null) |
+        select($requested == "latest" or (.id | startswith($requested)))] |
+      if $requested == "latest" then sort_by(.time) | last | .id
+      elif length == 1 then .[0].id
+      else error("Snapshot ID is missing, ambiguous, or lacks the staging PVC") end |
+      select(type == "string" and test("^[0-9a-f]{64}$"))
+    ' /restore/snapshots.json > /restore/snapshot-id
+    test -s /restore/snapshot-id
+    printf 'Resolved snapshot: '
+    cat /restore/snapshot-id
+
+  download-restore.sh: |
+    #!/bin/sh
+    set -eu
+    snapshot=$(cat /restore/snapshot-id)
+    restic restore "$snapshot" --target /restore/archive --verify \
+      --include /data/owncloud-backup-staging
+
+  validate-stage.sh: |
+    #!/bin/sh
+    set -eu
+    state=/restore/archive/data/owncloud-backup-staging/owncloud-state
+    proof=/restore/archive/data/owncloud-backup-staging/collabora-proof-key
+    test -d "$state" && test ! -L "$state"
+    test -d "$state/config" && test ! -L "$state/config"
+    test -f "$state/config/ocis.yaml" && test -s "$state/config/ocis.yaml"
+    test ! -L "$state/config/ocis.yaml"
+    test -d "$proof" && test ! -L "$proof"
+    test -f "$proof/proof_key" && test -s "$proof/proof_key"
+    test ! -L "$proof/proof_key"
+    openssl pkey -in "$proof/proof_key" -check -noout
+
+  pause.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/common.sh
+    ensure_ready
+    patch=$(jq -nc --arg owner "$WORKFLOW_OWNER" '{metadata:{annotations:{
+      "argocd.argoproj.io/skip-reconcile":"true", "restore.sgf.dev/managed":"true",
+      "restore.sgf.dev/owner":$owner}}, spec:{syncPolicy:{automated:{selfHeal:false}}}}')
+    kubectl -n argocd patch application owncloud --type=merge -p "$patch"
+    ensure_owned
+    # Save both replica counts before stopping either deployment.
+    for deployment in owncloud collabora; do
+      replicas=$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')
+      patch=$(jq -nc --arg owner "$WORKFLOW_OWNER" --arg replicas "$replicas" '{metadata:{annotations:{
+        "restore.sgf.dev/original-replicas":$replicas,"restore.sgf.dev/owner":$owner}}}')
+      kubectl patch deployment "$deployment" --type=merge -p "$patch"
+    done
+    # Collabora gets its full termination grace period while WOPI is still available.
+    for deployment in collabora owncloud; do
+      ensure_owned
+      kubectl scale deployment "$deployment" --replicas=0
+      if [ -n "$(kubectl get pods -l "app.kubernetes.io/name=$deployment" -o name)" ]; then
+        kubectl wait --for=delete pod -l "app.kubernetes.io/name=$deployment" --timeout=300s
+      fi
+    done
+    /scripts/verify-paused.sh
+
+  verify-paused.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/common.sh
+    ensure_owned
+    ensure_idle
+    for deployment in owncloud collabora; do
+      test "$(kubectl get deployment "$deployment" -o jsonpath='{.spec.replicas}')" = 0
+      test -z "$(kubectl get pods -l "app.kubernetes.io/name=$deployment" -o name)"
+    done
+
+  copy-local-state.sh: |
+    #!/bin/sh
+    set -eu
+    test -s /source/state/config/ocis.yaml
+    test -s /source/proof/proof_key
+    # Production PVCs are mounted read-only after both applications stopped.
+    find /staging -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
+    mkdir -p /staging/owncloud-state /staging/collabora-proof-key
+    # GNU cp preserves hardlinks, ownership and oCIS metadata xattrs. Explicit
+    # xattr preservation makes attribute-copy failures fail the workflow.
+    cp -a --preserve=xattr /source/state/. /staging/owncloud-state/
+    cp -a --preserve=xattr /source/proof/. /staging/collabora-proof-key/
+    sync
+    test -s /staging/owncloud-state/config/ocis.yaml
+    test -s /staging/collabora-proof-key/proof_key
+
+  wait-backup.sh: |
+    #!/bin/sh
+    set -eu
+    kubectl wait --for=condition=Completed "backups.k8up.io/$BACKUP_NAME" --timeout=2400s
+    kubectl get "backups.k8up.io/$BACKUP_NAME" -o json | jq -e '
+      any(.status.conditions[]?; .type == "Completed" and .status == "True" and
+          .reason == "Succeeded" and ((.message // "" | ascii_downcase | contains("nothing to backup")) | not))' >/dev/null
+
+  restore-state.sh: |
+    #!/bin/sh
+    set -eu
+    # Stage validation and verify-paused have already succeeded, before these PVCs mount.
+    state=/restore/archive/data/owncloud-backup-staging/owncloud-state
+    proof=/restore/archive/data/owncloud-backup-staging/collabora-proof-key
+    test -s "$state/config/ocis.yaml" && test -s "$proof/proof_key"
+    # Remove stale files, including dotfiles. cp -a retains IDs 1000/1001 and keys.
+    find /target/state -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
+    find /target/proof -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
+    cp -a --preserve=xattr "$state/." /target/state/
+    cp -a --preserve=xattr "$proof/." /target/proof/
+    sync
+    test -s /target/state/config/ocis.yaml && test -s /target/proof/proof_key
+
+  resume.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/common.sh
+    ensure_owned
+    # Poll for terminated writer pods, but never delete a running backup or force resume.
+    attempts=0
+    until ensure_idle; do
+      attempts=$((attempts + 1))
+      test "$attempts" -lt 30 || exit 1
+      sleep 10
+    done
+    # Validate all saved counts and ownership before changing any deployment.
+    for deployment in owncloud collabora; do
+      kubectl get deployment "$deployment" -o json | jq -e --arg owner "$WORKFLOW_OWNER" '
+        (.metadata.annotations["restore.sgf.dev/owner"] == $owner and
+         (.metadata.annotations["restore.sgf.dev/original-replicas"] | test("^[0-9]+$"))) or
+        (.metadata.annotations["restore.sgf.dev/owner"] == null and
+         .metadata.annotations["restore.sgf.dev/original-replicas"] == null)' >/dev/null
+    done
+    for deployment in owncloud collabora; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+      # No saved count means pause failed before changing this deployment, or cleanup already cleared it.
+      if [ -n "$original" ]; then
+        kubectl scale deployment "$deployment" --replicas="$original"
+        kubectl rollout status deployment "$deployment" --timeout=300s
+        kubectl patch deployment "$deployment" --type=merge -p '{"metadata":{"annotations":{"restore.sgf.dev/original-replicas":null,"restore.sgf.dev/owner":null}}}'
+      fi
+    done
+    ensure_owned
+    kubectl -n argocd patch application owncloud --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.sgf.dev/managed":null,"restore.sgf.dev/owner":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}'
+
+  cleanup-backup.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/common.sh
+    owner=$(app_state | jq -r '.metadata.annotations["restore.sgf.dev/owner"] // ""')
+    # Do not clean up an unrelated pause, including one left by an older workflow.
+    if [ "$owner" = "$WORKFLOW_OWNER" ]; then
+      /scripts/resume.sh
+    fi
+
+  manual-resume.sh: |
+    #!/bin/sh
+    set -eu
+    . /scripts/common.sh
+    test "$CONFIRMATION" = 'RESUME owncloud' || {
+      echo 'Confirmation must exactly match: RESUME owncloud' >&2
+      exit 1
+    }
+    WORKFLOW_OWNER=$(app_state | jq -er '.metadata.annotations["restore.sgf.dev/owner"] | select(length > 0)')
+    export WORKFLOW_OWNER
+    /scripts/resume.sh
+
+  cleanup-restore.sh: |
+    #!/bin/sh
+    set -eu
+    if [ "$WORKFLOW_STATUS" != Succeeded ]; then
+      echo 'Restore failed. If paused, inspect the state before running owncloud-restore-resume.' >&2
+      exit 0
+    fi
+    /scripts/resume.sh

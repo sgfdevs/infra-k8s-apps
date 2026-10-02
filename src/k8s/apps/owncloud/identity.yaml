@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: owncloud-secrets
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: owncloud
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    infra.sgf.dev/aws-role-arn: "arn:aws:iam::${SGFDEVS_AWS_ACCOUNT_ID}:role/sgfdevs-k3s/sgfdevs-k3s-owncloud"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: collabora
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+automountServiceAccountToken: false
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: openbao
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  provider:
+    vault:
+      server: http://openbao-active.openbao.svc.cluster.local:8200
+      path: applications
+      version: v2
+      auth:
+        kubernetes:
+          mountPath: kubernetes
+          role: owncloud-secrets
+          serviceAccountRef:
+            name: owncloud-secrets
+            audiences:
+              - vault

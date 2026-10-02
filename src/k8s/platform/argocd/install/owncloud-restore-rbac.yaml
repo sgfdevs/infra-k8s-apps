@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: owncloud-maintenance-workflow
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    resourceNames: ["owncloud"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: owncloud-maintenance-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: owncloud-maintenance-workflow
+subjects:
+  - kind: ServiceAccount
+    name: owncloud-backup-workflow
+    namespace: owncloud
+  - kind: ServiceAccount
+    name: owncloud-restore-workflow
+    namespace: owncloud

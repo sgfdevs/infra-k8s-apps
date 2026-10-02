@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: owncloud
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: owncloud
+  ports:
+    - name: http
+      port: 9200
+      targetPort: http
+    - name: wopi
+      port: 9300
+      targetPort: wopi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: collabora
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: collabora
+  ports:
+    - name: http
+      port: 9980
+      targetPort: http
