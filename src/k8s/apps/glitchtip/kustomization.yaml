@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: glitchtip
+configurations:
+  - name-references.yaml
+resources:
+  - ../../platform/services/backup-base
+  - namespace.yaml
+  - identity.yaml
+  - secrets.yaml
+  - object-storage.yaml
+  - database.yaml
+  - install-job.yaml
+  - deployment.yaml
+  - service.yaml
+  - certificate.yaml
+  - ingress.yaml
+  - middleware-https-redirect.yaml
+  - monitoring.yaml
+  - backup-workflowtemplate.yaml
+  - restore-workflowtemplate.yaml
+  - restore-resume-workflowtemplate.yaml
+  - workflow-scripts.yaml
+  - workflow-rbac.yaml
+patches:
+  - path: backup-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: PreBackupPod
+      name: app-backup
+  - path: schedule-patch.yaml
+    target:
+      group: k8up.io
+      version: v1
+      kind: Schedule
+      name: app-backup
+configMapGenerator:
+  - name: glitchtip-config
+    envs:
+      - config.env
+  - name: glitchtip-scripts
+    files:
+      - bootstrap.py
+generatorOptions:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"

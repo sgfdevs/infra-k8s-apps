@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: glitchtip
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: glitchtip-glitchtip-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - glitchtip.sgf.dev
+      secretName: glitchtip-tls
+  rules:
+    - host: glitchtip.sgf.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: glitchtip
+                port:
+                  name: http

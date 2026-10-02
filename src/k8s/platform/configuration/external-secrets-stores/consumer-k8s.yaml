@@ -107,3 +107,25 @@ spec:
   conditions:
     - namespaces:
         - dex
+---
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: glitchtip-k8s
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: external-secrets
+      server:
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+          namespace: external-secrets
+      auth:
+        serviceAccount:
+          name: eso-glitchtip-reader
+          namespace: external-secrets
+  conditions:
+    - namespaces:
+        - glitchtip

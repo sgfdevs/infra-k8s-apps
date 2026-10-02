@@ -1,0 +1,91 @@
+apiVersion: seaweed.seaweedfs.com/v1
+kind: Bucket
+metadata:
+  name: glitchtip-uploads
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  clusterRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  placement:
+    replication: "001"
+  reclaimPolicy: Retain
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Identity
+metadata:
+  name: glitchtip
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: glitchtip-uploads
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Credentials
+metadata:
+  name: glitchtip
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  identityRef:
+    name: glitchtip
+  secretRef:
+    name: glitchtip-s3-credentials
+    accessKeyField: AWS_ACCESS_KEY_ID
+    secretKeyField: AWS_SECRET_ACCESS_KEY
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3Policy
+metadata:
+  name: glitchtip
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  name: glitchtip-uploads
+  statements:
+    - effect: Allow
+      actions:
+        - s3:GetBucketLocation
+        - s3:ListBucket
+        - s3:ListBucketMultipartUploads
+      resources:
+        - glitchtip-uploads
+    - effect: Allow
+      actions:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+        - s3:AbortMultipartUpload
+        - s3:ListMultipartUploadParts
+      resources:
+        - glitchtip-uploads/*
+  reclaimPolicy: Delete
+---
+apiVersion: seaweed.seaweedfs.com/v1
+kind: S3PolicyBinding
+metadata:
+  name: glitchtip
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  seaweedRef:
+    name: seaweedfs
+    namespace: seaweedfs
+  policyRef:
+    name: glitchtip
+  subjects:
+    - kind: S3Identity
+      name: glitchtip
+  reclaimPolicy: Delete

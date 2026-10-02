@@ -25,6 +25,9 @@ spec:
     - secretKey: argocdClientSecret
       remoteRef:
         key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-argocd-client-secret
+    - secretKey: glitchtipClientSecret
+      remoteRef:
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-glitchtip-client-secret
     - secretKey: grafanaClientSecret
       remoteRef:
         key: /vm-workloads/sgfdevs/infra-vm-workloads/dex-grafana-client-secret

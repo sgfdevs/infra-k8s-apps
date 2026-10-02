@@ -1,0 +1,61 @@
+- op: replace
+  path: /metadata/name
+  value: glitchtip-backup
+- op: replace
+  path: /metadata/labels/backup.k8up.io~1app
+  value: glitchtip
+- op: replace
+  path: /spec/fileExtension
+  value: .tar
+- op: replace
+  path: /spec/backupCommand
+  value: >-
+    sh -ec '
+      apk add --no-cache postgresql18-client aws-cli tar >/dev/null;
+      staging=$(mktemp -d);
+      trap "rm -rf $staging" EXIT;
+      mkdir -p "$staging/uploads";
+      pg_dump --host=glitchtip-db-rw --username=glitchtip --dbname=glitchtip --format=custom --no-owner --no-privileges --file="$staging/glitchtip.dump";
+      aws --endpoint-url "$AWS_S3_ENDPOINT_URL" s3 sync "s3://$AWS_STORAGE_BUCKET_NAME" "$staging/uploads" --only-show-errors;
+      printf "%s" "$SECRET_KEY" > "$staging/secret-key";
+      tar -cf - -C "$staging" glitchtip.dump secret-key uploads
+    '
+- op: replace
+  path: /spec/pod/spec/serviceAccountName
+  value: glitchtip-backup
+- op: add
+  path: /spec/pod/spec/automountServiceAccountToken
+  value: false
+- op: replace
+  path: /spec/pod/spec/containers/0/image
+  value: alpine/k8s:1.36.2
+- op: replace
+  path: /spec/pod/spec/containers/0/resources
+  value:
+    requests:
+      cpu: 25m
+      memory: 128Mi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+      ephemeral-storage: 15Gi
+- op: add
+  path: /spec/pod/spec/containers/0/envFrom
+  value:
+    - configMapRef:
+        name: glitchtip-config
+    - secretRef:
+        name: glitchtip-app
+    - secretRef:
+        name: glitchtip-s3-credentials
+- op: add
+  path: /spec/pod/spec/containers/0/env
+  value:
+    - name: PGPASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: glitchtip-db-app
+          key: password
+    - name: PGSSLMODE
+      value: require

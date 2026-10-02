@@ -73,6 +73,11 @@ spec:
                         - infra-maintainers
 
             staticClients:
+              - id: glitchtip
+                name: GlitchTip
+                secretEnv: glitchtipClientSecret
+                redirectURIs:
+                  - https://glitchtip.sgf.dev/accounts/oidc/dex/login/callback/
               - id: argocd
                 name: ArgoCD
                 secretEnv: argocdClientSecret
