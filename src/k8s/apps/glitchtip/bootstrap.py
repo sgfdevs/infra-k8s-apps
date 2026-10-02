@@ -27,7 +27,7 @@ with transaction.atomic():
             "settings": {
                 "server_url": os.environ["OIDC_DISCOVERY_URL"],
                 "oauth_pkce_enabled": True,
-                "token_auth_method": "client_secret_basic",
+                "token_auth_method": "client_secret_post",
             },
         },
     )
