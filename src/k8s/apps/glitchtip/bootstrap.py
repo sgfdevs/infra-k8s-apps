@@ -23,11 +23,11 @@ with transaction.atomic():
         defaults={
             "name": "Dex",
             "client_id": os.environ["OIDC_CLIENT_ID"],
-            "secret": "",
+            "secret": os.environ["OIDC_CLIENT_SECRET"],
             "settings": {
                 "server_url": os.environ["OIDC_DISCOVERY_URL"],
                 "oauth_pkce_enabled": True,
-                "token_auth_method": "none",
+                "token_auth_method": "client_secret_basic",
             },
         },
     )

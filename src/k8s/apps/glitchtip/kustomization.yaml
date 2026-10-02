@@ -13,6 +13,9 @@ resources:
   - install-job.yaml
   - deployment.yaml
   - service.yaml
+  - certificate.yaml
+  - ingress.yaml
+  - middleware-https-redirect.yaml
   - monitoring.yaml
   - backup-workflowtemplate.yaml
   - backup-rbac.yaml

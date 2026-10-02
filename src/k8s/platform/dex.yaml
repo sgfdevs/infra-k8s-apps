@@ -43,6 +43,8 @@ spec:
           envFrom:
             - secretRef:
                 name: dex-secrets
+            - secretRef:
+                name: dex-glitchtip-client-secret
 
           config:
             issuer: https://dex.sgf.dev
@@ -75,9 +77,9 @@ spec:
             staticClients:
               - id: glitchtip
                 name: GlitchTip
-                public: true
+                secretEnv: glitchtipClientSecret
                 redirectURIs:
-                  - http://localhost:8000/accounts/oidc/dex/login/callback/
+                  - https://glitchtip.sgf.dev/accounts/oidc/dex/login/callback/
               - id: argocd
                 name: ArgoCD
                 secretEnv: argocdClientSecret
