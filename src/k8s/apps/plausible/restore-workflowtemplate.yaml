@@ -17,9 +17,6 @@ spec:
       - name: clickhouse-snapshot-id
         value: latest
         description: ClickHouse snapshot from the same K8up backup run.
-      - name: keys-snapshot-id
-        value: latest
-        description: Application-key snapshot from the same K8up backup run.
       - name: confirmation
         description: Enter "RESTORE plausible" to confirm replacement of both databases.
   activeDeadlineSeconds: 3600
@@ -60,8 +57,6 @@ spec:
             value: "{{workflow.parameters.snapshot-id}}"
           - name: CLICKHOUSE_SNAPSHOT_ID
             value: "{{workflow.parameters.clickhouse-snapshot-id}}"
-          - name: KEYS_SNAPSHOT_ID
-            value: "{{workflow.parameters.keys-snapshot-id}}"
           - name: CONFIRMATION
             value: "{{workflow.parameters.confirmation}}"
         resources:
@@ -88,8 +83,6 @@ spec:
             value: "{{workflow.parameters.snapshot-id}}"
           - name: CLICKHOUSE_SNAPSHOT_ID
             value: "{{workflow.parameters.clickhouse-snapshot-id}}"
-          - name: KEYS_SNAPSHOT_ID
-            value: "{{workflow.parameters.keys-snapshot-id}}"
           - name: RESTIC_REPOSITORY
             value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/plausible
           - name: RESTIC_PASSWORD
@@ -119,22 +112,11 @@ spec:
             mountPath: /scripts
           - name: restore-data
             mountPath: /restore
-          - name: keys
-            mountPath: /keys
-            readOnly: true
       volumes:
         - name: scripts
           configMap:
             name: plausible-workflow-scripts
             defaultMode: 0555
-        - name: keys
-          secret:
-            secretName: plausible-app
-            items:
-              - key: SECRET_KEY_BASE
-                path: SECRET_KEY_BASE
-              - key: TOTP_VAULT_KEY
-                path: TOTP_VAULT_KEY
     - name: pause
       container:
         image: alpine/k8s:1.36.2

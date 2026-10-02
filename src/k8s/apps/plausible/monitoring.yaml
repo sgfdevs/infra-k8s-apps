@@ -66,4 +66,4 @@ spec:
             severity: warning
           annotations:
             summary: A Plausible initialization or maintenance job failed
-            description: Inspect job logs and verify the scheduled backup captured PostgreSQL, ClickHouse, and application keys.
+            description: Inspect job logs and verify the scheduled backup captured PostgreSQL and ClickHouse.

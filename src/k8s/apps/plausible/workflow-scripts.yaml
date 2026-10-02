@@ -8,7 +8,7 @@ data:
     set -eu
 
     application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
-    for snapshot in "$SNAPSHOT_ID" "$CLICKHOUSE_SNAPSHOT_ID" "$KEYS_SNAPSHOT_ID"; do
+    for snapshot in "$SNAPSHOT_ID" "$CLICKHOUSE_SNAPSHOT_ID"; do
       if [ "$snapshot" != latest ]; then
         case "$snapshot" in
           ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or lowercase hexadecimal." >&2; exit 1 ;;
@@ -67,16 +67,7 @@ data:
     # K8up stores each application-aware stream in a separate snapshot.
     download "$SNAPSHOT_ID" /plausible-backup.dump /restore/plausible.dump
     download "$CLICKHOUSE_SNAPSHOT_ID" /plausible-clickhouse-0.zip /restore/clickhouse.zip
-    download "$KEYS_SNAPSHOT_ID" /plausible-keys.tar.gz /restore/keys.tar.gz
     unzip -p /restore/clickhouse.zip >/dev/null
-    mkdir -p /restore/keys
-    tar -xzf /restore/keys.tar.gz -C /restore/keys SECRET_KEY_BASE TOTP_VAULT_KEY
-    # ESO would overwrite keys changed only in Kubernetes. Require the matching
-    # originals in OpenBao before replacing either database.
-    if ! cmp -s /restore/keys/SECRET_KEY_BASE /keys/SECRET_KEY_BASE || ! cmp -s /restore/keys/TOTP_VAULT_KEY /keys/TOTP_VAULT_KEY; then
-      echo "Application keys differ from the backup. Recover the original keys in OpenBao before restoring databases." >&2
-      exit 1
-    fi
 
   pause-restore.sh: |
     #!/bin/sh

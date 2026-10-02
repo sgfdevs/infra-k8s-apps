@@ -13,7 +13,6 @@ resources:
   - install-job.yaml
   - deployment.yaml
   - service.yaml
-  - backup-keys.yaml
   - backup-workflowtemplate.yaml
   - restore-workflowtemplate.yaml
   - restore-resume-workflowtemplate.yaml
