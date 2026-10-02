@@ -4,8 +4,8 @@ metadata:
   name: owncloud-backup
 spec:
   schedules:
-    - "0 8 * * *"
-  timezone: UTC
+    - "0 3 * * *"
+  timezone: America/Chicago
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 2

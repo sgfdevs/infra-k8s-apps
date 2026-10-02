@@ -21,7 +21,9 @@ data:
           (.metadata.labels["app.kubernetes.io/name"] == "owncloud") or
           (.metadata.labels["app.kubernetes.io/name"] == "collabora") or
           ((.status.phase == "Succeeded" or .status.phase == "Failed") and .metadata.deletionTimestamp == null) or
-          all(.spec.volumes[]?; .persistentVolumeClaim.claimName != "owncloud-state" and .persistentVolumeClaim.claimName != "collabora-proof-key"))' >/dev/null || {
+          all(.spec.volumes[]?; .persistentVolumeClaim.claimName != "owncloud-state" and
+            .persistentVolumeClaim.claimName != "collabora-proof-key" and
+            .persistentVolumeClaim.claimName != "owncloud-backup-staging"))' >/dev/null || {
         echo 'A backup or restore pod still mounts a production PVC. Do not resume.' >&2
         return 1
       }
@@ -73,47 +75,31 @@ data:
   resolve-snapshot.sh: |
     #!/bin/sh
     set -eu
-    # K8up creates one snapshot per PVC. Pair only snapshots from the same
-    # cold backup, identified by its unique workflow tag.
+    # The staging PVC contains both local-state copies from one cold interval.
     jq -er --arg requested "$SNAPSHOT_ID" '
-      def haspath($path): (.paths // [] | index($path)) != null;
-      def run_tag:
-        [.tags[]? | select(startswith("owncloud-run-"))] |
-        if length == 1 then .[0] else null end;
-      . as $all |
-      [.[] | select(haspath("/data/owncloud-state")) |
-        . as $state | run_tag as $run | select($run != null) |
-        [$all[] | select(haspath("/data/collabora-proof-key")) |
-          select(run_tag == $run)] as $proof |
-        select(($proof | length) == 1) |
-        {state_id: $state.id, proof_id: $proof[0].id, time: $state.time} |
-        select($requested == "latest" or (.state_id | startswith($requested)) or
-               (.proof_id | startswith($requested)))] |
-      if $requested == "latest" then sort_by(.time) | last
-      elif length == 1 then .[0]
-      else error("Snapshot ID is missing, ambiguous, or lacks a matching PVC snapshot") end |
-      select(.state_id | type == "string" and test("^[0-9a-f]{64}$")) |
-      select(.proof_id | type == "string" and test("^[0-9a-f]{64}$"))
-    ' /restore/snapshots.json > /restore/snapshot-ids.json
-    jq -er '.state_id' /restore/snapshot-ids.json > /restore/state-snapshot-id
-    jq -er '.proof_id' /restore/snapshot-ids.json > /restore/proof-snapshot-id
-    cat /restore/snapshot-ids.json
+      [.[] | select((.paths // [] | index("/data/owncloud-backup-staging")) != null) |
+        select($requested == "latest" or (.id | startswith($requested)))] |
+      if $requested == "latest" then sort_by(.time) | last | .id
+      elif length == 1 then .[0].id
+      else error("Snapshot ID is missing, ambiguous, or lacks the staging PVC") end |
+      select(type == "string" and test("^[0-9a-f]{64}$"))
+    ' /restore/snapshots.json > /restore/snapshot-id
+    test -s /restore/snapshot-id
+    printf 'Resolved snapshot: '
+    cat /restore/snapshot-id
 
   download-restore.sh: |
     #!/bin/sh
     set -eu
-    state_snapshot=$(cat /restore/state-snapshot-id)
-    proof_snapshot=$(cat /restore/proof-snapshot-id)
-    restic restore "$state_snapshot" --target /restore/archive --verify \
-      --include /data/owncloud-state
-    restic restore "$proof_snapshot" --target /restore/archive --verify \
-      --include /data/collabora-proof-key
+    snapshot=$(cat /restore/snapshot-id)
+    restic restore "$snapshot" --target /restore/archive --verify \
+      --include /data/owncloud-backup-staging
 
   validate-stage.sh: |
     #!/bin/sh
     set -eu
-    state=/restore/archive/data/owncloud-state
-    proof=/restore/archive/data/collabora-proof-key
+    state=/restore/archive/data/owncloud-backup-staging/owncloud-state
+    proof=/restore/archive/data/owncloud-backup-staging/collabora-proof-key
     test -d "$state" && test ! -L "$state"
     test -d "$state/config" && test ! -L "$state/config"
     test -f "$state/config/ocis.yaml" && test -s "$state/config/ocis.yaml"
@@ -161,6 +147,22 @@ data:
       test -z "$(kubectl get pods -l "app.kubernetes.io/name=$deployment" -o name)"
     done
 
+  copy-local-state.sh: |
+    #!/bin/sh
+    set -eu
+    test -s /source/state/config/ocis.yaml
+    test -s /source/proof/proof_key
+    # Production PVCs are mounted read-only after both applications stopped.
+    find /staging -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
+    mkdir -p /staging/owncloud-state /staging/collabora-proof-key
+    # GNU cp preserves hardlinks, ownership and oCIS metadata xattrs. Explicit
+    # xattr preservation makes attribute-copy failures fail the workflow.
+    cp -a --preserve=xattr /source/state/. /staging/owncloud-state/
+    cp -a --preserve=xattr /source/proof/. /staging/collabora-proof-key/
+    sync
+    test -s /staging/owncloud-state/config/ocis.yaml
+    test -s /staging/collabora-proof-key/proof_key
+
   wait-backup.sh: |
     #!/bin/sh
     set -eu
@@ -173,14 +175,14 @@ data:
     #!/bin/sh
     set -eu
     # Stage validation and verify-paused have already succeeded, before these PVCs mount.
-    state=/restore/archive/data/owncloud-state
-    proof=/restore/archive/data/collabora-proof-key
+    state=/restore/archive/data/owncloud-backup-staging/owncloud-state
+    proof=/restore/archive/data/owncloud-backup-staging/collabora-proof-key
     test -s "$state/config/ocis.yaml" && test -s "$proof/proof_key"
     # Remove stale files, including dotfiles. cp -a retains IDs 1000/1001 and keys.
     find /target/state -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
     find /target/proof -mindepth 1 -maxdepth 1 -exec rm -rf -- {} \;
-    cp -a "$state/." /target/state/
-    cp -a "$proof/." /target/proof/
+    cp -a --preserve=xattr "$state/." /target/state/
+    cp -a --preserve=xattr "$proof/." /target/proof/
     sync
     test -s /target/state/config/ocis.yaml && test -s /target/proof/proof_key
 

@@ -2,13 +2,11 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: owncloud-state
-  labels:
-    backup.k8up.io/app: owncloud
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
-    # Back up only while cold, via owncloud-backup. S3 blobs are not included.
-    k8up.io/backup: "true"
+    # The workflow copies this PVC cold; K8up scans only the staging PVC.
+    k8up.io/backup: "false"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -21,6 +19,22 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: collabora-proof-key
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    k8up.io/backup: "false"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: owncloud-backup-staging
   labels:
     backup.k8up.io/app: owncloud
   annotations:
@@ -33,4 +47,4 @@ spec:
   storageClassName: longhorn
   resources:
     requests:
-      storage: 1Gi
+      storage: 25Gi

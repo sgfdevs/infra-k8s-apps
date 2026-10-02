@@ -2,6 +2,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
   name: owncloud-backup
+  annotations:
+    ignore-check.kube-linter.io/run-as-non-root: "The cold local copy must preserve numeric ownership and extended attributes."
 spec:
   entrypoint: backup
   onExit: cleanup
@@ -35,12 +37,14 @@ spec:
             template: pause
         - - name: verify-paused
             template: verify-paused
+        - - name: copy-local-state
+            template: copy-local-state
+        - - name: resume
+            template: resume
         - - name: create
             template: create
         - - name: wait
             template: wait
-        - - name: resume
-            template: resume
     - name: pause
       container:
         image: alpine/k8s:1.36.2
@@ -95,6 +99,50 @@ spec:
             readOnly: true
           - name: tmp
             mountPath: /tmp
+    - name: copy-local-state
+      container:
+        image: debian:trixie-slim
+        command: [/scripts/copy-local-state.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            drop: [ALL]
+            add: [CHOWN, FOWNER, DAC_OVERRIDE]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+          - name: state
+            mountPath: /source/state
+            readOnly: true
+          - name: proof
+            mountPath: /source/proof
+            readOnly: true
+          - name: staging
+            mountPath: /staging
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: owncloud-state
+        - name: proof
+          persistentVolumeClaim:
+            claimName: collabora-proof-key
+        - name: staging
+          persistentVolumeClaim:
+            claimName: owncloud-backup-staging
     - name: create
       resource:
         action: create

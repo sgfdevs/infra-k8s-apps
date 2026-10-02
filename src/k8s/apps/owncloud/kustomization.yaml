@@ -20,7 +20,7 @@ resources:
   - workflow-scripts.yaml
   - workflow-rbac.yaml
 patches:
-  # No database dump pod: K8up scans the stopped application's PVCs directly.
+  # No database dump pod: K8up scans only the frozen local-state staging PVC.
   - patch: |
       apiVersion: k8up.io/v1
       kind: PreBackupPod
