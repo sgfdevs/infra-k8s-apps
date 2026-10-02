@@ -8,6 +8,7 @@ resources:
   - twenty-restore-rbac.yaml
   - outline-restore-rbac.yaml
   - listmonk-restore-rbac.yaml
+  - plausible-restore-rbac.yaml
 
 patches:
   - path: patches/argocd-cm.yaml

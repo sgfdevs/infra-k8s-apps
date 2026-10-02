@@ -1,0 +1,192 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plausible-workflow-scripts
+data:
+  validate-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or lowercase hexadecimal." >&2; exit 1 ;;
+      esac
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
+      fi
+    fi
+    if [ "$CONFIRMATION" != "RESTORE $application" ]; then
+      echo "Confirmation must exactly match: RESTORE $application" >&2
+      exit 1
+    fi
+
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+    state=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $state
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application $application is not ready for restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment plausible -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "Plausible deployment has stale restore state." >&2
+      exit 1
+    fi
+
+  download-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    snapshot_path=/plausible-backup.tar
+    if [ "$SNAPSHOT_ID" = latest ]; then
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
+      if [ -z "$SNAPSHOT_ID" ]; then
+        echo "No Plausible backup snapshot was found." >&2
+        exit 1
+      fi
+      echo "Resolved latest snapshot to $SNAPSHOT_ID."
+    fi
+    archive=$(mktemp /restore/plausible-backup.XXXXXX.tar)
+    trap 'rm -f "$archive"' EXIT HUP INT TERM
+    restic dump "$SNAPSHOT_ID" "$snapshot_path" > "$archive"
+    test -s "$archive"
+    listing=$(tar -tf "$archive")
+    expected=$(printf 'plausible.dump\nclickhouse.zip\n')
+    if [ "$listing" != "$expected" ]; then
+      echo "Backup must contain exactly plausible.dump and clickhouse.zip." >&2
+      exit 1
+    fi
+    tar -xf "$archive" -C /restore plausible.dump clickhouse.zip
+    test -s /restore/plausible.dump
+    test -s /restore/clickhouse.zip
+    test ! -L /restore/plausible.dump
+    test ! -L /restore/clickhouse.zip
+    chmod 0644 /restore/plausible.dump /restore/clickhouse.zip
+    unzip -p /restore/clickhouse.zip >/dev/null
+
+  pause-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    # Recheck before disruption; scheduled K8up backups do not use the workflow mutex.
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    state=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $state
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application $application is not ready for restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment plausible -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "Plausible deployment has stale restore state." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment plausible -o jsonpath='{.spec.replicas}')
+    kubectl annotate deployment plausible restore.sgf.dev/original-replicas="$replicas" --overwrite
+    kubectl -n argocd patch application "$application" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+    kubectl scale deployment plausible --replicas=0
+    pods=$(kubectl get pods -l app.kubernetes.io/name=plausible -o name)
+    if [ -n "$pods" ]; then
+      kubectl wait --for=delete pod -l app.kubernetes.io/name=plausible --timeout=240s
+    fi
+
+  verify-paused.sh: |
+    #!/bin/sh
+    set -eu
+
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    managed=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    skipped=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}')
+    if [ "$managed" != true ] || [ "$skipped" != true ]; then
+      echo "Argo CD did not remain paused." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment plausible -o jsonpath='{.spec.replicas}')
+    if [ "$replicas" != 0 ]; then
+      echo "Plausible is not scaled to zero." >&2
+      exit 1
+    fi
+    pods=$(kubectl get pods -l app.kubernetes.io/name=plausible -o name)
+    if [ -n "$pods" ]; then
+      echo "Plausible application pods are still running." >&2
+      exit 1
+    fi
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+
+  restore-database.sh: |
+    #!/bin/sh
+    set -eu
+
+    test -s /restore/plausible.dump
+    pg_restore --list /restore/plausible.dump >/dev/null
+    psql --set=ON_ERROR_STOP=1 <<'SQL'
+    SELECT pg_terminate_backend(pid)
+    FROM pg_stat_activity
+    WHERE datname = current_database()
+      AND usename = current_user
+      AND pid <> pg_backend_pid();
+    SQL
+    pg_restore --clean --if-exists --single-transaction --exit-on-error --no-owner --no-privileges --dbname=plausible /restore/plausible.dump
+    table_count=$(psql --tuples-only --no-align --command="SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname = 'public';")
+    if [ "$table_count" -eq 0 ]; then
+      echo "Restored database contains no public tables." >&2
+      exit 1
+    fi
+    psql --set=ON_ERROR_STOP=1 --command='ANALYZE' >/dev/null
+    echo "Plausible database restored with $table_count public tables."
+
+  restore-clickhouse.sh: |
+    #!/bin/sh
+    set -eu
+
+    /scripts/verify-paused.sh
+    test -s /restore/clickhouse.zip
+    kubectl exec -i plausible-clickhouse-0 -c clickhouse -- sh /scripts/restore.sh < /restore/clickhouse.zip
+
+  cleanup-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    if [ "$WORKFLOW_STATUS" != Succeeded ]; then
+      echo "Restore did not succeed. Plausible remains paused if restoration started; inspect it before running plausible-restore-resume." >&2
+      exit 0
+    fi
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    managed=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    if [ "$managed" != true ]; then
+      echo "Plausible is not marked as managed by a restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment plausible -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    case "$original" in
+      ""|*[!0-9]*) echo "Missing or invalid saved replica count for Plausible." >&2; exit 1 ;;
+    esac
+    kubectl scale deployment plausible --replicas="$original"
+    kubectl rollout status deployment plausible --timeout=300s
+    kubectl -n argocd patch application "$application" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.sgf.dev/managed":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}'
+    kubectl annotate deployment plausible restore.sgf.dev/original-replicas-
