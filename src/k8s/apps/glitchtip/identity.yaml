@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glitchtip
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glitchtip-secrets
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glitchtip-backup
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+automountServiceAccountToken: false
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: openbao
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  provider:
+    vault:
+      server: http://openbao-active.openbao.svc.cluster.local:8200
+      path: applications
+      version: v2
+      auth:
+        kubernetes:
+          mountPath: kubernetes
+          role: glitchtip-secrets
+          serviceAccountRef:
+            name: glitchtip-secrets
+            audiences: [vault]

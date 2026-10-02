@@ -1,0 +1,39 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: glitchtip-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+  enableSuperuserAccess: false
+  bootstrap:
+    initdb:
+      database: glitchtip
+      owner: glitchtip
+  inheritedMetadata:
+    annotations:
+      k8up.io/backup: "false"
+  storage:
+    size: 10Gi
+    storageClass: local-path
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
+  monitoring:
+    enablePodMonitor: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 384Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi

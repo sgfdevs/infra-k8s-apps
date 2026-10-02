@@ -1,0 +1,63 @@
+- op: replace
+  path: /metadata/name
+  value: glitchtip-backup
+- op: replace
+  path: /metadata/labels/backup.k8up.io~1app
+  value: glitchtip
+- op: replace
+  path: /spec/fileExtension
+  value: .tar
+- op: replace
+  path: /spec/backupCommand
+  value: >-
+    sh -ec 'apk add --no-cache postgresql18-client py3-boto3 py3-psycopg2 >/dev/null;
+    exec python /scripts/backup.py'
+- op: replace
+  path: /spec/pod/spec/serviceAccountName
+  value: glitchtip-backup
+- op: add
+  path: /spec/pod/spec/automountServiceAccountToken
+  value: false
+- op: replace
+  path: /spec/pod/spec/containers/0/image
+  value: alpine/k8s:1.36.2
+- op: replace
+  path: /spec/pod/spec/containers/0/resources
+  value:
+    requests:
+      cpu: 25m
+      memory: 128Mi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+      ephemeral-storage: 15Gi
+- op: add
+  path: /spec/pod/spec/containers/0/envFrom
+  value:
+    - configMapRef:
+        name: glitchtip-config
+    - secretRef:
+        name: glitchtip-app
+    - secretRef:
+        name: glitchtip-s3-credentials
+- op: add
+  path: /spec/pod/spec/containers/0/env
+  value:
+    - name: DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: glitchtip-db-app
+          key: password
+- op: add
+  path: /spec/pod/spec/containers/0/volumeMounts
+  value:
+    - name: scripts
+      mountPath: /scripts
+      readOnly: true
+- op: add
+  path: /spec/pod/spec/volumes
+  value:
+    - name: scripts
+      configMap:
+        name: glitchtip-scripts
