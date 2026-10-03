@@ -9,6 +9,8 @@ spec:
       - argocd.argoproj.io/skip-reconcile
       - restore.methodconf.com/managed
       - restore.sgf.dev/managed
+      # ownCloud uses this UID to authorize pause cleanup and manual resume.
+      - restore.sgf.dev/owner
       - migration.hack4goodsgf.com/workflow
       - migration.hack4goodsgf.com/phase
   ignoreApplicationDifferences:
