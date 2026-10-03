@@ -41,6 +41,8 @@ spec:
           env:
             - name: SERVER_PORT
               value: "8080"
+            - name: SERVER_FORWARD_HEADERS_STRATEGY
+              value: native
             - name: APP_PUBLIC_DATA_ROOT
               value: /data
             - name: JAVA_TOOL_OPTIONS

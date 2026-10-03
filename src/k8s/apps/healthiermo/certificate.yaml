@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: healthiermo-tls
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  secretName: healthiermo-tls
+  duration: 8760h
+  renewBefore: 720h
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  usages:
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - healthiermo.opensgf.org
