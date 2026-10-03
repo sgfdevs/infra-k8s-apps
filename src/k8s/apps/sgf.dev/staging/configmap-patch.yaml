@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: sgf-dev
 data:
+  Sentry__Environment: staging
   Umbraco__Storage__AWSS3__Media__BucketName: sgfdevs-sgf-dev-staging-media
   SGFDevs__Site__AnalyticsEnabled: "false"
   SGFDevs__Site__SearchIndexingEnabled: "false"
