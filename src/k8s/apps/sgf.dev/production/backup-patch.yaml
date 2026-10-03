@@ -33,7 +33,7 @@
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
             matchLabels:
-              app.kubernetes.io/part-of: sgf-dev
+              app.kubernetes.io/name: sgf-dev
           topologyKey: kubernetes.io/hostname
 - op: add
   path: /spec/pod/spec/containers/0/volumeMounts

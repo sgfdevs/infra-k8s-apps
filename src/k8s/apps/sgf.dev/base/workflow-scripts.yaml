@@ -65,9 +65,9 @@ data:
 
     kubectl -n argocd patch application "$TARGET_NAMESPACE" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
     kubectl scale deployment sgf-dev --replicas=0
-    pods=$(kubectl get pods -l app.kubernetes.io/part-of=sgf-dev -o name)
+    pods=$(kubectl get pods -l app.kubernetes.io/name=sgf-dev -o name)
     if [ -n "$pods" ]; then
-      kubectl wait --for=delete pod -l app.kubernetes.io/part-of=sgf-dev --timeout=180s
+      kubectl wait --for=delete pod -l app.kubernetes.io/name=sgf-dev --timeout=180s
     fi
     echo "$TARGET_NAMESPACE is paused and scaled to zero."
 
@@ -83,7 +83,7 @@ data:
       exit 1
     fi
 
-    pods=$(kubectl get pods -l app.kubernetes.io/part-of=sgf-dev -o name)
+    pods=$(kubectl get pods -l app.kubernetes.io/name=sgf-dev -o name)
     if [ -n "$pods" ]; then
       echo "Application pods still exist in $TARGET_NAMESPACE:" >&2
       echo "$pods" >&2
