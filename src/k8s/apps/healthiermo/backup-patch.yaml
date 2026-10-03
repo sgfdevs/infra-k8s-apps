@@ -1,0 +1,94 @@
+- op: replace
+  path: /metadata/name
+  value: healthiermo-backup
+- op: add
+  path: /metadata/annotations
+  value:
+    argocd.argoproj.io/sync-wave: "4"
+- op: replace
+  path: /metadata/labels/backup.k8up.io~1app
+  value: healthiermo
+- op: replace
+  path: /spec/fileExtension
+  value: .tar
+- op: replace
+  path: /spec/backupCommand
+  value: >-
+    sh -ec '
+      staging=$(mktemp -d);
+      trap "rm -rf $staging" EXIT;
+      test -d /data/audio-files;
+      mysqldump --host=healthiermo-mysql-mysql --user="$MYSQL_USER" \
+        --single-transaction --quick --no-tablespaces \
+        --set-gtid-purged=OFF --skip-add-locks \
+        healthiermo > "$staging/database.sql";
+      test -s "$staging/database.sql";
+      tar -cf - -C "$staging" database.sql -C /data audio-files
+    '
+- op: replace
+  path: /spec/pod/spec/serviceAccountName
+  value: healthiermo-backup
+- op: add
+  path: /spec/pod/spec/automountServiceAccountToken
+  value: false
+- op: add
+  path: /spec/pod/spec/securityContext
+  value:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+- op: replace
+  path: /spec/pod/spec/containers/0/image
+  value: mysql:8.4.7
+- op: replace
+  path: /spec/pod/spec/containers/0/resources/requests/memory
+  value: 64Mi
+- op: add
+  path: /spec/pod/spec/containers/0/securityContext
+  value:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+- op: add
+  path: /spec/pod/spec/containers/0/env
+  value:
+    - name: MYSQL_USER
+      valueFrom:
+        secretKeyRef:
+          name: healthiermo-database
+          key: USER
+    - name: MYSQL_PWD
+      valueFrom:
+        secretKeyRef:
+          name: healthiermo-database
+          key: PASSWORD
+- op: add
+  path: /spec/pod/spec/affinity
+  value:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: healthiermo
+          topologyKey: kubernetes.io/hostname
+- op: add
+  path: /spec/pod/spec/containers/0/volumeMounts
+  value:
+    - name: audio
+      mountPath: /data/audio-files
+      readOnly: true
+    - name: tmp
+      mountPath: /tmp
+- op: add
+  path: /spec/pod/spec/volumes
+  value:
+    - name: audio
+      persistentVolumeClaim:
+        claimName: healthiermo-audio
+    - name: tmp
+      emptyDir: {}

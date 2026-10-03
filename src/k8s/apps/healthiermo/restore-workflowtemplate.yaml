@@ -1,0 +1,227 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: healthiermo-restore
+spec:
+  entrypoint: restore
+  onExit: cleanup
+  serviceAccountName: healthiermo-restore-workflow
+  securityContext:
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  synchronization:
+    mutexes:
+      - name: healthiermo-maintenance
+  arguments:
+    parameters:
+      - name: snapshot-id
+        value: latest
+      - name: confirmation
+        description: Enter "RESTORE healthiermo" to confirm replacement of both MySQL and uploaded audio.
+  activeDeadlineSeconds: 3600
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  volumeClaimTemplates:
+    - metadata:
+        name: restore-data
+        annotations:
+          k8up.io/backup: "false"
+      spec:
+        storageClassName: longhorn
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 40Gi
+  templates:
+    - name: restore
+      steps:
+        - - name: validate
+            template: validate
+        - - name: download
+            template: download
+        - - name: pause
+            template: pause
+        - - name: verify-paused
+            template: verify-paused
+        - - name: restore-data
+            template: restore-data
+    - name: validate
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/validate-restore.sh]
+        env:
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: CONFIRMATION
+            value: "{{workflow.parameters.confirmation}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: healthiermo-workflow-scripts
+            defaultMode: 0555
+    - name: download
+      container:
+        image: restic/restic:0.18.1
+        command: [/scripts/download-restore.sh]
+        env:
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: RESTIC_REPOSITORY
+            value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/healthiermo
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: healthiermo-k8up-repo-password
+                key: password
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-key
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+          - name: restore-data
+            mountPath: /restore
+      volumes:
+        - name: scripts
+          configMap:
+            name: healthiermo-workflow-scripts
+            defaultMode: 0555
+    - name: pause
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/pause-restore.sh]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: healthiermo-workflow-scripts
+            defaultMode: 0555
+    - name: verify-paused
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/verify-paused.sh]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: healthiermo-workflow-scripts
+            defaultMode: 0555
+    - name: restore-data
+      container:
+        image: mysql:8.4.7
+        command: [/scripts/restore-data.sh]
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 10001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        env:
+          - name: MYSQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: healthiermo-database
+                key: USER
+          - name: MYSQL_PWD
+            valueFrom:
+              secretKeyRef:
+                name: healthiermo-database
+                key: PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+          - name: restore-data
+            mountPath: /restore
+            readOnly: true
+          - name: audio
+            mountPath: /data/audio-files
+          - name: tmp
+            mountPath: /tmp
+      volumes:
+        - name: scripts
+          configMap:
+            name: healthiermo-workflow-scripts
+            defaultMode: 0555
+        - name: audio
+          persistentVolumeClaim:
+            claimName: healthiermo-audio
+        - name: tmp
+          emptyDir: {}
+    - name: cleanup
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/cleanup-restore.sh]
+        env:
+          - name: WORKFLOW_STATUS
+            value: "{{workflow.status}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: healthiermo-workflow-scripts
+            defaultMode: 0555
