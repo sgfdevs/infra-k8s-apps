@@ -8,6 +8,7 @@ resources:
   - twenty-restore-rbac.yaml
   - outline-restore-rbac.yaml
   - listmonk-restore-rbac.yaml
+  - healthiermo-restore-rbac.yaml
   - owncloud-restore-rbac.yaml
   - plausible-restore-rbac.yaml
   - glitchtip-restore-rbac.yaml

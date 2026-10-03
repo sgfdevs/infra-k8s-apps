@@ -1,0 +1,229 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthiermo-workflow-scripts
+data:
+  validate-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    if [ "$SNAPSHOT_ID" != latest ]; then
+      case "$SNAPSHOT_ID" in
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or lowercase hexadecimal." >&2; exit 1 ;;
+      esac
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
+      fi
+    fi
+    if [ "$CONFIRMATION" != "RESTORE $application" ]; then
+      echo "Confirmation must exactly match: RESTORE $application" >&2
+      exit 1
+    fi
+
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+    state=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $state
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application $application is not ready for restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment healthiermo -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "HealthierMO deployment has stale restore state." >&2
+      exit 1
+    fi
+
+  download-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    snapshot_path=/healthiermo-backup.tar
+    if [ "$SNAPSHOT_ID" = latest ]; then
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
+      if [ -z "$SNAPSHOT_ID" ]; then
+        echo "No HealthierMO backup snapshot was found." >&2
+        exit 1
+      fi
+      echo "Resolved latest snapshot to $SNAPSHOT_ID."
+    fi
+    archive=$(mktemp /restore/healthiermo-backup.XXXXXX.tar)
+    trap 'rm -f "$archive"' EXIT HUP INT TERM
+    restic dump "$SNAPSHOT_ID" "$snapshot_path" > "$archive"
+    test -s "$archive"
+    tar -tf "$archive" > /restore/archive-list.txt
+    tar -tvf "$archive" > /restore/archive-types.txt
+    if grep -qv '^[-d]' /restore/archive-types.txt; then
+      echo "Backup may contain only regular files and directories, not links." >&2
+      exit 1
+    fi
+    if [ -n "$(sort /restore/archive-list.txt | uniq -d)" ]; then
+      echo "Backup contains duplicate archive entries." >&2
+      exit 1
+    fi
+    if [ "$(grep -cx 'database.sql' /restore/archive-list.txt)" != 1 ] ||
+       [ "$(grep -cx 'audio-files/' /restore/archive-list.txt)" != 1 ]; then
+      echo "Backup must contain database.sql and audio-files/." >&2
+      exit 1
+    fi
+    while IFS= read -r entry; do
+      case "$entry" in
+        database.sql|audio-files/) ;;
+        audio-files/*)
+          filename=${entry#audio-files/}
+          case "$filename" in
+            ""|"."|".."|*[!a-zA-Z0-9._-]*)
+              echo "Unsafe audio filename in backup: $entry" >&2
+              exit 1
+              ;;
+          esac
+          ;;
+        *)
+          echo "Unexpected archive entry: $entry" >&2
+          exit 1
+          ;;
+      esac
+    done < /restore/archive-list.txt
+    tar -xf "$archive" -C /restore
+    test -f /restore/database.sql
+    test -s /restore/database.sql
+    test -d /restore/audio-files
+    chmod 0644 /restore/database.sql
+    find /restore/audio-files -type f -exec chmod 0644 {} +
+    chmod 0755 /restore/audio-files
+
+  pause-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    # Recheck before disruption; scheduled K8up backups do not use the workflow mutex.
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    state=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $state
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application $application is not ready for restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment healthiermo -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "HealthierMO deployment has stale restore state." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment healthiermo -o jsonpath='{.spec.replicas}')
+    kubectl annotate deployment healthiermo restore.sgf.dev/original-replicas="$replicas" --overwrite
+    kubectl -n argocd patch application "$application" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+    kubectl scale deployment healthiermo --replicas=0
+    pods=$(kubectl get pods -l app.kubernetes.io/name=healthiermo -o name)
+    if [ -n "$pods" ]; then
+      kubectl wait --for=delete pod -l app.kubernetes.io/name=healthiermo --timeout=240s
+    fi
+
+  verify-paused.sh: |
+    #!/bin/sh
+    set -eu
+
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    managed=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    skipped=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}')
+    if [ "$managed" != true ] || [ "$skipped" != true ]; then
+      echo "Argo CD did not remain paused." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment healthiermo -o jsonpath='{.spec.replicas}')
+    if [ "$replicas" != 0 ]; then
+      echo "HealthierMO is not scaled to zero." >&2
+      exit 1
+    fi
+    pods=$(kubectl get pods -l app.kubernetes.io/name=healthiermo -o name)
+    if [ -n "$pods" ]; then
+      echo "HealthierMO application pods are still running." >&2
+      exit 1
+    fi
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+
+  restore-data.sh: |
+    #!/bin/sh
+    set -eu
+
+    test -s /restore/database.sql
+    test -d /restore/audio-files
+    mysql --host=healthiermo-mysql-mysql --user="$MYSQL_USER" healthiermo < /restore/database.sql
+    mysql --host=healthiermo-mysql-mysql --user="$MYSQL_USER" --batch --skip-column-names \
+      healthiermo --execute='SELECT COUNT(*) FROM text_box' >/dev/null
+    history=$(mysql --host=healthiermo-mysql-mysql --user="$MYSQL_USER" --batch --skip-column-names \
+      healthiermo --execute='SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1')
+    if [ "$history" -eq 0 ]; then
+      echo "Restored database has no successful Flyway migration history." >&2
+      exit 1
+    fi
+    # Replace audio only after a successful database restore. The app remains stopped.
+    find /data/audio-files -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+    cp -R /restore/audio-files/. /data/audio-files/
+    echo "HealthierMO database and audio restored."
+
+  cleanup-restore.sh: |
+    #!/bin/sh
+    set -eu
+
+    if [ "$WORKFLOW_STATUS" != Succeeded ]; then
+      echo "Restore did not succeed. HealthierMO remains paused if restoration started; inspect it before running healthiermo-restore-resume." >&2
+      exit 0
+    fi
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    managed=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    if [ "$managed" != true ]; then
+      echo "HealthierMO is not marked as managed by a restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment healthiermo -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    case "$original" in
+      ""|*[!0-9]*) echo "Missing or invalid saved replica count for HealthierMO." >&2; exit 1 ;;
+    esac
+    # Failed workflow pods can outlive the workflow. Never resume over an active writer.
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "A K8up Backup is still active. Leave HealthierMO paused until it finishes." >&2
+        exit 1
+      fi
+    done
+    kubectl get pods -o json | jq -e '
+      all(.items[];
+        .status.phase == "Succeeded" or .status.phase == "Failed" or
+        all(.spec.volumes[]?; .persistentVolumeClaim.claimName != "healthiermo-audio"))
+    ' >/dev/null || {
+      echo "A pod still mounts the audio PVC. Leave HealthierMO paused until it finishes." >&2
+      exit 1
+    }
+    kubectl scale deployment healthiermo --replicas="$original"
+    if [ "$original" -gt 0 ] && ! kubectl rollout status deployment healthiermo --timeout=300s; then
+      kubectl scale deployment healthiermo --replicas=0
+      echo "HealthierMO did not become ready. Leave Argo CD paused and inspect the app." >&2
+      exit 1
+    fi
+    kubectl -n argocd patch application "$application" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.sgf.dev/managed":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}'
+    kubectl annotate deployment healthiermo restore.sgf.dev/original-replicas-

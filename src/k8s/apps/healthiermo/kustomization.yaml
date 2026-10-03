@@ -11,6 +11,11 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+  - backup-workflowtemplate.yaml
+  - restore-workflowtemplate.yaml
+  - restore-resume-workflowtemplate.yaml
+  - workflow-scripts.yaml
+  - workflow-rbac.yaml
 transformers:
   - db-instance-namespace-patch.yaml
 patches:
