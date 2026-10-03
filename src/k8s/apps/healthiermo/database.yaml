@@ -1,0 +1,25 @@
+apiVersion: kinda.rocks/v1beta1
+kind: DbInstance
+metadata:
+  name: healthiermo-mysql
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  engine: mysql
+  adminSecretRef:
+    Name: healthiermo-mysql-mysql-account-root
+    Namespace: healthiermo
+  generic:
+    host: healthiermo-mysql-mysql.healthiermo.svc.cluster.local
+    port: 3306
+---
+apiVersion: kinda.rocks/v1beta1
+kind: Database
+metadata:
+  name: healthiermo
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  instance: healthiermo-mysql
+  secretName: healthiermo-database
+  deletionProtected: true
