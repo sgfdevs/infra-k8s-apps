@@ -171,11 +171,11 @@ data:
 
     test -s /restore/database.sql
     test -d /restore/audio-files
-    mysql --host=healthiermo-mysql-mysql --user="$MYSQL_USER" healthiermo < /restore/database.sql
+    mysql --host=healthiermo-mysql-mysql --user="$MYSQL_USER" "$MYSQL_DATABASE" < /restore/database.sql
     mysql --host=healthiermo-mysql-mysql --user="$MYSQL_USER" --batch --skip-column-names \
-      healthiermo --execute='SELECT COUNT(*) FROM text_box' >/dev/null
+      "$MYSQL_DATABASE" --execute='SELECT COUNT(*) FROM text_box' >/dev/null
     history=$(mysql --host=healthiermo-mysql-mysql --user="$MYSQL_USER" --batch --skip-column-names \
-      healthiermo --execute='SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1')
+      "$MYSQL_DATABASE" --execute='SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1')
     if [ "$history" -eq 0 ]; then
       echo "Restored database has no successful Flyway migration history." >&2
       exit 1

@@ -21,7 +21,7 @@
       mysqldump --host=healthiermo-mysql-mysql --user="$MYSQL_USER" \
         --single-transaction --quick --no-tablespaces \
         --set-gtid-purged=OFF --skip-add-locks \
-        healthiermo > "$staging/database.sql";
+        "$MYSQL_DATABASE" > "$staging/database.sql";
       test -s "$staging/database.sql";
       tar -cf - -C "$staging" database.sql -C /data audio-files
     '
@@ -57,6 +57,11 @@
 - op: add
   path: /spec/pod/spec/containers/0/env
   value:
+    - name: MYSQL_DATABASE
+      valueFrom:
+        secretKeyRef:
+          name: healthiermo-database
+          key: DB
     - name: MYSQL_USER
       valueFrom:
         secretKeyRef:
