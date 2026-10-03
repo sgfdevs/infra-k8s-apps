@@ -9,6 +9,7 @@ spec:
       - argocd.argoproj.io/skip-reconcile
       - restore.methodconf.com/managed
       - restore.sgf.dev/managed
+      - restore.sgf.dev/owner
       - migration.hack4goodsgf.com/workflow
       - migration.hack4goodsgf.com/phase
   ignoreApplicationDifferences:
