@@ -166,6 +166,11 @@ spec:
             drop:
               - ALL
         env:
+          - name: MYSQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: healthiermo-database
+                key: DB
           - name: MYSQL_USER
             valueFrom:
               secretKeyRef:

@@ -49,8 +49,13 @@ spec:
               value: graceful
             - name: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
               value: 30s
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: healthiermo-database
+                  key: DB
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://healthiermo-mysql-mysql:3306/healthiermo?sslMode=PREFERRED&allowPublicKeyRetrieval=true&serverTimezone=UTC
+              value: jdbc:mysql://healthiermo-mysql-mysql:3306/$(MYSQL_DATABASE)?sslMode=PREFERRED&allowPublicKeyRetrieval=true&serverTimezone=UTC
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
