@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: healthiermo
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+    traefik.ingress.kubernetes.io/router.entrypoints: cloudflared
+    traefik.ingress.kubernetes.io/router.middlewares: healthiermo-healthiermo-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - healthiermo.opensgf.org
+      secretName: healthiermo-tls
+  rules:
+    - host: healthiermo.opensgf.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: healthiermo
+                port:
+                  name: http
