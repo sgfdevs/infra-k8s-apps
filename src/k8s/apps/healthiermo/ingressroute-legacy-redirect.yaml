@@ -1,0 +1,39 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: healthiermo-legacy-redirect-https
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`healthiermo.ryandelap.io`)
+      kind: Rule
+      middlewares:
+        - name: healthiermo-legacy-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService
+  tls:
+    secretName: healthiermo-legacy-redirect-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: healthiermo-legacy-redirect-http
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`healthiermo.ryandelap.io`)
+      kind: Rule
+      # The HTTP-01 solver ingress must win over the redirect.
+      priority: 1
+      middlewares:
+        - name: healthiermo-legacy-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService

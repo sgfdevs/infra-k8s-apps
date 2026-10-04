@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: healthiermo-legacy-redirect
+spec:
+  redirectRegex:
+    regex: '(?i)^https?://healthiermo\.ryandelap\.io(:[0-9]+)?([/?].*)?$'
+    replacement: 'https://healthiermo.opensgf.org${2}'
+    permanent: true

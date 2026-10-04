@@ -4,7 +4,8 @@ metadata:
   name: healthiermo
   annotations:
     argocd.argoproj.io/sync-wave: "4"
-    traefik.ingress.kubernetes.io/router.entrypoints: cloudflared
+    # Retain cloudflared during the DNS transition and for rollback.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure,cloudflared
     traefik.ingress.kubernetes.io/router.middlewares: healthiermo-healthiermo-https-redirect@kubernetescrd
 spec:
   ingressClassName: traefik
@@ -12,6 +13,28 @@ spec:
     - hosts:
         - healthiermo.opensgf.org
       secretName: healthiermo-tls
+  rules:
+    - host: healthiermo.opensgf.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: healthiermo
+                port:
+                  name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: healthiermo-http
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: healthiermo-healthiermo-https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
   rules:
     - host: healthiermo.opensgf.org
       http:
