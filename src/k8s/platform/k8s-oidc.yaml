@@ -4,7 +4,9 @@ metadata:
   name: k8s-oidc
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "-2"
+    infra.sgf.dev/health-gate: "true"
+    infra.sgf.dev/issuer-operation-gate: "true"
 spec:
   project: platform
   source:

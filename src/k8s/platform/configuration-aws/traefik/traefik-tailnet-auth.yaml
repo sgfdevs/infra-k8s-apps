@@ -5,7 +5,7 @@ metadata:
   namespace: kube-system
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
-    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   refreshInterval: 1h
   secretStoreRef:
