@@ -11,3 +11,8 @@ resources:
   - certificate.yaml
   - middleware-strip-authorization.yaml
   - ingressroute.yaml
+  - public-readiness.yaml
+configMapGenerator:
+  - name: oidc-public-check
+    files:
+      - check-public.py

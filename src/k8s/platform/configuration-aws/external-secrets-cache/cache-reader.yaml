@@ -3,6 +3,7 @@ kind: ServiceAccount
 metadata:
   name: eso-cache-reader
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
@@ -12,6 +13,7 @@ metadata:
   name: eso-cache-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
@@ -28,6 +30,7 @@ metadata:
   name: eso-cache-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io

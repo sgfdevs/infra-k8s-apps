@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: leafo/gh-actions-lua@v11
+        with:
+          luaVersion: "5.4.7"
       - name: Offline ownership contract
         run: |
           python3 -m venv .test-venv
