@@ -1,0 +1,214 @@
+{
+  "v1/ServiceAccount/external-secrets/eso-argo-workflows-reader": {
+    "moving": true,
+    "sha256": "b93649cc54337da15ebda9e859d72fbe10e1218891fea9af655ebb3385dae207"
+  },
+  "v1/ServiceAccount/external-secrets/eso-argocd-reader": {
+    "moving": true,
+    "sha256": "63e3bbcc53f80abd13b5ce50d0f607e6e49b2b87a268b4e03cfbda9d864c9544"
+  },
+  "v1/ServiceAccount/external-secrets/eso-cache-reader": {
+    "moving": true,
+    "sha256": "2584bdcb3bd5afd67417289a43dc250fe69592fcb652a0e6ae24c58258048fd4"
+  },
+  "v1/ServiceAccount/external-secrets/eso-dex-reader": {
+    "moving": true,
+    "sha256": "0b77e533bf572a9ba8fd5ebd6651eb4628fed057274f908a437f9442bb2a5522"
+  },
+  "v1/ServiceAccount/external-secrets/eso-glitchtip-reader": {
+    "moving": true,
+    "sha256": "3c54b660004d89784ffd08b5168fb97cb4670fc33ea93c78409ad7fb5411edd1"
+  },
+  "v1/ServiceAccount/external-secrets/eso-grafana-reader": {
+    "moving": true,
+    "sha256": "dd7f69b7f0e94d6633698232a11a5de003c2949d224ed569b345ac0414ee0648"
+  },
+  "v1/ServiceAccount/external-secrets/eso-oauth2-proxy-reader": {
+    "moving": true,
+    "sha256": "5780f49130f84b9371d617db3d7afc8327fdb217f5c737812e48dc17055ab007"
+  },
+  "v1/ServiceAccount/kube-system/sgfdevs-tailnet-secrets": {
+    "moving": true,
+    "sha256": "181eb0e6680f1b59d4fdaa1c8ef807a5483d718f269e38a28e91b4127637bb9d"
+  },
+  "rbac.authorization.k8s.io/v1/Role/external-secrets/eso-argo-workflows-reader": {
+    "moving": true,
+    "sha256": "c58a1f2e3f426715c28a24a17c10d24faa49bcbbca12f8ba725b2589b7c6e029"
+  },
+  "rbac.authorization.k8s.io/v1/Role/external-secrets/eso-argocd-reader": {
+    "moving": true,
+    "sha256": "ec5137a68ec1f99442b9795eb79083460309b863c8dc1c924eab9cb193bf4f22"
+  },
+  "rbac.authorization.k8s.io/v1/Role/external-secrets/eso-cache-reader": {
+    "moving": true,
+    "sha256": "06a6f2dab710bce82cb3a71f74f1a39917cda5f3b87d7eb36c7bb520dbd9c8f9"
+  },
+  "rbac.authorization.k8s.io/v1/Role/external-secrets/eso-dex-reader": {
+    "moving": true,
+    "sha256": "aeea6eec817e20bb10aa72b5e6d8d0df24afcc009fd028a52de1e3f9a2cc80e8"
+  },
+  "rbac.authorization.k8s.io/v1/Role/external-secrets/eso-glitchtip-reader": {
+    "moving": true,
+    "sha256": "a367981b7ca4cd34e40b7480365aba22b75d913e3380a5b94c00593c73c2bb38"
+  },
+  "rbac.authorization.k8s.io/v1/Role/external-secrets/eso-grafana-reader": {
+    "moving": true,
+    "sha256": "73604f93eaf66b62538faada23e96efe15ccbc59da1c05478c5553ce2d43afa0"
+  },
+  "rbac.authorization.k8s.io/v1/Role/external-secrets/eso-oauth2-proxy-reader": {
+    "moving": true,
+    "sha256": "af686be14e56364e1308d68d2911648036de0eaac785d78dce1d5d83e11bf217"
+  },
+  "rbac.authorization.k8s.io/v1/RoleBinding/external-secrets/eso-argo-workflows-reader": {
+    "moving": true,
+    "sha256": "319540bae4db4175f1b9d7285138b125c054ac14539d68837d0782a30143ffc0"
+  },
+  "rbac.authorization.k8s.io/v1/RoleBinding/external-secrets/eso-argocd-reader": {
+    "moving": true,
+    "sha256": "2715f16a3415d6441145fd23d99a458311f6d7cffb868bcdf53acac5bf339934"
+  },
+  "rbac.authorization.k8s.io/v1/RoleBinding/external-secrets/eso-cache-reader": {
+    "moving": true,
+    "sha256": "3a2a72296545c6ce534d1d292078e9d68688e23cc51f678262aa8f8655c4ba19"
+  },
+  "rbac.authorization.k8s.io/v1/RoleBinding/external-secrets/eso-dex-reader": {
+    "moving": true,
+    "sha256": "e86feabf0bff02bdcc29815b124e38399b85cf0a4e1208d47aab58fcf366eae0"
+  },
+  "rbac.authorization.k8s.io/v1/RoleBinding/external-secrets/eso-glitchtip-reader": {
+    "moving": true,
+    "sha256": "863b7c7550ae7371c8d0b07bab490e19a8c856cc84151012f142d24e8afa4691"
+  },
+  "rbac.authorization.k8s.io/v1/RoleBinding/external-secrets/eso-grafana-reader": {
+    "moving": true,
+    "sha256": "3674b009631b8c79d63ac291e20871ccb839761eb07df1662d62ef76cea22d8e"
+  },
+  "rbac.authorization.k8s.io/v1/RoleBinding/external-secrets/eso-oauth2-proxy-reader": {
+    "moving": true,
+    "sha256": "34c8bc3a42dcd759f7c7bd822d482e1b68067acc1f8ae23a235787c34d7b7d6a"
+  },
+  "admissionregistration.k8s.io/v1/MutatingAdmissionPolicy//aws-role-arn-expansion.infra.sgf.dev": {
+    "moving": false,
+    "sha256": "8db57c1b3d5cd0f1a444552eb4b5c3732e1e74d909c68dff2927feb1610b4213"
+  },
+  "admissionregistration.k8s.io/v1/MutatingAdmissionPolicyBinding//aws-role-arn-expansion.infra.sgf.dev": {
+    "moving": false,
+    "sha256": "df58686baa4c09edd5d56f48f749bbbd8371743e9b64ecea665d8528799e0b43"
+  },
+  "cert-manager.io/v1/Certificate/kube-system/traefik-dashboard-tls": {
+    "moving": false,
+    "sha256": "03f0f3c305070c490a7bd8c6de0f1f5a6182dcf652842740c6a1069e0a2eb697"
+  },
+  "cert-manager.io/v1/ClusterIssuer//letsencrypt-prod": {
+    "moving": false,
+    "sha256": "f07ebaa6cc1066d54bb9a10d7aeeb36426daac428a7b6c95edb8f2a1b4a363e2"
+  },
+  "external-secrets.io/v1/ClusterSecretStore//argo-workflows-k8s": {
+    "moving": true,
+    "sha256": "189300d61fc6783eabcc5a06ee8b2b433359c16b2515c1aa8bc09bf5192f81d1"
+  },
+  "external-secrets.io/v1/ClusterSecretStore//argocd-k8s": {
+    "moving": true,
+    "sha256": "3a021a5d425fbd710ec93931208942c8f89ef963c9397df773e057a77685c824"
+  },
+  "external-secrets.io/v1/ClusterSecretStore//aws-ssm": {
+    "moving": true,
+    "sha256": "3a296fffc387b494929aad1fdb49cb901d117ad284edaf8fd269c529c3817f00"
+  },
+  "external-secrets.io/v1/ClusterSecretStore//dex-k8s": {
+    "moving": true,
+    "sha256": "0c1969d9a8390b9f2f247f2918fe9e4d131aa204a73c3349f1b24a46d49bf431"
+  },
+  "external-secrets.io/v1/ClusterSecretStore//glitchtip-k8s": {
+    "moving": true,
+    "sha256": "777b1827f40c98fdcdcd3afb33cdccb9c61cfa85b03cfb3b9716568e9f80fed0"
+  },
+  "external-secrets.io/v1/ClusterSecretStore//grafana-k8s": {
+    "moving": true,
+    "sha256": "3b8ea77aba7add6e751ed03bc28728eb4f0c5dddecc75cc2d40a19368e92fe9f"
+  },
+  "external-secrets.io/v1/ClusterSecretStore//oauth2-proxy-k8s": {
+    "moving": true,
+    "sha256": "310c54009e13f3ae2943acd2fd9cae8614f73e540273c8f78d6070cc654f59f4"
+  },
+  "external-secrets.io/v1/ExternalSecret/external-secrets/argo-workflows-secrets": {
+    "moving": true,
+    "sha256": "6dc015b7b729b264855e37d036138869c3e0b1159ad300d67bec31768768fbac"
+  },
+  "external-secrets.io/v1/ExternalSecret/external-secrets/argocd-secrets": {
+    "moving": true,
+    "sha256": "3b4eb3219c67b940adb490bb46d060b70f7a80a3008b89975b0fc6ccbf0a160d"
+  },
+  "external-secrets.io/v1/ExternalSecret/external-secrets/dex-secrets": {
+    "moving": true,
+    "sha256": "d23ed9328560c5e04bad1ea5cb6e0d4fbcfbc5bd2f212dc52ed89cd88aba1ed8"
+  },
+  "external-secrets.io/v1/ExternalSecret/external-secrets/glitchtip-secrets": {
+    "moving": true,
+    "sha256": "6f62c7bd99cf50fb46e00ccad857da032c2476d86c50339ac4235ea10f995244"
+  },
+  "external-secrets.io/v1/ExternalSecret/external-secrets/grafana-secrets": {
+    "moving": true,
+    "sha256": "43b7caa577feed7c3a032c5d703f3acb34ea765b4bc2194ec630b5a810096584"
+  },
+  "external-secrets.io/v1/ExternalSecret/external-secrets/oauth2-proxy-secrets": {
+    "moving": true,
+    "sha256": "0224e3c604976c8981abe8e1962769d71c5c4a1097a187e55c1e1d7a7cb744d7"
+  },
+  "external-secrets.io/v1/ExternalSecret/external-secrets/ssm-cache": {
+    "moving": true,
+    "sha256": "f3318777113bcf4b37a1a2358cc204dd3cdc996e055ddddcf7d112fb012f3b47"
+  },
+  "external-secrets.io/v1/ExternalSecret/kube-system/cloudflared-opensgf-token": {
+    "moving": true,
+    "sha256": "76e31ad170bc38b2fd7e75dbe3551a32202087ec1f601709f31efba376f30ca9"
+  },
+  "external-secrets.io/v1/ExternalSecret/kube-system/cloudflared-sgfdevs-token": {
+    "moving": true,
+    "sha256": "0643f28d4125b5045d1b93372c599c4af6a1d4b1ca287c6623c7489493bf1bd7"
+  },
+  "external-secrets.io/v1/ExternalSecret/kube-system/crowdsec-bouncer-key": {
+    "moving": true,
+    "sha256": "ba7978463d66ee30421d9288fd87b9de2be394fd9896049b10e65d11fce7c3a4"
+  },
+  "external-secrets.io/v1/ExternalSecret/kube-system/traefik-tailnet-auth": {
+    "moving": true,
+    "sha256": "6e71853d6f852911bff1302b0374af5c8c2523b5cf5d810bb7eae769048349c0"
+  },
+  "external-secrets.io/v1/SecretStore/external-secrets/cache-k8s": {
+    "moving": true,
+    "sha256": "fea64fb9cee672d353e00920916949bbe6b7473be65868f98def6dc733acd16e"
+  },
+  "external-secrets.io/v1/SecretStore/kube-system/lz-headscale": {
+    "moving": true,
+    "sha256": "6cebbddf414f606bb83431cfb1e9c8876ff98080a1f434ef056c2ce80588f4e6"
+  },
+  "helm.cattle.io/v1/HelmChartConfig/kube-system/traefik": {
+    "moving": false,
+    "sha256": "e8bcae05f312daba3174773ac5b0b91c9e598e09e9a65781c674ea790ad878fa"
+  },
+  "networking.k8s.io/v1/NetworkPolicy/kube-system/traefik-ingress": {
+    "moving": false,
+    "sha256": "1b991ee1cc1ac835c2e84492012ead611442122e206c3b3055ff8ed1dd361df2"
+  },
+  "traefik.io/v1alpha1/IngressRoute/kube-system/traefik-dashboard": {
+    "moving": false,
+    "sha256": "5230ddcec05a31b48035d04312fe3771e9c5ca5a4508ad09e00fa243e11cd181"
+  },
+  "traefik.io/v1alpha1/IngressRoute/kube-system/traefik-dashboard-redirect": {
+    "moving": false,
+    "sha256": "db1db8494bba6293cc9fb990acb287487e64220554d94fcec909d72773a6b527"
+  },
+  "traefik.io/v1alpha1/Middleware/kube-system/client-headers": {
+    "moving": false,
+    "sha256": "885739229a1bd2c573fae05d22ad010b8271635724d020779803407d8d01a8c6"
+  },
+  "traefik.io/v1alpha1/Middleware/kube-system/crowdsec-appsec": {
+    "moving": false,
+    "sha256": "828c73c4a280e5d3b9951bb094b38aa8e3d412c4282643963b5a7442b78114ed"
+  },
+  "traefik.io/v1alpha1/Middleware/kube-system/traefik-dashboard-https-redirect": {
+    "moving": false,
+    "sha256": "989b0a60145c72d8dea67e340aadf0c3673c9433c34c4533dc8731c2eb4151d9"
+  }
+}

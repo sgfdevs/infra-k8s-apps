@@ -4,6 +4,7 @@ metadata:
   name: sgfdevs-tailnet-secrets
   namespace: kube-system
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/sync-wave: "-4"
     infra.sgf.dev/aws-role-arn: "arn:aws:iam::${LZ_AWS_ACCOUNT_ID}:role/SGFDevsTailnetParameterReader"
 automountServiceAccountToken: false
@@ -14,6 +15,7 @@ metadata:
   name: lz-headscale
   namespace: kube-system
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/sync-wave: "-3"
 spec:
   provider:
