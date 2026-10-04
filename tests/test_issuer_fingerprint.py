@@ -91,6 +91,38 @@ class Fingerprint(unittest.TestCase):
             with self.assertRaises(ValueError):
                 fingerprint.fingerprint(target)
 
+    def test_extensionless_kustomization_rejects_external_render_inputs(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+            target = Path(tmp)
+            self.copy_inputs(target)
+            service = target / fingerprint.ISSUER
+            nested = service / "nested"
+            outside = service.parent / "outside"
+            nested.mkdir()
+            outside.mkdir()
+            root_file = service / "kustomization.yaml"
+            root_doc = yaml.safe_load(root_file.read_text())
+            root_doc["resources"].append("nested")
+            root_file.write_text(yaml.safe_dump(root_doc))
+            (nested / "Kustomization").write_text(yaml.safe_dump({
+                "apiVersion": "kustomize.config.k8s.io/v1beta1",
+                "kind": "Kustomization", "resources": ["../../outside"]}))
+            (outside / "kustomization.yaml").write_text(yaml.safe_dump({
+                "apiVersion": "kustomize.config.k8s.io/v1beta1",
+                "kind": "Kustomization", "resources": ["job.yaml"]}))
+            job = yaml.safe_load((service / "public-readiness.yaml").read_text())
+            job["metadata"]["name"] = "synthetic-external-hook"
+            job_file = outside / "job.yaml"
+            renders = []
+            for argument in ["before", "after"]:
+                job["spec"]["template"]["spec"]["containers"][0]["args"] = [argument]
+                job_file.write_text(yaml.safe_dump(job))
+                renders.append(subprocess.check_output(
+                    ["kubectl", "kustomize", str(service)], text=True))
+                with self.assertRaisesRegex(ValueError, "stay inside"):
+                    fingerprint.fingerprint(target)
+            self.assertNotEqual(renders[0], renders[1])
+
     def test_real_config_and_checker_changes_invalidate_actual_lua_gate(self):
         test_health.Health.setUpClass()
         health = test_health.Health()
