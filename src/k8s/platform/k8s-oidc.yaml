@@ -7,6 +7,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "-2"
     infra.sgf.dev/health-gate: "true"
     infra.sgf.dev/issuer-operation-gate: "true"
+    infra.sgf.dev/issuer-input-fingerprint: "b24a72ba6d3c26da0d89e5023cbe4f3731d7ed79"
 spec:
   project: platform
   source:
