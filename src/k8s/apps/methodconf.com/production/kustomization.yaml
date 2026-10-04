@@ -12,6 +12,9 @@ resources:
 - certificate.yaml
 - middleware-https-redirect.yaml
 - middleware-www-redirect.yaml
+- ingressroute-links-redirect.yaml
+- middleware-links-redirect.yaml
+- certificate-links-redirect.yaml
 labels:
 - includeSelectors: true
   pairs:
