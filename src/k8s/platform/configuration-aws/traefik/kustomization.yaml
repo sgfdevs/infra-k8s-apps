@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cloudflared-opensgf-token.yaml
+  - cloudflared-sgfdevs-token.yaml
+  - externalsecret-crowdsec.yaml
+  - traefik-tailnet-auth.yaml
+  - lz-headscale-store.yaml

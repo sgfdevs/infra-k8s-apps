@@ -3,6 +3,7 @@ kind: ServiceAccount
 metadata:
   name: eso-argo-workflows-reader
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
@@ -12,6 +13,7 @@ metadata:
   name: eso-argo-workflows-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
@@ -28,6 +30,7 @@ metadata:
   name: eso-argo-workflows-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -43,6 +46,7 @@ kind: ServiceAccount
 metadata:
   name: eso-argocd-reader
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
@@ -52,6 +56,7 @@ metadata:
   name: eso-argocd-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
@@ -68,6 +73,7 @@ metadata:
   name: eso-argocd-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -83,6 +89,7 @@ kind: ServiceAccount
 metadata:
   name: eso-grafana-reader
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
@@ -92,6 +99,7 @@ metadata:
   name: eso-grafana-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
@@ -108,6 +116,7 @@ metadata:
   name: eso-grafana-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -123,6 +132,7 @@ kind: ServiceAccount
 metadata:
   name: eso-oauth2-proxy-reader
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
@@ -132,6 +142,7 @@ metadata:
   name: eso-oauth2-proxy-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
@@ -148,6 +159,7 @@ metadata:
   name: eso-oauth2-proxy-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -163,6 +175,7 @@ kind: ServiceAccount
 metadata:
   name: eso-dex-reader
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
@@ -172,6 +185,7 @@ metadata:
   name: eso-dex-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
@@ -188,6 +202,7 @@ metadata:
   name: eso-dex-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -203,6 +218,7 @@ kind: ServiceAccount
 metadata:
   name: eso-glitchtip-reader
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
@@ -212,6 +228,7 @@ metadata:
   name: eso-glitchtip-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
@@ -228,6 +245,7 @@ metadata:
   name: eso-glitchtip-reader
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "-2"
     argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
