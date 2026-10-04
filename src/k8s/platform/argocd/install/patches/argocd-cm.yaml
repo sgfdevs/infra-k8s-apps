@@ -34,15 +34,33 @@ data:
     if obj.metadata.annotations ~= nil and
        obj.metadata.annotations["infra.sgf.dev/issuer-operation-gate"] == "true" then
       local op = obj.status and obj.status.operationState
-      local revision = obj.status and obj.status.sync and obj.status.sync.revision
-      if obj.operation ~= nil or op == nil or op.phase ~= "Succeeded" or
-         op.syncResult == nil or revision == nil or op.syncResult.revision ~= revision then
+      local fingerprint = obj.metadata.annotations["infra.sgf.dev/issuer-input-fingerprint"]
+      local hookSucceeded = false
+      if type(fingerprint) == "string" and #fingerprint == 40 and
+         op ~= nil and op.syncResult ~= nil and op.syncResult.resources ~= nil then
+        for _, resource in ipairs(op.syncResult.resources) do
+          if resource.group == "batch" and resource.kind == "Job" and
+             resource.namespace == "k8s-oidc" and
+             resource.name == "oidc-public-readiness-" .. fingerprint and
+             resource.hookType == "PostSync" and resource.hookPhase == "Succeeded" then
+            hookSucceeded = true
+          end
+        end
+      end
+      if obj.operation ~= nil or op == nil or op.phase ~= "Succeeded" or not hookSucceeded then
         hs.status = "Progressing"
-        hs.message = "Waiting for current revision public issuer hook"
+        hs.message = "Waiting for input-bound successful public issuer hook"
         if op ~= nil and (op.phase == "Failed" or op.phase == "Error") then
           hs.status = "Degraded"
           hs.message = "Public issuer hook failed"
         end
+      elseif obj.status.sync == nil or obj.status.sync.status ~= "Synced" or
+             obj.status.health == nil or obj.status.health.status ~= "Healthy" then
+        hs.status = "Progressing"
+        hs.message = "Waiting for Synced and Healthy issuer"
+      else
+        hs.status = "Healthy"
+        hs.message = "Public issuer hook succeeded for expected inputs"
       end
     end
     return hs

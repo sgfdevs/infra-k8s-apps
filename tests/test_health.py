@@ -1,4 +1,5 @@
-"""Execute the installed Lua assessments with synthetic Application/ESO objects."""
+"""Execute the installed Lua assessments and VM wait expressions on shared cases."""
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -7,7 +8,10 @@ from pathlib import Path
 
 import yaml
 
+from issuer_gate_cases import application, cases
+
 ROOT = Path(__file__).resolve().parents[1]
+ROLE = ROOT / "src/ansible/roles/bootstrap_argocd"
 
 
 def lua_value(value):
@@ -35,38 +39,41 @@ class Health(unittest.TestCase):
         cls.data = yaml.safe_load(paths[0].read_text())["data"]
         cls.script = cls.data["resource.customizations.health.argoproj.io_Application"]
         cls.domain = "infra.levizitting.com" if "infra.levizitting.com/health-gate" in cls.script else "infra.sgf.dev"
+        if ROLE.exists():
+            from jinja2 import Environment, StrictUndefined
+            cls.wait = yaml.safe_load((ROLE / "tasks/wait-application.yml").read_text())[0]
+            cls.annotation = yaml.safe_load((ROLE / "defaults/main.yml").read_text())["bootstrap_argocd_issuer_operation_annotation"]
+            spec = importlib.util.spec_from_file_location("bootstrap_issuer", ROLE / "filter_plugins/bootstrap_issuer.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            cls.env = Environment(undefined=StrictUndefined)
+            cls.env.filters["from_json"] = json.loads
+            cls.env.filters.update(module.FilterModule().filters())
 
     def assess(self, script, obj):
-        source = "obj=" + lua_value(obj) + "\nlocal function assess()\n" + script + "\nend\nprint(assess().status)"
+        # Argo's default sandbox lacks the string/math/io/package libraries.
+        source = ("obj=" + lua_value(obj) + "\nlocal function assess()\n"
+                  + "string=nil; math=nil; io=nil; package=nil; os=nil\n" + script
+                  + "\nend\nprint(assess().status)")
         return subprocess.check_output([self.runner, "-"], input=source, text=True).strip()
 
-    def application(self):
-        return {"metadata": {"annotations": {
-            self.domain + "/health-gate": "true", self.domain + "/issuer-operation-gate": "true"}},
-            "status": {"sync": {"status": "Synced", "revision": "current"},
-                       "health": {"status": "Healthy"},
-                       "operationState": {"phase": "Succeeded", "syncResult": {"revision": "current"}}}}
+    def wait_result(self, obj):
+        context = {"_bootstrap_argocd_application_read": {"rc": 0, "stdout": json.dumps(obj)},
+                   "bootstrap_argocd_issuer_operation_annotation": self.annotation}
+        for key, value in self.wait["vars"].items():
+            context[key] = self.env.compile_expression(value.strip()[2:-2].strip())(**context)
+        return all(self.env.compile_expression(condition)(**context) for condition in self.wait["until"])
 
-    def test_current_hook_success(self):
-        self.assertEqual(self.assess(self.script, self.application()), "Healthy")
-
-    def test_pending_failed_stale_missing_operations(self):
-        for phase, expected in [("Running", "Progressing"), ("Failed", "Degraded"), ("Error", "Degraded")]:
-            obj = self.application()
-            obj["status"]["operationState"]["phase"] = phase
-            self.assertEqual(self.assess(self.script, obj), expected)
-        obj = self.application()
-        obj["status"]["operationState"]["syncResult"]["revision"] = "stale"
-        self.assertEqual(self.assess(self.script, obj), "Progressing")
-        obj = self.application()
-        del obj["status"]["operationState"]
-        self.assertEqual(self.assess(self.script, obj), "Progressing")
-        obj = self.application()
-        obj["operation"] = {"sync": {}}
-        self.assertEqual(self.assess(self.script, obj), "Progressing")
+    def test_actual_issuer_gate_cases(self):
+        for name, obj, expected in cases(self.domain):
+            with self.subTest(name=name):
+                result = self.assess(self.script, obj)
+                self.assertEqual(result, expected)
+                if ROLE.exists():
+                    self.assertEqual(self.wait_result(obj), result == "Healthy", "Lua/Ansible disagreement")
 
     def test_ordinary_gates_unchanged(self):
-        obj = self.application()
+        obj = application(self.domain)
         del obj["metadata"]["annotations"][self.domain + "/issuer-operation-gate"]
         del obj["status"]["operationState"]
         self.assertEqual(self.assess(self.script, obj), "Healthy")
