@@ -6,3 +6,4 @@ resources:
   - middleware-https-redirect.yaml
   - certificate.yaml
   - ingress.yaml
+  - networkpolicy.yaml
