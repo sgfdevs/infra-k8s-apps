@@ -31,6 +31,71 @@ data:
         end
       end
     end
+    if obj.metadata.annotations ~= nil and
+       obj.metadata.annotations["infra.sgf.dev/issuer-operation-gate"] == "true" then
+      local op = obj.status and obj.status.operationState
+      local revision = obj.status and obj.status.sync and obj.status.sync.revision
+      if obj.operation ~= nil or op == nil or op.phase ~= "Succeeded" or
+         op.syncResult == nil or revision == nil or op.syncResult.revision ~= revision then
+        hs.status = "Progressing"
+        hs.message = "Waiting for current revision public issuer hook"
+        if op ~= nil and (op.phase == "Failed" or op.phase == "Error") then
+          hs.status = "Degraded"
+          hs.message = "Public issuer hook failed"
+        end
+      end
+    end
+    return hs
+  resource.customizations.health.external-secrets.io_ExternalSecret: |
+    hs = {status = "Progressing", message = "Waiting for Ready condition"}
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      for _, condition in ipairs(obj.status.conditions) do
+        if condition.type == "Ready" then
+          if condition.status == "True" and
+             (condition.observedGeneration == nil or condition.observedGeneration == obj.metadata.generation) then
+            hs.status = "Healthy"
+            hs.message = "Ready"
+          elseif condition.status == "False" then
+            hs.status = "Degraded"
+            hs.message = "Not Ready"
+          end
+        end
+      end
+    end
+    return hs
+  resource.customizations.health.external-secrets.io_SecretStore: |
+    hs = {status = "Progressing", message = "Waiting for Ready condition"}
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      for _, condition in ipairs(obj.status.conditions) do
+        if condition.type == "Ready" then
+          if condition.status == "True" and
+             (condition.observedGeneration == nil or condition.observedGeneration == obj.metadata.generation) then
+            hs.status = "Healthy"
+            hs.message = "Ready"
+          elseif condition.status == "False" then
+            hs.status = "Degraded"
+            hs.message = "Not Ready"
+          end
+        end
+      end
+    end
+    return hs
+  resource.customizations.health.external-secrets.io_ClusterSecretStore: |
+    hs = {status = "Progressing", message = "Waiting for Ready condition"}
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      for _, condition in ipairs(obj.status.conditions) do
+        if condition.type == "Ready" then
+          if condition.status == "True" and
+             (condition.observedGeneration == nil or condition.observedGeneration == obj.metadata.generation) then
+            hs.status = "Healthy"
+            hs.message = "Ready"
+          elseif condition.status == "False" then
+            hs.status = "Degraded"
+            hs.message = "Not Ready"
+          end
+        end
+      end
+    end
     return hs
   url: https://argocd.sgf.dev
   admin.enabled: "false"
