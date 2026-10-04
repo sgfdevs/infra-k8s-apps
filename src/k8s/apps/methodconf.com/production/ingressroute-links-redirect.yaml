@@ -1,0 +1,36 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: methodconf-links-redirect-https
+spec:
+  entryPoints:
+    - websecure
+    - cloudflared
+  routes:
+    - match: Host(`links.methodconf.com`)
+      kind: Rule
+      middlewares:
+        - name: methodconf-links-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService
+  tls:
+    secretName: methodconf-links-redirect-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: methodconf-links-redirect-http
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`links.methodconf.com`)
+      kind: Rule
+      # Let cert-manager's HTTP-01 challenge ingress take precedence.
+      priority: 1
+      middlewares:
+        - name: methodconf-links-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService
