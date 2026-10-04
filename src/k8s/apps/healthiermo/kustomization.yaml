@@ -14,6 +14,9 @@ resources:
   - certificate.yaml
   - ingress.yaml
   - middleware-https-redirect.yaml
+  - certificate-legacy-redirect.yaml
+  - ingressroute-legacy-redirect.yaml
+  - middleware-legacy-redirect.yaml
   - backup-workflowtemplate.yaml
   - restore-workflowtemplate.yaml
   - restore-resume-workflowtemplate.yaml
