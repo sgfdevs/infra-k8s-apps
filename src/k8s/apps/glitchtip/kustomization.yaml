@@ -16,6 +16,9 @@ resources:
   - certificate.yaml
   - ingress.yaml
   - middleware-https-redirect.yaml
+  - certificate-sentry-redirect.yaml
+  - ingressroute-sentry-redirect.yaml
+  - middleware-sentry-redirect.yaml
   - monitoring.yaml
   - backup-workflowtemplate.yaml
   - restore-workflowtemplate.yaml
