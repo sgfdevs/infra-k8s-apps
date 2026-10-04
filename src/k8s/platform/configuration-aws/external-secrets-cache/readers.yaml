@@ -4,7 +4,6 @@ metadata:
   name: eso-argo-workflows-reader
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -14,7 +13,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -31,7 +29,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -47,7 +44,6 @@ metadata:
   name: eso-argocd-reader
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -57,7 +53,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -74,7 +69,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -90,7 +84,6 @@ metadata:
   name: eso-grafana-reader
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -100,7 +93,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -117,7 +109,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -133,7 +124,6 @@ metadata:
   name: eso-oauth2-proxy-reader
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -143,7 +133,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -160,7 +149,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -176,7 +164,6 @@ metadata:
   name: eso-dex-reader
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -186,7 +173,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -203,7 +189,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -219,7 +204,6 @@ metadata:
   name: eso-glitchtip-reader
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
   namespace: external-secrets
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -229,7 +213,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -246,7 +229,6 @@ metadata:
   namespace: external-secrets
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
-    argocd.argoproj.io/sync-options: Prune=false
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
