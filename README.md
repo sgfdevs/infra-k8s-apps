@@ -1,5 +1,7 @@
 # infra-k8s-apps
 
+Bootstrap ownership changes follow [the staged migration procedure](docs/bootstrap-migration.md).
+
 Holds the Kubernetes manifests for base infrastructure and applications deployed to the SGF k3s cluster via Argo CD.
 
 ## Scope
