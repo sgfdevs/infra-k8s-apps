@@ -5,6 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    ignore-check.kube-linter.io/job-ttl-seconds-after-finished: Argo CD owns hook cleanup; TTL deletion would cause drift.
 spec:
   activeDeadlineSeconds: 300
   backoffLimit: 0
