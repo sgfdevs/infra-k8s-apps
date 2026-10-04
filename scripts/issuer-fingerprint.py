@@ -34,7 +34,7 @@ def fingerprint(root=ROOT):
         raise ValueError("Issuer Application source must use the fingerprinted directory")
     for path in inputs(root):
         content = (root / path).read_bytes().decode("utf-8")
-        if path.suffix in {".yaml", ".yml"}:
+        if path.suffix in {".yaml", ".yml"} or path.name == "Kustomization":
             content = list(yaml.safe_load_all(content))
             for doc in content:
                 if doc and doc.get("kind") == "Kustomization":
