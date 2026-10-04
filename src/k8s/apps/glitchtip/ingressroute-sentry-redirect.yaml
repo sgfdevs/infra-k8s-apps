@@ -1,0 +1,36 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: sentry-redirect-https
+spec:
+  entryPoints:
+    - websecure
+    - cloudflared
+  routes:
+    - match: Host(`sentry.sgf.dev`)
+      kind: Rule
+      middlewares:
+        - name: sentry-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService
+  tls:
+    secretName: sentry-redirect-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: sentry-redirect-http
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`sentry.sgf.dev`)
+      kind: Rule
+      # Let cert-manager's HTTP-01 challenge ingress take precedence.
+      priority: 1
+      middlewares:
+        - name: sentry-redirect
+      services:
+        - name: noop@internal
+          kind: TraefikService

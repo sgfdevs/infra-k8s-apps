@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sentry-redirect
+spec:
+  redirectRegex:
+    regex: '(?i)^https?://sentry\.sgf\.dev(:[0-9]+)?([/?].*)?$'
+    replacement: 'https://glitchtip.sgf.dev${2}'
+    permanent: true
