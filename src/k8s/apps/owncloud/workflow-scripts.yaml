@@ -211,6 +211,11 @@ data:
       # No saved count means pause failed before changing this deployment, or cleanup already cleared it.
       if [ -n "$original" ]; then
         kubectl scale deployment "$deployment" --replicas="$original"
+      fi
+    done
+    for deployment in owncloud collabora; do
+      original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+      if [ -n "$original" ]; then
         kubectl rollout status deployment "$deployment" --timeout=300s
         kubectl patch deployment "$deployment" --type=merge -p '{"metadata":{"annotations":{"restore.sgf.dev/original-replicas":null,"restore.sgf.dev/owner":null}}}'
       fi

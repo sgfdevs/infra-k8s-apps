@@ -152,6 +152,10 @@ spec:
           metadata:
             name: {{workflow.name}}
           spec:
+            podSecurityContext:
+              runAsNonRoot: false
+              runAsUser: 0
+              runAsGroup: 0
             activeDeadlineSeconds: 1800
             failedJobsHistoryLimit: 2
             successfulJobsHistoryLimit: 2
