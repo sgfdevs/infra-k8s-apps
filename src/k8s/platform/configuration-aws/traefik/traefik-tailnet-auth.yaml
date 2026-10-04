@@ -4,7 +4,6 @@ metadata:
   name: traefik-tailnet-auth
   namespace: kube-system
   annotations:
-    argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/sync-wave: "1"
 spec:
   refreshInterval: 1h
