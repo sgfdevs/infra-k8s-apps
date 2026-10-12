@@ -4,6 +4,7 @@ resources:
   - traefik-helmchartconfig.yaml
   - middleware-client-headers.yaml
   - middleware-crowdsec.yaml
+  - middleware-crowdsec-plugin-healthcheck.yaml
   - externalsecret-crowdsec.yaml
   - cloudflared-sgfdevs-token.yaml
   - cloudflared-opensgf-token.yaml
