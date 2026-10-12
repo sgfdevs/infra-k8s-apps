@@ -1,0 +1,12 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: crowdsec-plugin-healthcheck
+  namespace: kube-system
+spec:
+  plugin:
+    bouncer:
+      # Instantiate the plugin without inspecting probes or calling CrowdSec.
+      # AppSec mode avoids the stream and metrics background workers.
+      enabled: false
+      crowdsecMode: appsec

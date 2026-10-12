@@ -7,6 +7,8 @@ spec:
   valuesContent: |-
     deployment:
       replicas: 3
+      readinessPath: /healthz
+      livenessPath: /healthz
       podAnnotations:
         secret.reloader.stakater.com/reload: cloudflared-sgfdevs-token,cloudflared-opensgf-token,traefik-tailnet-auth,crowdsec-bouncer-key
       additionalVolumes:
@@ -232,6 +234,22 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+    ingressRoute:
+      healthcheck:
+        enabled: true
+        entryPoints:
+          - traefik
+        matchRule: Path(`/healthz`)
+        middlewares:
+          - name: crowdsec-plugin-healthcheck
+    # Allow CRD routing to initialize before restarting a failed plugin load.
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: traefik
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 24
     updateStrategy:
       type: RollingUpdate
       rollingUpdate:
