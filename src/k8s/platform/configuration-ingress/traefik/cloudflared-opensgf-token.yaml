@@ -1,7 +1,7 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: crowdsec-bouncer-key
+  name: cloudflared-opensgf-token
   namespace: kube-system
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
@@ -9,12 +9,12 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: aws-ssm
-    kind: ClusterSecretStore
+    name: bootstrap-aws-ssm
+    kind: SecretStore
   target:
-    name: crowdsec-bouncer-key
+    name: cloudflared-opensgf-token
     creationPolicy: Owner
   data:
-    - secretKey: BOUNCER_KEY_traefik
+    - secretKey: token
       remoteRef:
-        key: /vm-workloads/sgfdevs/infra-vm-workloads/crowdsec-traefik-bouncer-key
+        key: /vm-workloads/sgfdevs/infra-vm-workloads/cloudflare-opensgf-tunnel-token

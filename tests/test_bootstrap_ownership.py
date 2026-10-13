@@ -40,24 +40,28 @@ class Ownership(unittest.TestCase):
     def setUpClass(cls):
         cls.foundation = {identity(d): d for d in render(PLATFORM / "configuration")}
         cls.aws = {identity(d): d for d in render(PLATFORM / "configuration-aws")}
+        cls.ingress = {identity(d): d for d in render(PLATFORM / "configuration-ingress")}
         cls.apps = {d["metadata"]["name"]: d for d in render(PLATFORM)}
 
     def test_identities_and_runtime_specs(self):
-        all_docs = self.foundation | self.aws
-        self.assertEqual(len(all_docs), len(self.foundation) + len(self.aws), "Shared desired owner")
+        all_docs = self.foundation | self.aws | self.ingress
+        self.assertEqual(len(all_docs), len(self.foundation) + len(self.aws) + len(self.ingress), "Shared desired owner")
         self.assertEqual(set(BASELINE), set(all_docs))
         for key, old in BASELINE.items():
-            self.assertEqual(old["sha256"], digest(all_docs[key]), key)
-            expected_owner = self.aws if old["moving"] and PHASE > 1 else self.foundation
+            self.assertEqual(old.get("transfer_sha256", old["sha256"]), digest(all_docs[key]), key)
+            expected_owner = (self.ingress if old.get("owner") == "ingress" else self.aws) if old["moving"] and PHASE > 1 else self.foundation
             self.assertIn(key, expected_owner)
 
     def test_prune_protection(self):
         for key, old in BASELINE.items():
-            doc = (self.foundation | self.aws)[key]
+            doc = (self.foundation | self.aws | self.ingress)[key]
             options = doc["metadata"].get("annotations", {}).get("argocd.argoproj.io/sync-options", "")
             self.assertEqual("Prune=false" in options, old["moving"] and PHASE < 3, key)
 
     def test_child_preexists_and_tracks_stable_path(self):
+        ingress = self.apps["bootstrap-ingress-config"]
+        self.assertEqual(ingress["spec"]["source"]["path"], "src/k8s/platform/configuration-ingress")
+        self.assertEqual(ingress["metadata"]["annotations"]["infra.sgf.dev/health-gate"], "true")
         app = self.apps["bootstrap-aws-config"]
         self.assertEqual(app["spec"]["source"]["path"], "src/k8s/platform/configuration-aws")
         self.assertEqual(app["spec"]["source"]["targetRevision"], "main")
@@ -68,15 +72,15 @@ class Ownership(unittest.TestCase):
             self.assertEqual(self.apps["k8s-oidc"]["metadata"]["annotations"]["argocd.argoproj.io/sync-wave"], "2")
         else:
             self.assertFalse(any(d["kind"] in {"ExternalSecret", "SecretStore", "ClusterSecretStore"} for d in self.foundation.values()))
-            for name, wave in [("bootstrap-config", "-3"), ("k8s-oidc", "-2"), ("bootstrap-aws-config", "-1")]:
+            for name, wave in [("bootstrap-ingress-config", "-4"), ("bootstrap-config", "-3"), ("k8s-oidc", "-2"), ("bootstrap-aws-config", "-1")]:
                 self.assertEqual(self.apps[name]["metadata"]["annotations"]["argocd.argoproj.io/sync-wave"], wave)
 
     def test_store_graph(self):
         if PHASE == 1:
             return
         stores = {(d["kind"], d["metadata"].get("namespace", ""), d["metadata"]["name"]): d
-                  for d in self.aws.values() if d["kind"] in {"SecretStore", "ClusterSecretStore"}}
-        for doc in self.aws.values():
+                  for d in (self.aws | self.ingress).values() if d["kind"] in {"SecretStore", "ClusterSecretStore"}}
+        for doc in (self.aws | self.ingress).values():
             wave = int(doc["metadata"]["annotations"]["argocd.argoproj.io/sync-wave"])
             if doc["kind"] in {"ServiceAccount", "Role", "RoleBinding"}:
                 self.assertEqual(wave, -2)

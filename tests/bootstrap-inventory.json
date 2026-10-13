@@ -162,17 +162,20 @@
   "external-secrets.io/v1/ExternalSecret/kube-system/cloudflared-opensgf-token": {
     "moving": true,
     "sha256": "76e31ad170bc38b2fd7e75dbe3551a32202087ec1f601709f31efba376f30ca9",
-    "owner": "ingress"
+    "owner": "ingress",
+    "transfer_sha256": "0a4b00015735b33615a4696e4ddca6cef1c679d60598805d2342b58969dac64a"
   },
   "external-secrets.io/v1/ExternalSecret/kube-system/cloudflared-sgfdevs-token": {
     "moving": true,
     "sha256": "0643f28d4125b5045d1b93372c599c4af6a1d4b1ca287c6623c7489493bf1bd7",
-    "owner": "ingress"
+    "owner": "ingress",
+    "transfer_sha256": "72351e65f71e1794e3a82c49bc1bb16067d8307b21c520b3cc621a1c0276a1dd"
   },
   "external-secrets.io/v1/ExternalSecret/kube-system/crowdsec-bouncer-key": {
     "moving": true,
     "sha256": "ba7978463d66ee30421d9288fd87b9de2be394fd9896049b10e65d11fce7c3a4",
-    "owner": "ingress"
+    "owner": "ingress",
+    "transfer_sha256": "8e13c20d0e15ce0904c97736c0a2b87d66912ce3256b95f069f22446cdb4f169"
   },
   "external-secrets.io/v1/ExternalSecret/kube-system/traefik-tailnet-auth": {
     "moving": true,
@@ -217,5 +220,11 @@
   "traefik.io/v1alpha1/Middleware/kube-system/traefik-dashboard-https-redirect": {
     "moving": false,
     "sha256": "989b0a60145c72d8dea67e340aadf0c3673c9433c34c4533dc8731c2eb4151d9"
+  },
+  "external-secrets.io/v1/SecretStore/kube-system/bootstrap-aws-ssm": {
+    "moving": true,
+    "owner": "ingress",
+    "introduced_phase": 2,
+    "sha256": "585c3b22e2cb8b7d2fb0718a23ac19461243d4e885f947e3f48481b39970760d"
   }
 }

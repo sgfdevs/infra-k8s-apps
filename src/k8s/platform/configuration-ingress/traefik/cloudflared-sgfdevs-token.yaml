@@ -9,8 +9,8 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: aws-ssm
-    kind: ClusterSecretStore
+    name: bootstrap-aws-ssm
+    kind: SecretStore
   target:
     name: cloudflared-sgfdevs-token
     creationPolicy: Owner
