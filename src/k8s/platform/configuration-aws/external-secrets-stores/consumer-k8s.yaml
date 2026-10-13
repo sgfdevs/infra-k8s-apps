@@ -3,6 +3,7 @@ kind: ClusterSecretStore
 metadata:
   name: argo-workflows-k8s
   annotations:
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:
@@ -27,6 +28,7 @@ kind: ClusterSecretStore
 metadata:
   name: argocd-k8s
   annotations:
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:
@@ -51,6 +53,7 @@ kind: ClusterSecretStore
 metadata:
   name: grafana-k8s
   annotations:
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:
@@ -75,6 +78,7 @@ kind: ClusterSecretStore
 metadata:
   name: oauth2-proxy-k8s
   annotations:
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:
@@ -99,6 +103,7 @@ kind: ClusterSecretStore
 metadata:
   name: dex-k8s
   annotations:
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:
@@ -123,6 +128,7 @@ kind: ClusterSecretStore
 metadata:
   name: glitchtip-k8s
   annotations:
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:

@@ -1,0 +1,21 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: bootstrap-aws-ssm
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  provider:
+    aws:
+      service: ParameterStore
+      region: us-east-2
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: bootstrap-aws-credentials
+            key: access-key-id
+          secretAccessKeySecretRef:
+            name: bootstrap-aws-credentials
+            key: secret-access-key

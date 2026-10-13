@@ -5,6 +5,7 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+    infra.sgf.dev/health-gate: "true"
 spec:
   project: platform
   source:
@@ -15,6 +16,5 @@ spec:
     server: https://kubernetes.default.svc
   syncPolicy:
     automated:
-      allowEmpty: true
       prune: true
       selfHeal: true
