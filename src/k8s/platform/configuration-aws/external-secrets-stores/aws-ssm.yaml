@@ -4,7 +4,6 @@ metadata:
   name: aws-ssm
   annotations:
     argocd.argoproj.io/sync-wave: "0"
-    argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:
     aws:
