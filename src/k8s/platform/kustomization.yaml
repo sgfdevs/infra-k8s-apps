@@ -6,7 +6,9 @@ resources:
   - argocd-ingress.yaml
   - argocd-install.yaml
   - aws-pod-identity-webhook.yaml
+  - bootstrap-ingress-config.yaml
   - bootstrap-config.yaml
+  - bootstrap-aws-config.yaml
   - crowdsec.yaml
   - dex.yaml
   - grafana-infra.yaml
