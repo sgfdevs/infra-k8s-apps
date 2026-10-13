@@ -161,15 +161,18 @@
   },
   "external-secrets.io/v1/ExternalSecret/kube-system/cloudflared-opensgf-token": {
     "moving": true,
-    "sha256": "76e31ad170bc38b2fd7e75dbe3551a32202087ec1f601709f31efba376f30ca9"
+    "sha256": "76e31ad170bc38b2fd7e75dbe3551a32202087ec1f601709f31efba376f30ca9",
+    "owner": "ingress"
   },
   "external-secrets.io/v1/ExternalSecret/kube-system/cloudflared-sgfdevs-token": {
     "moving": true,
-    "sha256": "0643f28d4125b5045d1b93372c599c4af6a1d4b1ca287c6623c7489493bf1bd7"
+    "sha256": "0643f28d4125b5045d1b93372c599c4af6a1d4b1ca287c6623c7489493bf1bd7",
+    "owner": "ingress"
   },
   "external-secrets.io/v1/ExternalSecret/kube-system/crowdsec-bouncer-key": {
     "moving": true,
-    "sha256": "ba7978463d66ee30421d9288fd87b9de2be394fd9896049b10e65d11fce7c3a4"
+    "sha256": "ba7978463d66ee30421d9288fd87b9de2be394fd9896049b10e65d11fce7c3a4",
+    "owner": "ingress"
   },
   "external-secrets.io/v1/ExternalSecret/kube-system/traefik-tailnet-auth": {
     "moving": true,
@@ -185,7 +188,7 @@
   },
   "helm.cattle.io/v1/HelmChartConfig/kube-system/traefik": {
     "moving": false,
-    "sha256": "e8bcae05f312daba3174773ac5b0b91c9e598e09e9a65781c674ea790ad878fa"
+    "sha256": "527110e49ce3988b9fd362944ff39d11a2055610a2f9f94e90308fc11a073332"
   },
   "networking.k8s.io/v1/NetworkPolicy/kube-system/traefik-ingress": {
     "moving": false,
@@ -206,6 +209,10 @@
   "traefik.io/v1alpha1/Middleware/kube-system/crowdsec-appsec": {
     "moving": false,
     "sha256": "828c73c4a280e5d3b9951bb094b38aa8e3d412c4282643963b5a7442b78114ed"
+  },
+  "traefik.io/v1alpha1/Middleware/kube-system/crowdsec-plugin-healthcheck": {
+    "moving": false,
+    "sha256": "7a9c5ddf85ecb60e41121ead5aed547bf39ce0b2441946b2738189abf743c3ea"
   },
   "traefik.io/v1alpha1/Middleware/kube-system/traefik-dashboard-https-redirect": {
     "moving": false,
