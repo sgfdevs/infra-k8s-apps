@@ -159,7 +159,7 @@ spec:
               cpu: 200m
               memory: 128Mi
         - name: tailscale
-          image: tailscale/tailscale:v1.88.4
+          image: tailscale/tailscale:v1.104.1
           env:
             - name: TS_AUTHKEY
               valueFrom:
