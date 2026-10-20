@@ -55,7 +55,8 @@ class Ownership(unittest.TestCase):
         for key, old in BASELINE.items():
             doc = (self.foundation | self.aws)[key]
             options = doc["metadata"].get("annotations", {}).get("argocd.argoproj.io/sync-options", "")
-            self.assertEqual("Prune=false" in options, old["moving"] and PHASE < 3, key)
+            self.assertEqual("Prune=false" in options,
+                             old.get("prune_protected", False) or (old["moving"] and PHASE < 3), key)
 
     def test_child_preexists_and_tracks_stable_path(self):
         app = self.apps["bootstrap-aws-config"]

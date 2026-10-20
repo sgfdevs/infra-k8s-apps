@@ -1,4 +1,17 @@
 {
+  "apps/v1/Deployment/kube-system/coredns": {
+    "moving": false,
+    "prune_protected": true,
+    "sha256": "f25a0c6a9b6834336dc877ea11b6dd4a9eb4596ecd26f1a0ae49c22e3087378d"
+  },
+  "policy/v1/PodDisruptionBudget/cnpg-system/cnpg-operator": {
+    "moving": false,
+    "sha256": "7e1787e12572e54b2877cdce12f68590fd623e7df8997cd8ff4be49e5be6d1e4"
+  },
+  "policy/v1/PodDisruptionBudget/kube-system/coredns": {
+    "moving": false,
+    "sha256": "6589d9daa953adbab8375cbbb4b1db678620947aeb375cb97b06cd6415c66190"
+  },
   "v1/ServiceAccount/external-secrets/eso-argo-workflows-reader": {
     "moving": true,
     "sha256": "b93649cc54337da15ebda9e859d72fbe10e1218891fea9af655ebb3385dae207"
