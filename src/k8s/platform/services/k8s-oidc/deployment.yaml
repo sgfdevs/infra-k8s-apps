@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: oidc-discovery-proxy
   namespace: k8s-oidc
-  annotations:
-    infra.sgf.dev/issuer-input-fingerprint: "b24a72ba6d3c26da0d89e5023cbe4f3731d7ed79"
 spec:
   replicas: 1
   selector:
