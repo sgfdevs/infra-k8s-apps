@@ -10,6 +10,7 @@ resources:
 - certificate.yaml
 - middleware-https-redirect.yaml
 - ingresses.yaml
+- media-ingress.yaml
 labels:
 - includeSelectors: true
   pairs:
