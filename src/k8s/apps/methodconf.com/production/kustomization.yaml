@@ -8,6 +8,7 @@ resources:
 - backup-serviceaccount.yaml
 - externalsecret-backup-credentials.yaml
 - ingresses.yaml
+- media-ingress.yaml
 - apex-ingress.yaml
 - certificate.yaml
 - middleware-https-redirect.yaml

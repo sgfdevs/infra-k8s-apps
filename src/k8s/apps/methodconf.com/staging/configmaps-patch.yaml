@@ -14,5 +14,6 @@ metadata:
   name: methodconf-frontend
 data:
   CMS_PUBLIC_URL: https://cms-staging.methodconf.com/
+  MEDIA_PUBLIC_URL: https://media-staging.methodconf.com/
   SEARCH_INDEXING_ENABLED: "false"
   SITE_URL: https://staging.methodconf.com/

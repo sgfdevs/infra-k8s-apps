@@ -11,3 +11,4 @@ spec:
   dnsNames:
     - staging.methodconf.com
     - cms-staging.methodconf.com
+    - media-staging.methodconf.com

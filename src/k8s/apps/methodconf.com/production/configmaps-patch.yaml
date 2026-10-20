@@ -13,4 +13,5 @@ metadata:
   name: methodconf-frontend
 data:
   CMS_PUBLIC_URL: https://cms.methodconf.com/
+  MEDIA_PUBLIC_URL: https://media.methodconf.com/
   SITE_URL: https://www.methodconf.com/
