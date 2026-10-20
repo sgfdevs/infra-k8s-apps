@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Prune=false,Delete=false
+    ignore-check.kube-linter.io/no-anti-affinity: K3s manages the hostname topology spread constraints.
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-dns
+    spec:
+      # Server-side apply preserves the container entries managed by K3s.
+      containers: []
