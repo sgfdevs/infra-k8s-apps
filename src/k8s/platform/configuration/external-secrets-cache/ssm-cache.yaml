@@ -4,6 +4,7 @@ metadata:
   name: ssm-cache
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false
     external-secrets.io/force-sync: "1"
 spec:
   refreshInterval: 24h

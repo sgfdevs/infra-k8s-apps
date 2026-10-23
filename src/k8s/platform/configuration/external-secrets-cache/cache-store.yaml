@@ -3,6 +3,8 @@ kind: SecretStore
 metadata:
   name: cache-k8s
   namespace: external-secrets
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   provider:
     kubernetes:
