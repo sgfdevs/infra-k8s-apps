@@ -4,6 +4,7 @@ metadata:
   name: argo-workflows-secrets
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   refreshInterval: 1h
@@ -24,6 +25,7 @@ metadata:
   name: argocd-secrets
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   refreshInterval: 1h
@@ -44,6 +46,7 @@ metadata:
   name: grafana-secrets
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   refreshInterval: 1h
@@ -64,6 +67,7 @@ metadata:
   name: oauth2-proxy-secrets
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   refreshInterval: 1h
@@ -88,6 +92,7 @@ metadata:
   name: glitchtip-secrets
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   refreshInterval: 1h
@@ -108,6 +113,7 @@ metadata:
   name: dex-secrets
   namespace: external-secrets
   annotations:
+    argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   refreshInterval: 1h
