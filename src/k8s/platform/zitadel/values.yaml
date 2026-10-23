@@ -1,7 +1,7 @@
 replicaCount: 2
 
 image:
-  tag: v4.19.3
+  tag: v4.20.0
 
 annotations:
   argocd.argoproj.io/sync-wave: "3"
@@ -125,7 +125,7 @@ metrics:
 
 login:
   image:
-    tag: v4.19.3
+    tag: v4.20.0
   loginServiceKeySecretName: zitadel-login-service-key
   replicaCount: 2
   annotations:
