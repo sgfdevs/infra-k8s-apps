@@ -24,7 +24,7 @@ images:
 - name: ghcr.io/sgfdevs/cms.methodconf.com
   newTag: 1.4.0
 - name: ghcr.io/sgfdevs/methodconf.com
-  newTag: 1.5.0
+  newTag: 1.5.1
 patches:
 - patch: |-
     apiVersion: v1
