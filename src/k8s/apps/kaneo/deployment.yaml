@@ -40,7 +40,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       initContainers:
         - name: prepare-web-assets
-          image: ghcr.io/usekaneo/kaneo:2.29.3@sha256:c547e7f90fc6492de5cf5d973765230efe0b2fe6156461ea888a66ce4897f1ba
+          image: ghcr.io/usekaneo/kaneo:2.46.2@sha256:f44be9aa22546f95c59076bee86678bffcaf5e5d4b960c58a107ad1a05cd1f90
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -72,7 +72,7 @@ spec:
               memory: 64Mi
       containers:
         - name: kaneo
-          image: ghcr.io/usekaneo/kaneo:2.29.3@sha256:c547e7f90fc6492de5cf5d973765230efe0b2fe6156461ea888a66ce4897f1ba
+          image: ghcr.io/usekaneo/kaneo:2.46.2@sha256:f44be9aa22546f95c59076bee86678bffcaf5e5d4b960c58a107ad1a05cd1f90
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
