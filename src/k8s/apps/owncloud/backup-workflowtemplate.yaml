@@ -219,6 +219,8 @@ spec:
           capabilities:
             drop: [ALL]
         env:
+          - name: WAIT_FOR_ROLLOUT
+            value: "false"
           - name: WORKFLOW_OWNER
             value: "{{workflow.uid}}"
           - name: HOME
@@ -246,6 +248,8 @@ spec:
           capabilities:
             drop: [ALL]
         env:
+          - name: WAIT_FOR_ROLLOUT
+            value: "false"
           - name: WORKFLOW_OWNER
             value: "{{workflow.uid}}"
           - name: HOME
