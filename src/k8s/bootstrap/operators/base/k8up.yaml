@@ -13,6 +13,8 @@ spec:
     targetRevision: 4.10.0
     helm:
       values: |
+        image:
+          tag: v2.16.1
         replicaCount: 2
         affinity:
           podAntiAffinity:

@@ -213,7 +213,7 @@ spec:
             defaultMode: 0555
     - name: initialize
       container:
-        image: glitchtip/glitchtip:6.2.3@sha256:95e0e2d6b1bc18446902ae0cb47910cc55d7c0d6756ee901b0cd8dce9f8ef5a9
+        image: glitchtip/glitchtip:6.2.6@sha256:a3d8eb1b36c1e1603d55ab32711ea3dd8115874742a781a57391a62a16e0dff6
         command: [sh, -ec]
         args:
           - ./bin/run-migrate.sh

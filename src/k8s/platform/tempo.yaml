@@ -15,6 +15,7 @@ spec:
         values: |
           replicas: 1
           tempo:
+            tag: "2.10.10"
             reportingEnabled: false
             retention: 168h
             resources:

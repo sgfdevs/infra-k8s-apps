@@ -107,6 +107,8 @@ spec:
               enabled: true
 
           grafana:
+            image:
+              tag: 13.2.4-distroless
             enabled: true
             replicas: 2
             serviceMonitor:
