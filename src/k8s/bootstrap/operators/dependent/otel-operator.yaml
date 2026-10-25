@@ -10,12 +10,14 @@ spec:
   source:
     chart: opentelemetry-operator
     repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-    targetRevision: 0.124.0
+    targetRevision: 0.126.2
     helm:
       values: |
           replicaCount: 2
 
           manager:
+            image:
+              tag: "0.162.0"
             leaderElection:
               enabled: true
             resources:
