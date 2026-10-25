@@ -14,11 +14,11 @@ resources:
   - glitchtip-restore-rbac.yaml
 
 patches:
+  - path: patches/remove-bundled-dex.yaml
   - path: patches/argocd-cm.yaml
   - path: patches/argocd-cmd-params-cm.yaml
   - path: patches/argocd-application-controller-sts.yaml
   - path: patches/argocd-applicationset-controller-deploy.yaml
-  - path: patches/argocd-dex-server-deploy.yaml
   - path: patches/argocd-notifications-controller-deploy.yaml
   - path: patches/argocd-rbac-cm.yaml
   - path: patches/argocd-redis-ha-announce-services.yaml

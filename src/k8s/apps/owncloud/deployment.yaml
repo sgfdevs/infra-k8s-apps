@@ -64,7 +64,7 @@ spec:
             capabilities:
               drop: [ALL]
         - name: initialize
-          image: owncloud/ocis:8.2.0
+          image: owncloud/ocis:8.2.2
           command: [/bin/sh, /bootstrap/initialize.sh]
           envFrom:
             - configMapRef:
@@ -93,7 +93,7 @@ spec:
               mountPath: /tmp
       containers:
         - name: owncloud
-          image: owncloud/ocis:8.2.0
+          image: owncloud/ocis:8.2.2
           args: [server]
           ports:
             - name: http
@@ -140,7 +140,7 @@ spec:
             - name: tmp
               mountPath: /tmp
         - name: collaboration
-          image: owncloud/ocis:8.2.0
+          image: owncloud/ocis:8.2.2
           args: [collaboration, server]
           ports:
             - name: wopi

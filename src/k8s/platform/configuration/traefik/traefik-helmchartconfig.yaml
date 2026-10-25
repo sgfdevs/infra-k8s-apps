@@ -5,6 +5,8 @@ metadata:
   namespace: kube-system
 spec:
   valuesContent: |-
+    image:
+      tag: "3.7.16"
     deployment:
       replicas: 3
       readinessPath: /healthz
@@ -159,7 +161,7 @@ spec:
               cpu: 200m
               memory: 128Mi
         - name: tailscale
-          image: tailscale/tailscale:v1.104.1
+          image: tailscale/tailscale:v1.104.2
           env:
             - name: TS_AUTHKEY
               valueFrom:

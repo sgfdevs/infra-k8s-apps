@@ -3,6 +3,8 @@ injector:
 csi:
   enabled: false
 server:
+  image:
+    tag: "2.7.1"
   updateStrategyType: RollingUpdate
   podManagementPolicy: Parallel
   ha:
