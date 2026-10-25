@@ -170,6 +170,9 @@ data:
     kubectl get "backups.k8up.io/$BACKUP_NAME" -o json | jq -e '
       any(.status.conditions[]?; .type == "Completed" and .status == "True" and
           .reason == "Succeeded" and ((.message // "" | ascii_downcase | contains("nothing to backup")) | not))' >/dev/null
+    for deployment in owncloud collabora; do
+      kubectl rollout status deployment "$deployment" --timeout=300s
+    done
 
   restore-state.sh: |
     #!/bin/sh
@@ -216,7 +219,9 @@ data:
     for deployment in owncloud collabora; do
       original=$(kubectl get deployment "$deployment" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
       if [ -n "$original" ]; then
-        kubectl rollout status deployment "$deployment" --timeout=300s
+        if [ "${WAIT_FOR_ROLLOUT:-true}" = true ]; then
+          kubectl rollout status deployment "$deployment" --timeout=300s
+        fi
         kubectl patch deployment "$deployment" --type=merge -p '{"metadata":{"annotations":{"restore.sgf.dev/original-replicas":null,"restore.sgf.dev/owner":null}}}'
       fi
     done
