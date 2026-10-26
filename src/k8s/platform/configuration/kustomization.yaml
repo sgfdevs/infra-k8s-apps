@@ -5,6 +5,4 @@ resources:
   - cert-manager-issuers
   - cnpg
   - coredns
-  - external-secrets-stores
-  - external-secrets-cache
   - traefik
