@@ -1,0 +1,11 @@
+- op: replace
+  path: /metadata/name
+  value: kaneo-backup
+- op: replace
+  path: /spec/backend/repoPasswordSecretRef/name
+  value: kaneo-k8up-repo-password
+- op: replace
+  path: /spec/backend/s3/bucket
+  value: sgfdevs-on-prem-k3s-backups/kaneo
+- op: remove
+  path: /spec/backup
