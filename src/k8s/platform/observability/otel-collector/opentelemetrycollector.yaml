@@ -5,7 +5,7 @@ metadata:
   namespace: observability
 spec:
   mode: daemonset
-  image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.155.0
+  image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.163.2
   resources:
     requests:
       cpu: 100m

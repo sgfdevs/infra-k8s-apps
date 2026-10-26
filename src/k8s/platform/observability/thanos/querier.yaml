@@ -38,7 +38,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: thanos-querier
-          image: quay.io/thanos/thanos:v0.41.0
+          image: quay.io/thanos/thanos:v0.42.4
           args:
             - query
             - --enable-auto-gomemlimit

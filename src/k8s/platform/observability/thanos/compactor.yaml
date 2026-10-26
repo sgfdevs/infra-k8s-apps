@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: thanos-compactor
-          image: quay.io/thanos/thanos:v0.41.0
+          image: quay.io/thanos/thanos:v0.42.4
           args:
             - compact
             - --data-dir=/var/thanos/compactor
