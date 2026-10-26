@@ -1,0 +1,124 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: kaneo-backup
+spec:
+  entrypoint: backup
+  serviceAccountName: kaneo-backup-workflow
+  synchronization:
+    mutexes:
+      - name: kaneo-maintenance
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  activeDeadlineSeconds: 3600
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  volumes:
+    - name: scripts
+      configMap:
+        name: kaneo-workflow-scripts
+        defaultMode: 0555
+    - name: tmp
+      emptyDir: {}
+  templates:
+    - name: backup
+      steps:
+        - - name: ensure-idle
+            template: ensure-idle
+        - - name: create
+            template: create
+        - - name: wait
+            template: wait
+    - name: ensure-idle
+      container:
+        image: alpine/k8s:1.36.2
+        command: [sh, -ec, '. /scripts/common.sh; ensure_ready']
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: HOME
+            value: /tmp
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp
+    - name: create
+      resource:
+        action: create
+        manifest: |
+          apiVersion: k8up.io/v1
+          kind: Backup
+          metadata:
+            name: {{workflow.name}}
+          spec:
+            activeDeadlineSeconds: 1800
+            failedJobsHistoryLimit: 2
+            successfulJobsHistoryLimit: 2
+            clusterName: sgfdevs
+            promURL: http://prometheus-pushgateway.observability.svc.cluster.local:9091
+            tags:
+              - kaneo
+              - "kaneo-run-{{workflow.uid}}"
+            labelSelectors:
+              - matchLabels:
+                  backup.k8up.io/app: kaneo
+            backend:
+              repoPasswordSecretRef:
+                name: kaneo-k8up-repo-password
+                key: password
+              s3:
+                endpoint: https://s3.us-east-005.backblazeb2.com
+                bucket: sgfdevs-on-prem-k3s-backups/kaneo
+                accessKeyIDSecretRef:
+                  name: k8up-b2-credentials
+                  key: account-id
+                secretAccessKeySecretRef:
+                  name: k8up-b2-credentials
+                  key: account-key
+    - name: wait
+      container:
+        image: alpine/k8s:1.36.2
+        command: [/scripts/wait-backup.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: BACKUP_NAME
+            value: "{{workflow.name}}"
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: tmp
+            mountPath: /tmp

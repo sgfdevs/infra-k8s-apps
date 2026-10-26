@@ -1,0 +1,356 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: kaneo-restore
+spec:
+  entrypoint: restore
+  onExit: cleanup
+  serviceAccountName: kaneo-restore-workflow
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  volumes:
+    - name: tmp
+      emptyDir: {}
+  synchronization:
+    mutexes:
+      - name: kaneo-maintenance
+  arguments:
+    parameters:
+      - name: snapshot-id
+        value: latest
+      - name: confirmation
+        description: Enter "RESTORE kaneo" to confirm replacement of the database.
+  activeDeadlineSeconds: 3600
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  podGC:
+    strategy: OnWorkflowCompletion
+    deleteDelayDuration: 10m
+  volumeClaimTemplates:
+    - metadata:
+        name: restore-data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 20Gi
+  templates:
+    - name: restore
+      steps:
+        - - name: validate
+            template: validate
+        - - name: download
+            template: download
+        - - name: validate-archive
+            template: validate-archive
+        - - name: pause
+            template: pause
+        - - name: verify-paused
+            template: verify-paused
+        - - name: restore-database
+            template: restore-database
+        - - name: reset-redis
+            template: reset-redis
+    - name: validate
+      container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        image: alpine/k8s:1.36.2
+        command: [/scripts/validate-restore.sh]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: CONFIRMATION
+            value: "{{workflow.parameters.confirmation}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: kaneo-workflow-scripts
+            defaultMode: 0555
+    - name: download
+      container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        image: restic/restic:0.18.1
+        command: [/scripts/download-restore.sh]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: SNAPSHOT_ID
+            value: "{{workflow.parameters.snapshot-id}}"
+          - name: RESTIC_CACHE_DIR
+            value: /tmp/restic
+          - name: RESTIC_REPOSITORY
+            value: s3:https://s3.us-east-005.backblazeb2.com/sgfdevs-on-prem-k3s-backups/kaneo
+          - name: RESTIC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kaneo-k8up-repo-password
+                key: password
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: k8up-b2-credentials
+                key: account-key
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: restore-data
+            mountPath: /restore
+      volumes:
+        - name: scripts
+          configMap:
+            name: kaneo-workflow-scripts
+            defaultMode: 0555
+    - name: validate-archive
+      container:
+        image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+        command: [sh, -ec, 'test -s /restore/kaneo.dump; pg_restore --list /restore/kaneo.dump >/dev/null']
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        volumeMounts:
+          - name: restore-data
+            mountPath: /restore
+            readOnly: true
+    - name: pause
+      container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        image: alpine/k8s:1.36.2
+        command: [/scripts/pause-restore.sh]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: kaneo-workflow-scripts
+            defaultMode: 0555
+    - name: verify-paused
+      container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        image: alpine/k8s:1.36.2
+        command: [/scripts/verify-paused.sh]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: kaneo-workflow-scripts
+            defaultMode: 0555
+    - name: restore-database
+      metadata:
+        labels:
+          backup.sgf.dev/writer: kaneo
+      container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+        command: [/scripts/restore-database.sh]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: PGHOST
+            value: kaneo-db-rw
+          - name: PGDATABASE
+            value: kaneo
+          - name: PGUSER
+            value: kaneo
+          - name: PGSSLMODE
+            value: require
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kaneo-db-app
+                key: password
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+          - name: restore-data
+            mountPath: /restore
+      volumes:
+        - name: scripts
+          configMap:
+            name: kaneo-workflow-scripts
+            defaultMode: 0555
+    - name: reset-redis
+      metadata:
+        labels:
+          backup.sgf.dev/writer: kaneo
+      container:
+        image: redis:8.4.0
+        command: [/scripts/reset-redis.sh]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        env:
+          - name: SENTINEL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kaneo-redis-sentinel-account-default
+                key: password
+          - name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kaneo-redis-account-default
+                key: password
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: kaneo-workflow-scripts
+            defaultMode: 0555
+    - name: cleanup
+      container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        image: alpine/k8s:1.36.2
+        command: [/scripts/cleanup-restore.sh]
+        env:
+          - name: HOME
+            value: /tmp
+          - name: WORKFLOW_OWNER
+            value: "{{workflow.uid}}"
+          - name: WORKFLOW_STATUS
+            value: "{{workflow.status}}"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: kaneo-workflow-scripts
+            defaultMode: 0555
