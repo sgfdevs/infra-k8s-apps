@@ -5,16 +5,6 @@ metadata:
 spec:
   entrypoint: resume
   serviceAccountName: kaneo-restore-workflow
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-    seccompProfile:
-      type: RuntimeDefault
-  volumes:
-    - name: tmp
-      emptyDir: {}
   synchronization:
     mutexes:
       - name: kaneo-maintenance
@@ -31,20 +21,21 @@ spec:
   templates:
     - name: resume
       container:
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop: [ALL]
         image: alpine/k8s:1.36.2
-        command: [/scripts/manual-resume.sh]
+        command: [sh, -ec]
+        args:
+          - |
+            application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+            if [ "$CONFIRMATION" != "RESUME $application" ]; then
+              echo "Confirmation must exactly match: RESUME $application" >&2
+              exit 1
+            fi
+            /scripts/cleanup-restore.sh
         env:
-          - name: HOME
-            value: /tmp
-          - name: WORKFLOW_OWNER
-            value: "{{workflow.uid}}"
           - name: CONFIRMATION
             value: "{{workflow.parameters.confirmation}}"
+          - name: WORKFLOW_STATUS
+            value: Succeeded
         resources:
           requests:
             cpu: 25m
@@ -53,11 +44,8 @@ spec:
             cpu: 250m
             memory: 128Mi
         volumeMounts:
-          - name: tmp
-            mountPath: /tmp
           - name: scripts
             mountPath: /scripts
-            readOnly: true
       volumes:
         - name: scripts
           configMap:

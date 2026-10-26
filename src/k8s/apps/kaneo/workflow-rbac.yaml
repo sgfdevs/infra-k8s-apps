@@ -21,13 +21,6 @@ kind: Role
 metadata:
   name: kaneo-backup-workflow
 rules:
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["kaneo"]
-    verbs: ["get"]
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list"]
   - apiGroups: ["k8up.io"]
     resources: ["backups"]
     verbs: ["create", "get", "list", "watch"]

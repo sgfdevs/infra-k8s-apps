@@ -3,89 +3,58 @@ kind: ConfigMap
 metadata:
   name: kaneo-workflow-scripts
 data:
-  common.sh: |
-    #!/bin/sh
-    set -eu
-
-    app_state() {
-      kubectl -n argocd get application kaneo -o json
-    }
-    ensure_idle() {
-      kubectl get backups.k8up.io -o json | jq -e '
-        all(.items[]; any(.status.conditions[]?; .type == "Completed" and .status == "True"))' >/dev/null
-      # A failed workflow can finish before its database-writing pod terminates.
-      kubectl get pods -l backup.sgf.dev/writer=kaneo -o json | jq -e '
-        all(.items[]; .status.phase == "Succeeded" or .status.phase == "Failed")' >/dev/null
-    }
-    ensure_ready() {
-      ensure_idle
-      APP_STATE=$(app_state)
-      printf '%s' "$APP_STATE" | jq -e '
-        .metadata.annotations["restore.sgf.dev/managed"] == null and
-        .metadata.annotations["restore.sgf.dev/owner"] == null and
-        .metadata.annotations["argocd.argoproj.io/skip-reconcile"] == null and
-        .spec.syncPolicy.automated.selfHeal == true and
-        .status.operationState.phase != "Running" and .operation == null' >/dev/null
-      kubectl get deployment kaneo -o json | jq -e '
-        .metadata.annotations["restore.sgf.dev/original-replicas"] == null and
-        .metadata.annotations["restore.sgf.dev/owner"] == null' >/dev/null
-    }
-    ensure_owned() {
-      APP_STATE=$(app_state)
-      printf '%s' "$APP_STATE" | jq -e --arg owner "$WORKFLOW_OWNER" '
-        .metadata.annotations["restore.sgf.dev/managed"] == "true" and
-        .metadata.annotations["restore.sgf.dev/owner"] == $owner and
-        .metadata.annotations["argocd.argoproj.io/skip-reconcile"] == "true" and
-        .spec.syncPolicy.automated.selfHeal == false and
-        .status.operationState.phase != "Running" and .operation == null' >/dev/null
-    }
-    release_application() {
-      ensure_owned
-      patch=$(printf '%s' "$APP_STATE" | jq '{
-        metadata: {resourceVersion: .metadata.resourceVersion, annotations: {
-          "restore.sgf.dev/managed": null, "restore.sgf.dev/owner": null,
-          "argocd.argoproj.io/skip-reconcile": null}},
-        spec: {syncPolicy: {automated: {selfHeal: true}}}}')
-      kubectl -n argocd patch application kaneo --type=merge -p "$patch"
-    }
-
-  wait-backup.sh: |
-    #!/bin/sh
-    set -eu
-    kubectl wait --for=condition=Completed "backups.k8up.io/$BACKUP_NAME" --timeout=3500s
-    kubectl get "backups.k8up.io/$BACKUP_NAME" -o json | jq -e '
-      any(.status.conditions[]?; .type == "Completed" and .status == "True" and
-        .reason == "Succeeded" and ((.message // "" | ascii_downcase | contains("nothing to backup")) | not)) and
-      any(.status.conditions[]?; .type == "PreBackupPodReady" and .status == "True" and
-        .reason != "NoPreBackupPodsFound")' >/dev/null
-
   validate-restore.sh: |
     #!/bin/sh
     set -eu
-    . /scripts/common.sh
-    test "$CONFIRMATION" = 'RESTORE kaneo' || {
-      echo 'Confirmation must exactly match: RESTORE kaneo' >&2
-      exit 1
-    }
+
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
     if [ "$SNAPSHOT_ID" != latest ]; then
       case "$SNAPSHOT_ID" in
-        ""|*[!0-9a-f]*) echo 'Snapshot ID must be latest or lowercase hexadecimal.' >&2; exit 1 ;;
+        ""|*[!0-9a-f]*) echo "Snapshot ID must be 'latest' or lowercase hexadecimal." >&2; exit 1 ;;
       esac
-      test "${#SNAPSHOT_ID}" -ge 8 && test "${#SNAPSHOT_ID}" -le 64
+      if [ "${#SNAPSHOT_ID}" -lt 8 ] || [ "${#SNAPSHOT_ID}" -gt 64 ]; then
+        echo "Snapshot ID must be between 8 and 64 characters." >&2
+        exit 1
+      fi
     fi
-    ensure_ready
+    if [ "$CONFIRMATION" != "RESTORE $application" ]; then
+      echo "Confirmation must exactly match: RESTORE $application" >&2
+      exit 1
+    fi
+
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+    state=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $state
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application $application is not ready for restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment kaneo -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "Kaneo deployment has stale restore state." >&2
+      exit 1
+    fi
 
   download-restore.sh: |
     #!/bin/sh
     set -eu
+
     snapshot_path=/kaneo-backup.dump
     if [ "$SNAPSHOT_ID" = latest ]; then
-      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --group-by '' --path "$snapshot_path" |
-        sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
-      test "${#SNAPSHOT_ID}" -eq 64 || {
-        echo 'No Kaneo database snapshot was found.' >&2
+      SNAPSHOT_ID=$(restic snapshots --json --latest 1 --path "$snapshot_path" | sed -n 's/.*"id":"\([0-9a-f]*\)".*/\1/p')
+      if [ -z "$SNAPSHOT_ID" ]; then
+        echo "No Kaneo database snapshot was found." >&2
         exit 1
-      }
+      fi
+      echo "Resolved latest snapshot to $SNAPSHOT_ID."
     fi
     restic dump "$SNAPSHOT_ID" "$snapshot_path" > /restore/kaneo.dump
     test -s /restore/kaneo.dump
@@ -93,41 +62,71 @@ data:
   pause-restore.sh: |
     #!/bin/sh
     set -eu
-    . /scripts/common.sh
-    ensure_ready
-    version=$(printf '%s' "$APP_STATE" | jq -r '.metadata.resourceVersion')
-    patch=$(jq -n --arg version "$version" --arg owner "$WORKFLOW_OWNER" '{
-      metadata: {resourceVersion: $version, annotations: {
-        "restore.sgf.dev/managed": "true", "restore.sgf.dev/owner": $owner,
-        "argocd.argoproj.io/skip-reconcile": "true"}},
-      spec: {syncPolicy: {automated: {selfHeal: false}}}}')
-    kubectl -n argocd patch application kaneo --type=merge -p "$patch"
-    deployment=$(kubectl get deployment kaneo -o json)
-    printf '%s' "$deployment" | jq -e '
-      .metadata.annotations["restore.sgf.dev/original-replicas"] == null and
-      .metadata.annotations["restore.sgf.dev/owner"] == null' >/dev/null
-    patch=$(printf '%s' "$deployment" | jq --arg owner "$WORKFLOW_OWNER" '{
-      metadata: {resourceVersion: .metadata.resourceVersion, annotations: {
-        "restore.sgf.dev/original-replicas": (.spec.replicas | tostring), "restore.sgf.dev/owner": $owner}},
-      spec: {replicas: 0}}')
-    kubectl patch deployment kaneo --type=merge -p "$patch"
-    if [ -n "$(kubectl get pods -l app.kubernetes.io/name=kaneo -o name)" ]; then
+
+    # Recheck before disruption; scheduled K8up backups do not use the workflow mutex.
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    state=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}{"|"}{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}{"|"}{.spec.syncPolicy.automated.selfHeal}{"|"}{.status.operationState.phase}')
+    IFS='|' read -r managed skipped self_heal operation <<EOF
+    $state
+    EOF
+    if [ -n "$managed" ] || [ -n "$skipped" ] || [ "$self_heal" != true ] || [ "$operation" = Running ]; then
+      echo "Argo CD Application $application is not ready for restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment kaneo -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    if [ -n "$original" ]; then
+      echo "Kaneo deployment has stale restore state." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment kaneo -o jsonpath='{.spec.replicas}')
+    kubectl annotate deployment kaneo restore.sgf.dev/original-replicas="$replicas" --overwrite
+    kubectl -n argocd patch application "$application" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":"true","restore.sgf.dev/managed":"true"}},"spec":{"syncPolicy":{"automated":{"selfHeal":false}}}}'
+    kubectl scale deployment kaneo --replicas=0
+    pods=$(kubectl get pods -l app.kubernetes.io/name=kaneo -o name)
+    if [ -n "$pods" ]; then
       kubectl wait --for=delete pod -l app.kubernetes.io/name=kaneo --timeout=240s
     fi
 
   verify-paused.sh: |
     #!/bin/sh
     set -eu
-    . /scripts/common.sh
-    ensure_idle
-    ensure_owned
-    kubectl get deployment kaneo -o json | jq -e --arg owner "$WORKFLOW_OWNER" '
-      .spec.replicas == 0 and .metadata.annotations["restore.sgf.dev/owner"] == $owner' >/dev/null
-    test -z "$(kubectl get pods -l app.kubernetes.io/name=kaneo -o name)"
+
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    managed=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    skipped=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.argocd\.argoproj\.io/skip-reconcile}')
+    if [ "$managed" != true ] || [ "$skipped" != true ]; then
+      echo "Argo CD did not remain paused." >&2
+      exit 1
+    fi
+    replicas=$(kubectl get deployment kaneo -o jsonpath='{.spec.replicas}')
+    if [ "$replicas" != 0 ]; then
+      echo "Kaneo is not scaled to zero." >&2
+      exit 1
+    fi
+    pods=$(kubectl get pods -l app.kubernetes.io/name=kaneo -o name)
+    if [ -n "$pods" ]; then
+      echo "Kaneo application pods are still running." >&2
+      exit 1
+    fi
+    for backup in $(kubectl get backups.k8up.io -o name); do
+      completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+      if [ "$completed" != True ]; then
+        echo "K8up Backup is still active: $backup" >&2
+        exit 1
+      fi
+    done
 
   restore-database.sh: |
     #!/bin/sh
     set -eu
+
     test -s /restore/kaneo.dump
     pg_restore --list /restore/kaneo.dump >/dev/null
     psql --set=ON_ERROR_STOP=1 <<'SQL'
@@ -139,78 +138,32 @@ data:
     SQL
     pg_restore --clean --if-exists --single-transaction --exit-on-error --no-owner --no-privileges --dbname=kaneo /restore/kaneo.dump
     table_count=$(psql --tuples-only --no-align --command="SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname = 'public';")
-    test "$table_count" -gt 0 || {
-      echo 'Restored database contains no public tables.' >&2
+    if [ "$table_count" -eq 0 ]; then
+      echo "Restored database contains no public tables." >&2
       exit 1
-    }
+    fi
     psql --set=ON_ERROR_STOP=1 --command='ANALYZE' >/dev/null
     echo "Kaneo database restored with $table_count public tables."
-
-  reset-redis.sh: |
-    #!/bin/sh
-    set -eu
-    # Redis is Kaneo's disposable cache/queue, not part of the database snapshot.
-    primary=$(REDISCLI_AUTH="$SENTINEL_PASSWORD" redis-cli --raw \
-      -h kaneo-redis-sentinel-redis-sentinel -p 26379 \
-      SENTINEL get-master-addr-by-name kaneo-redis)
-    host=$(printf '%s\n' "$primary" | sed -n '1p')
-    port=$(printf '%s\n' "$primary" | sed -n '2p')
-    test -n "$host"
-    case "$port" in ""|*[!0-9]*) exit 1 ;; esac
-    test "$port" -ge 1 && test "$port" -le 65535
-    REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli --raw -h "$host" -p "$port" FLUSHDB | grep -qx OK
 
   cleanup-restore.sh: |
     #!/bin/sh
     set -eu
-    if [ "$WORKFLOW_STATUS" != Succeeded ]; then
-      echo 'Restore did not succeed. Leave Kaneo paused if recovery started; inspect before running kaneo-restore-resume.' >&2
-      exit 0
-    fi
-    /scripts/resume.sh
 
-  resume.sh: |
-    #!/bin/sh
-    set -eu
-    . /scripts/common.sh
-    ensure_idle
-    ensure_owned
-    deployment=$(kubectl get deployment kaneo -o json)
-    if [ "${ALLOW_UNCLAIMED_DEPLOYMENT:-false}" = true ] && printf '%s' "$deployment" | jq -e '
-      .metadata.annotations["restore.sgf.dev/owner"] == null and
-      .metadata.annotations["restore.sgf.dev/original-replicas"] == null' >/dev/null; then
-      # The pause failed before claiming the Deployment, or a prior resume already
-      # restored it and cleared its annotations before releasing the Application.
-      kubectl rollout status deployment kaneo --timeout=300s
-      release_application
+    if [ "$WORKFLOW_STATUS" != Succeeded ]; then
+      echo "Restore did not succeed. Kaneo remains paused if restoration started; inspect it before running kaneo-restore-resume." >&2
       exit 0
     fi
-    printf '%s' "$deployment" | jq -e --arg owner "$WORKFLOW_OWNER" '
-      .metadata.annotations["restore.sgf.dev/owner"] == $owner' >/dev/null
-    original=$(printf '%s' "$deployment" | jq -r '.metadata.annotations["restore.sgf.dev/original-replicas"] // ""')
-    case "$original" in ""|*[!0-9]*) echo 'Missing or invalid saved replica count.' >&2; exit 1 ;; esac
+    application=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+    managed=$(kubectl -n argocd get application "$application" -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/managed}')
+    if [ "$managed" != true ]; then
+      echo "Kaneo is not marked as managed by a restore." >&2
+      exit 1
+    fi
+    original=$(kubectl get deployment kaneo -o jsonpath='{.metadata.annotations.restore\.sgf\.dev/original-replicas}')
+    case "$original" in
+      ""|*[!0-9]*) echo "Missing or invalid saved replica count for Kaneo." >&2; exit 1 ;;
+    esac
     kubectl scale deployment kaneo --replicas="$original"
     kubectl rollout status deployment kaneo --timeout=300s
-    ensure_owned
-    deployment=$(kubectl get deployment kaneo -o json)
-    printf '%s' "$deployment" | jq -e --arg owner "$WORKFLOW_OWNER" '
-      .metadata.annotations["restore.sgf.dev/owner"] == $owner' >/dev/null
-    patch=$(printf '%s' "$deployment" | jq '{metadata: {
-      resourceVersion: .metadata.resourceVersion, annotations: {
-        "restore.sgf.dev/original-replicas": null, "restore.sgf.dev/owner": null}}}')
-    kubectl patch deployment kaneo --type=merge -p "$patch"
-    release_application
-
-  manual-resume.sh: |
-    #!/bin/sh
-    set -eu
-    . /scripts/common.sh
-    test "$CONFIRMATION" = 'RESUME kaneo' || {
-      echo 'Confirmation must exactly match: RESUME kaneo' >&2
-      exit 1
-    }
-    # Explicit acknowledgement permits recovery of an earlier workflow's saved state.
-    WORKFLOW_OWNER=$(app_state | jq -er '.metadata.annotations["restore.sgf.dev/owner"] | select(length > 0)')
-    ALLOW_UNCLAIMED_DEPLOYMENT=true
-    export WORKFLOW_OWNER ALLOW_UNCLAIMED_DEPLOYMENT
-    /scripts/resume.sh
+    kubectl -n argocd patch application "$application" --type=merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/skip-reconcile":null,"restore.sgf.dev/managed":null}},"spec":{"syncPolicy":{"automated":{"selfHeal":true}}}}'
+    kubectl annotate deployment kaneo restore.sgf.dev/original-replicas-

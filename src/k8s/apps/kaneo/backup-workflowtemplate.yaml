@@ -8,26 +8,12 @@ spec:
   synchronization:
     mutexes:
       - name: kaneo-maintenance
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-    seccompProfile:
-      type: RuntimeDefault
   activeDeadlineSeconds: 3600
   ttlStrategy:
     secondsAfterCompletion: 86400
   podGC:
     strategy: OnWorkflowCompletion
     deleteDelayDuration: 10m
-  volumes:
-    - name: scripts
-      configMap:
-        name: kaneo-workflow-scripts
-        defaultMode: 0555
-    - name: tmp
-      emptyDir: {}
   templates:
     - name: backup
       steps:
@@ -40,15 +26,16 @@ spec:
     - name: ensure-idle
       container:
         image: alpine/k8s:1.36.2
-        command: [sh, -ec, '. /scripts/common.sh; ensure_ready']
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop: [ALL]
-        env:
-          - name: HOME
-            value: /tmp
+        command: [sh, -ec]
+        args:
+          - |
+            for backup in $(kubectl get backups.k8up.io -o name); do
+              completed=$(kubectl get "$backup" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+              if [ "$completed" != True ]; then
+                echo "Another K8up Backup is still active: $backup" >&2
+                exit 1
+              fi
+            done
         resources:
           requests:
             cpu: 10m
@@ -56,12 +43,6 @@ spec:
           limits:
             cpu: 100m
             memory: 64Mi
-        volumeMounts:
-          - name: scripts
-            mountPath: /scripts
-            readOnly: true
-          - name: tmp
-            mountPath: /tmp
     - name: create
       resource:
         action: create
@@ -78,7 +59,6 @@ spec:
             promURL: http://prometheus-pushgateway.observability.svc.cluster.local:9091
             tags:
               - kaneo
-              - "kaneo-run-{{workflow.uid}}"
             labelSelectors:
               - matchLabels:
                   backup.k8up.io/app: kaneo
@@ -98,17 +78,16 @@ spec:
     - name: wait
       container:
         image: alpine/k8s:1.36.2
-        command: [/scripts/wait-backup.sh]
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop: [ALL]
-        env:
-          - name: HOME
-            value: /tmp
-          - name: BACKUP_NAME
-            value: "{{workflow.name}}"
+        command: [sh, -ec]
+        args:
+          - |
+            backup={{workflow.name}}
+            kubectl wait --for=condition=Completed "backups.k8up.io/$backup" --timeout=3500s
+            kubectl get "backups.k8up.io/$backup" -o json | jq -e '
+              any(.status.conditions[]?; .type == "Completed" and .status == "True" and
+                .reason == "Succeeded" and ((.message // "" | ascii_downcase | contains("nothing to backup")) | not)) and
+              any(.status.conditions[]?; .type == "PreBackupPodReady" and .status == "True" and
+                .reason != "NoPreBackupPodsFound")' >/dev/null
         resources:
           requests:
             cpu: 10m
@@ -116,9 +95,3 @@ spec:
           limits:
             cpu: 100m
             memory: 64Mi
-        volumeMounts:
-          - name: scripts
-            mountPath: /scripts
-            readOnly: true
-          - name: tmp
-            mountPath: /tmp
