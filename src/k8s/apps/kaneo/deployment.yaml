@@ -16,8 +16,6 @@ spec:
       app.kubernetes.io/name: kaneo
   template:
     metadata:
-      annotations:
-        eks.amazonaws.com/skip-containers: prepare-web-assets
       labels:
         app.kubernetes.io/name: kaneo
     spec:
@@ -38,41 +36,9 @@ spec:
                 matchLabels:
                   app.kubernetes.io/name: kaneo
               topologyKey: kubernetes.io/hostname
-      initContainers:
-        - name: prepare-web-assets
-          image: ghcr.io/usekaneo/kaneo:2.46.2@sha256:f44be9aa22546f95c59076bee86678bffcaf5e5d4b960c58a107ad1a05cd1f90
-          imagePullPolicy: IfNotPresent
-          command:
-            - /bin/sh
-            - -ec
-          args:
-            - |
-              cp -r /usr/share/nginx/html/. /work/html/
-              cp -r /etc/nginx/conf.d/. /work/nginx-conf/
-              mkdir -p /work/nginx-lib/logs /work/nginx-lib/tmp
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            readOnlyRootFilesystem: true
-          volumeMounts:
-            - name: web-assets
-              mountPath: /work/html
-            - name: nginx-config
-              mountPath: /work/nginx-conf
-            - name: nginx-lib
-              mountPath: /work/nginx-lib
-          resources:
-            requests:
-              cpu: 10m
-              memory: 16Mi
-            limits:
-              cpu: 100m
-              memory: 64Mi
       containers:
         - name: kaneo
-          image: ghcr.io/usekaneo/kaneo:2.46.2@sha256:f44be9aa22546f95c59076bee86678bffcaf5e5d4b960c58a107ad1a05cd1f90
+          image: ghcr.io/usekaneo/kaneo:2.47.1@sha256:880b2df38fe5385032c9772c8989182d45029bc1f1711a3cb9489b94f482848d
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -81,18 +47,8 @@ spec:
                 - ALL
             readOnlyRootFilesystem: true
           volumeMounts:
-            - name: web-assets
-              mountPath: /usr/share/nginx/html
-            - name: nginx-config
-              mountPath: /etc/nginx/conf.d
-            - name: nginx-cache
-              mountPath: /var/cache/nginx
-            - name: nginx-run
-              mountPath: /var/run
-            - name: nginx-log
-              mountPath: /var/log/nginx
-            - name: nginx-lib
-              mountPath: /var/lib/nginx
+            - name: runtime
+              mountPath: /var/lib/kaneo
             - name: tmp
               mountPath: /tmp
           ports:
@@ -192,17 +148,7 @@ spec:
               cpu: "1"
               memory: 1Gi
       volumes:
-        - name: web-assets
-          emptyDir: {}
-        - name: nginx-config
-          emptyDir: {}
-        - name: nginx-cache
-          emptyDir: {}
-        - name: nginx-run
-          emptyDir: {}
-        - name: nginx-log
-          emptyDir: {}
-        - name: nginx-lib
+        - name: runtime
           emptyDir: {}
         - name: tmp
           emptyDir: {}
