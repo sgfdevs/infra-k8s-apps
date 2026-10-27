@@ -43,3 +43,4 @@ configMapGenerator:
     files:
       - backup.sh=clickhouse/backup.sh
       - restore.sh=clickhouse/restore.sh
+      - repair-dictionaries.sh=clickhouse/repair-dictionaries.sh

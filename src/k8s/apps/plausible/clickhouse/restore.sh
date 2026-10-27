@@ -21,3 +21,5 @@ if [ "$count" != 2 ]; then
   echo "Restored ClickHouse database is missing analytics tables." >&2
   exit 1
 fi
+
+sh "$(dirname "$0")/repair-dictionaries.sh"
