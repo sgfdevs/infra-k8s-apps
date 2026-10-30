@@ -41,7 +41,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: server
-          image: twentycrm/twenty:v2.51.0@sha256:91793759486e63768b28cc7bebe6c06d73f5a604cdb8cc7d7b54f862542714be
+          image: twentycrm/twenty:v2.53.1@sha256:d975ae730bbb270f803d298609c10ac30a686fd098b0b7937ce5e6bf3a4ef68b
           args: ["node", "dist/main"]
           envFrom:
             - configMapRef:
@@ -146,7 +146,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: worker
-          image: twentycrm/twenty:v2.51.0@sha256:91793759486e63768b28cc7bebe6c06d73f5a604cdb8cc7d7b54f862542714be
+          image: twentycrm/twenty:v2.53.1@sha256:d975ae730bbb270f803d298609c10ac30a686fd098b0b7937ce5e6bf3a4ef68b
           args: ["node", "dist/queue-worker/queue-worker"]
           envFrom:
             - configMapRef:
