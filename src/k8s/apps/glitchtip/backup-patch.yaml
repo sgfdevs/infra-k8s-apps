@@ -28,7 +28,7 @@
   value: false
 - op: replace
   path: /spec/pod/spec/containers/0/image
-  value: alpine/k8s:1.36.2
+  value: alpine/k8s:1.37.1
 - op: replace
   path: /spec/pod/spec/containers/0/resources
   value:

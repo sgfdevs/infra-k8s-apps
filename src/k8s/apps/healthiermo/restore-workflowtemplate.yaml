@@ -51,7 +51,7 @@ spec:
             template: restore-data
     - name: validate
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/validate-restore.sh]
         env:
           - name: SNAPSHOT_ID
@@ -75,7 +75,7 @@ spec:
             defaultMode: 0555
     - name: download
       container:
-        image: restic/restic:0.18.1
+        image: restic/restic:0.19.1
         command: [/scripts/download-restore.sh]
         env:
           - name: SNAPSHOT_ID
@@ -116,7 +116,7 @@ spec:
             defaultMode: 0555
     - name: pause
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/pause-restore.sh]
         resources:
           requests:
@@ -135,7 +135,7 @@ spec:
             defaultMode: 0555
     - name: verify-paused
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/verify-paused.sh]
         resources:
           requests:
@@ -210,7 +210,7 @@ spec:
           emptyDir: {}
     - name: cleanup
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/cleanup-restore.sh]
         env:
           - name: WORKFLOW_STATUS

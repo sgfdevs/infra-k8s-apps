@@ -32,7 +32,7 @@ spec:
             template: restore-database
     - name: prepare
       container:
-        image: alpine:3.22.1
+        image: alpine:3.24.3
         command: [/scripts/prepare-restore.sh]
         env:
           - name: TARGET_NAMESPACE
@@ -60,7 +60,7 @@ spec:
             defaultMode: 0555
     - name: restore-database
       container:
-        image: alpine:3.22.1
+        image: alpine:3.24.3
         command: [/scripts/restore.sh]
         env:
           - name: TARGET_NAMESPACE
@@ -110,7 +110,7 @@ spec:
             claimName: sgf-dev-data
     - name: cleanup
       container:
-        image: alpine:3.22.1
+        image: alpine:3.24.3
         command: [/scripts/cleanup-restore.sh]
         env:
           - name: TARGET_NAMESPACE

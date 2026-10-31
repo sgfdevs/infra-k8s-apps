@@ -31,7 +31,7 @@ server:
       readOnly: true
   extraInitContainers:
     - name: fetch-unseal-key
-      image: amazon/aws-cli:2.35.16
+      image: amazon/aws-cli:2.39.3
       command: ["/bin/sh", "-c"]
       args:
         - |
