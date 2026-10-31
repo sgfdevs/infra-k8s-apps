@@ -33,7 +33,7 @@ spec:
         # Native sidecar starts before initialization and stops after oCIS.
         # Only this container receives the projected AWS web-identity token.
         - name: s3-signing-proxy
-          image: public.ecr.aws/aws-observability/aws-sigv4-proxy:1.13@sha256:d16d88cf00c59d14e47c5d837537349bfa96d9b750e1d7b7218156071eea9766
+          image: public.ecr.aws/aws-observability/aws-sigv4-proxy:1.13.1@sha256:d9e62d98e8a1fc8ba8859f491a5792f9134c453a38cc4f529145149eb255bfb9
           restartPolicy: Always
           args:
             - --port=127.0.0.1:8080

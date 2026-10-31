@@ -25,7 +25,7 @@ spec:
             template: wait
     - name: ensure-idle
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [sh, -ec]
         args:
           - |
@@ -81,7 +81,7 @@ spec:
                   key: account-key
     - name: wait
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [sh, -ec]
         args:
           - |

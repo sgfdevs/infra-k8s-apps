@@ -42,7 +42,7 @@ spec:
             template: restore-database
     - name: prepare
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/prepare-restore.sh]
         env:
           - name: SNAPSHOT_ID
@@ -66,7 +66,7 @@ spec:
             defaultMode: 0555
     - name: download
       container:
-        image: restic/restic:0.18.1
+        image: restic/restic:0.19.1
         command: [/scripts/download-restore.sh]
         env:
           - name: SNAPSHOT_ID
@@ -107,7 +107,7 @@ spec:
             defaultMode: 0555
     - name: verify-paused
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/verify-paused.sh]
         resources:
           requests:
@@ -161,7 +161,7 @@ spec:
             defaultMode: 0555
     - name: cleanup
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/cleanup-restore.sh]
         resources:
           requests:

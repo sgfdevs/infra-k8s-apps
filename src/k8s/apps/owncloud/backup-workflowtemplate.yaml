@@ -47,7 +47,7 @@ spec:
             template: wait
     - name: pause
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/pause.sh]
         securityContext:
           allowPrivilegeEscalation: false
@@ -74,7 +74,7 @@ spec:
             mountPath: /tmp
     - name: verify-paused
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/verify-paused.sh]
         securityContext:
           allowPrivilegeEscalation: false
@@ -182,7 +182,7 @@ spec:
                   key: account-key
     - name: wait
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/wait-backup.sh]
         securityContext:
           allowPrivilegeEscalation: false
@@ -211,7 +211,7 @@ spec:
             mountPath: /tmp
     - name: resume
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/resume.sh]
         securityContext:
           allowPrivilegeEscalation: false
@@ -240,7 +240,7 @@ spec:
             mountPath: /tmp
     - name: cleanup
       container:
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [/scripts/cleanup-backup.sh]
         securityContext:
           allowPrivilegeEscalation: false

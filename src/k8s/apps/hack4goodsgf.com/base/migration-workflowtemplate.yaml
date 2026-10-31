@@ -114,7 +114,7 @@ spec:
           - name: image
             value: ""
       container: &control-container
-        image: alpine/k8s:1.36.2
+        image: alpine/k8s:1.37.1
         command: [bash, /scripts/migration-control.sh]
         args: ["{{inputs.parameters.operation}}", "{{inputs.parameters.image}}"]
         env:
