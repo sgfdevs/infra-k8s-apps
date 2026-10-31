@@ -10,7 +10,7 @@ spec:
   sources:
     - chart: dex
       repoURL: https://charts.dexidp.io
-      targetRevision: 0.24.1
+      targetRevision: 0.26.0
       helm:
         values: |
           image:

@@ -30,7 +30,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: thanos-store
-          image: quay.io/thanos/thanos:v0.42.4
+          image: quay.io/thanos/thanos:v0.42.5
           args:
             - store
             - --enable-auto-gomemlimit
