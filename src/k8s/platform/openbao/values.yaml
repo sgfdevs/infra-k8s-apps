@@ -4,7 +4,7 @@ csi:
   enabled: false
 server:
   image:
-    tag: "2.7.1"
+    tag: "2.7.2"
   updateStrategyType: RollingUpdate
   podManagementPolicy: Parallel
   ha:

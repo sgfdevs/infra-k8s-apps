@@ -54,7 +54,7 @@ spec:
       containers:
         - name: webhook
           # Includes aws/amazon-eks-pod-identity-webhook#310 for AdmissionReview v1 support.
-          image: public.ecr.aws/eks/amazon-eks-pod-identity-webhook@sha256:56b48fceffad3d2ded0b1a57808ae6ef6bd47068352fda0eccc8cfb3dd5b8320
+          image: public.ecr.aws/eks/amazon-eks-pod-identity-webhook:v0.6.19@sha256:160ec19c2222016fa28db5e5269b233368ac788ed2d76479a2730cabff3cf693
           imagePullPolicy: IfNotPresent
           command: ["/webhook"]
           args:

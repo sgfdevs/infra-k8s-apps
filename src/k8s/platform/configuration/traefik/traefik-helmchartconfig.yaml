@@ -28,7 +28,7 @@ spec:
             type: CharDevice
       additionalContainers:
         - name: cloudflared-sgfdevs
-          image: cloudflare/cloudflared:2026.10.6
+          image: cloudflare/cloudflared:2026.10.7
           imagePullPolicy: IfNotPresent
           command:
             - cloudflared
@@ -95,7 +95,7 @@ spec:
               cpu: 200m
               memory: 128Mi
         - name: cloudflared-opensgf
-          image: cloudflare/cloudflared:2026.10.6
+          image: cloudflare/cloudflared:2026.10.7
           imagePullPolicy: IfNotPresent
           command:
             - cloudflared
@@ -269,7 +269,7 @@ spec:
       plugins:
         bouncer:
           moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
-          version: v1.7.1
+          version: v1.8.1
     volumes:
       - name: crowdsec-bouncer-key
         mountPath: /etc/traefik/crowdsec

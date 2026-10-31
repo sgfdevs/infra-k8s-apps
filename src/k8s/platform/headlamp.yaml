@@ -10,7 +10,7 @@ spec:
   sources:
     - chart: headlamp
       repoURL: https://kubernetes-sigs.github.io/headlamp/
-      targetRevision: 0.45.0
+      targetRevision: 0.46.0
       helm:
         values: |
           replicaCount: 2
@@ -50,7 +50,7 @@ spec:
             enabled: false
           pluginsManager:
             enabled: true
-            baseImage: node:26.12.1
+            baseImage: node:26.13.0
             configContent: |
               plugins:
                 - name: cert-manager
