@@ -10,6 +10,11 @@ spec:
     initdb:
       database: seaweedfs
       owner: seaweedfs
+  postgresql:
+    parameters:
+      tcp_keepalives_idle: "60"
+      tcp_keepalives_interval: "15"
+      tcp_keepalives_count: "4"
   storage:
     size: 5Gi
     storageClass: local-path
