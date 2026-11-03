@@ -8,6 +8,9 @@ spec:
   imagePullPolicy: IfNotPresent
   pvReclaimPolicy: Retain
   volumeServerDiskCount: 1
+  securityConfig:
+    jwtSigning:
+      filerWrite: true
   master:
     replicas: 3
     defaultReplication: "001"
@@ -69,6 +72,12 @@ spec:
             key: password
       - name: WEED_POSTGRES2_SSLMODE
         value: disable
+      - name: WEED_POSTGRES2_CONNECTION_MAX_OPEN
+        value: "25"
+      - name: WEED_POSTGRES2_CONNECTION_MAX_IDLE
+        value: "25"
+      - name: WEED_POSTGRES2_CONNECTION_MAX_LIFETIME_SECONDS
+        value: "300"
     affinity:
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
