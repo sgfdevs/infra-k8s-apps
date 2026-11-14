@@ -31,7 +31,7 @@ spec:
   terminationPolicy: Delete
   componentSpecs:
     - name: redis
-      componentDef: redis-8-1.0.2
+      componentDef: redis-8-1.0.4
       serviceVersion: 8.2.3
       replicas: 2
       systemAccounts:
@@ -66,7 +66,7 @@ spec:
                     apps.kubeblocks.io/component-name: redis
                 topologyKey: kubernetes.io/hostname
     - name: redis-sentinel
-      componentDef: redis-sentinel-8-1.0.2
+      componentDef: redis-sentinel-8-1.0.4
       serviceVersion: 8.2.3
       replicas: 3
       systemAccounts:

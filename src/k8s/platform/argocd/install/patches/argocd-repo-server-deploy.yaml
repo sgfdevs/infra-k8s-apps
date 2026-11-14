@@ -15,6 +15,13 @@ spec:
               memory: 128Mi
       containers:
         - name: argocd-repo-server
+          env:
+            - name: ARGOCD_REPO_SERVER_MAX_COMBINED_DIRECTORY_MANIFESTS_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: reposerver.max.combined.directory.manifests.size
+                  optional: false
           resources:
             requests:
               cpu: 25m
