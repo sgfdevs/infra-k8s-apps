@@ -19,8 +19,6 @@ spec:
         autoInstalledAddons:
           - mysql
           - redis
-        # This operator release bundles MySQL 1.0.3 and Redis 1.0.4.
-        upgradeAddons: true
         dataProtection:
           enabled: false
         storageClass:
