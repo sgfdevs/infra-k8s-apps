@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/apecloud/kubeblocks.git
     path: config/crd/bases
-    targetRevision: v1.0.2
+    targetRevision: v1.0.3-beta.22
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:

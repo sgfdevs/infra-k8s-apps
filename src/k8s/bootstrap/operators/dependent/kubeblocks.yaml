@@ -10,7 +10,7 @@ spec:
   source:
     chart: kubeblocks
     repoURL: https://apecloud.github.io/helm-charts
-    targetRevision: 1.0.2
+    targetRevision: 1.0.3-beta.22
     helm:
       values: |
         # The admission policy lowers requests without changing the chart's CPU limit.
@@ -19,6 +19,8 @@ spec:
         autoInstalledAddons:
           - mysql
           - redis
+        # This operator release bundles MySQL 1.0.3 and Redis 1.0.4.
+        upgradeAddons: true
         dataProtection:
           enabled: false
         storageClass:
