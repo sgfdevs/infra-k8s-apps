@@ -13,6 +13,16 @@ spec:
     targetRevision: 1.0.3-beta.22
     helm:
       values: |
+        replicaCount: 2
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: apps
+                    app.kubernetes.io/instance: kubeblocks
+                    app.kubernetes.io/name: kubeblocks
+                topologyKey: kubernetes.io/hostname
         # The admission policy lowers requests without changing the chart's CPU limit.
         podAnnotations:
           infra.sgf.dev/manager-cpu-request: 50m
